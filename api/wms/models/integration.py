@@ -85,3 +85,6 @@ class InboundMessage(Base):
     status_code: Mapped[int] = mapped_column(Integer)
     response: Mapped[dict] = mapped_column(JSONB)
     received_at: Mapped[datetime] = created_at_column()
+    # how many times the same message_id came back, and when it last did
+    duplicates: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_duplicate_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

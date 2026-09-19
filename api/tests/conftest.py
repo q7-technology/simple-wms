@@ -140,3 +140,38 @@ def listener():
     )
     server.shutdown()
     server.server_close()
+
+
+@pytest.fixture
+def admin(db):
+    from wms.models import User
+    from wms.services.access import hash_password
+
+    user = User(username="leighton", display_name="Leighton L.", role="admin",
+                warehouses=["*"], password_hash=hash_password("correct horse"))
+    db.add(user)
+    db.commit()
+    return user
+
+
+@pytest.fixture
+def picker(db):
+    from wms.models import User
+    from wms.services.access import hash_password
+
+    user = User(username="sam", display_name="Sam K.", role="picker",
+                warehouses=["BAL-WH01"], password_hash=hash_password("pick pick"))
+    db.add(user)
+    db.commit()
+    return user
+
+
+def login(client, username, password):
+    r = client.post("/v1/auth/login", json={"username": username, "password": password})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+@pytest.fixture
+def user_headers(client, admin):
+    return {"Authorization": f"Bearer {login(client, 'leighton', 'correct horse')['token']}"}

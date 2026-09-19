@@ -6,10 +6,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from wms.api import envelope
-from wms.api.deps import DB, authorise, require
+from wms.api.deps import DB, Principal, authorise, require
 from wms.api.errors import FieldError, NotFound
 from wms.api.schemas import BarcodeOut, Page, ProductIn, ProductOut
-from wms.models import ApiClient, Product, ProductBarcode
+from wms.models import Product, ProductBarcode
 
 router = APIRouter(tags=["products"])
 
@@ -27,8 +27,8 @@ def product_out(p: Product) -> ProductOut:
 
 @router.post("/products", status_code=202, response_model=envelope.Accepted)
 def upsert_product(body: ProductIn, request: Request, db: DB,
-                   client: ApiClient = require("master:write")):
-    authorise(client, warehouse=None, owner=body.owner)
+                   who: Principal = require("master:write")):
+    authorise(who, warehouse=None, owner=body.owner)
 
     def work():
         product = db.execute(
@@ -72,16 +72,16 @@ def upsert_product(body: ProductIn, request: Request, db: DB,
         db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(product.id), status=status)
 
-    return envelope.handle(db, client, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work)
 
 
 @router.get("/products", response_model=Page[ProductOut])
 def list_products(
     db: DB, owner: str = "DEFAULT", q: str | None = None, active: bool | None = None,
     limit: int = Query(default=200, le=5000), offset: int = 0,
-    client: ApiClient = require("master:read"),
+    who: Principal = require("master:read"),
 ):
-    authorise(client, warehouse=None, owner=owner)
+    authorise(who, warehouse=None, owner=owner)
     query = select(Product).options(selectinload(Product.barcodes)).where(Product.owner == owner)
     if q:
         like = f"%{q}%"
@@ -94,8 +94,8 @@ def list_products(
 
 
 @router.get("/products/{sku}", response_model=ProductOut)
-def get_product(sku: str, db: DB, owner: str = "DEFAULT", client: ApiClient = require("master:read")):
-    authorise(client, warehouse=None, owner=owner)
+def get_product(sku: str, db: DB, owner: str = "DEFAULT", who: Principal = require("master:read")):
+    authorise(who, warehouse=None, owner=owner)
     product = db.execute(
         select(Product).options(selectinload(Product.barcodes))
         .where(Product.owner == owner, Product.sku == sku)

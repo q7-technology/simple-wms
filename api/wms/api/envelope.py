@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from wms.config import get_settings
-from wms.models import ApiClient, InboundMessage
+from wms.models import InboundMessage
 
 
 class Envelope(BaseModel):
@@ -42,21 +42,27 @@ def _lookup(db: Session, message_id: uuid.UUID) -> InboundMessage | None:
     return row
 
 
+def _replay(db: Session, existing: InboundMessage) -> JSONResponse:
+    existing.duplicates += 1
+    existing.last_duplicate_at = datetime.now(UTC)
+    db.commit()
+    return JSONResponse(status_code=existing.status_code, content=existing.response)
+
+
 def handle(
-    db: Session, client: ApiClient, message_id: uuid.UUID, path: str,
-    work: Callable[[], Accepted],
+    db: Session, who, message_id: uuid.UUID, path: str, work: Callable[[], Accepted],
 ) -> JSONResponse:
     """Run `work` once per message_id. A repeat returns the original reply
     and does nothing. The reply is stored in the same transaction as the work,
     so either both land or neither does."""
     existing = _lookup(db, message_id)
     if existing is not None:
-        return JSONResponse(status_code=existing.status_code, content=existing.response)
+        return _replay(db, existing)
 
     reply = work()
     content = reply.model_dump(mode="json")
     db.add(InboundMessage(
-        message_id=message_id, api_client_id=client.id, path=path,
+        message_id=message_id, api_client_id=who.api_client_id, path=path,
         status_code=202, response=content,
     ))
     try:
@@ -67,5 +73,5 @@ def handle(
         existing = _lookup(db, message_id)
         if existing is None:
             raise
-        return JSONResponse(status_code=existing.status_code, content=existing.response)
+        return _replay(db, existing)
     return JSONResponse(status_code=202, content=content)

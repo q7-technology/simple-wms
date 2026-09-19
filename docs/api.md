@@ -332,19 +332,116 @@ used in more than one warehouse). Filters: `batch`, `owner`.
 ```
 Quantities are returned as decimal strings so nothing rounds them.
 
+### GET /v1/stock/ledger — the movements behind a balance
+Newest first. Filters: `sku`, `location`, `warehouse`, `batch`, `owner`,
+`movement_type`, `limit`, `offset`. Each row is one signed change at one
+location, so a move is two rows.
+```json
+{ "items": [{
+  "wms_id": "889201", "at": "2026-09-19T04:12:00Z",
+  "movement_type": "adjustment", "reason": "count_variance",
+  "warehouse": "BAL-WH01", "location": "PF-01-02-A", "zone": "PICKFACE",
+  "sku": "ABC123", "batch": null, "owner": "DEFAULT",
+  "qty_change": "-2", "uom": "EA", "received_at": "2026-08-30",
+  "actor": "op-017", "device": "SCN-BAL-07", "task_id": "4411",
+  "external_ref": null, "container_id": null, "note": null
+}], "total": 1 }
+```
+
 ### Also
 - `GET /v1/health` — `{ "status": "ok" }` once the database answers.
 - `POST /v1/imports/{type}` — CSV upload with preview (`dry_run: true`).
 - `POST /v1/auth/scanner-login` — `{ device_id, operator_id, pin, warehouse }`
   → `{ token, expires_in, operator, warehouses }`.
-- `POST /v1/api-clients` — `{ name, scopes, warehouses, owner, ip_allowlist }`.
-  The first key is made on the host with `wms create-api-client`.
+
+## Desktop sign in and admin
+
+These are called by a signed-in person, not by another system, so they are
+plain REST (201 on create, 200 otherwise) and do not carry the message
+envelope. Everything they change is written to the audit log.
+
+### POST /v1/auth/login
+```json
+{ "username": "leighton", "password": "..." }
+```
+```json
+{ "token": "wms_s....", "expires_in": 900, "refresh_token": "wms_r....",
+  "user": { "wms_id": "1", "username": "leighton", "display_name": "Leighton L.",
+            "role": "admin", "warehouses": ["*"] } }
+```
+The token goes in `Authorization: Bearer` like an API key and lasts 15
+minutes. `POST /v1/auth/refresh` with `{ "refresh_token" }` returns a new pair
+and spends the old refresh token (14 day life, rotates on every use).
+`POST /v1/auth/logout` with the refresh token ends the session. `GET
+/v1/auth/me` returns the caller and their scopes. A wrong password is `401`
+and an audit row; so is a deactivated user.
+
+Roles and what they may do: `admin` everything; `supervisor` master data,
+stock, tasks, read integrations and users; `inventory_controller` master
+data, stock, tasks; `receiver` and `picker` read master data and stock, work
+tasks.
+
+### Warehouse settings
+`GET /v1/warehouses/{code}` returns the warehouse with every switch filled in
+from defaults. `PATCH /v1/warehouses/{code}/settings` merges the keys sent:
+```json
+{ "erp_counts_gr": true, "receipt_tolerance_pct": 10, "idle_logout_minutes": 15 }
+```
+Keys: `erp_counts_gr`, `batch_from_production_order`, `receipt_tolerance_pct`,
+`supplier_tolerance_pct`, `allow_ship_short`, `supervisor_for_short_pick`,
+`auto_pick_mode` (`single`/`batch`/`auto`), `batch_pick_max_orders`,
+`idle_logout_minutes`, `pin_lockout_tries`, `known_devices_only`,
+`queue_offline_confirmations`, `fifo_by_received_date`, `blind_counts`,
+`decimals_allowed`, `platen_url`, `retry_failed_print_jobs`, `default_copies`,
+`ledger_retention_years`, `duplicate_window_hours`, `allow_hard_deletes`
+(always false; `422` if you try).
+
+### API clients (keys)
+- `POST /v1/api-clients` — `{ name, scopes, warehouses, owner, ip_allowlist }`
+  → `201` with the key in `key`, shown this once. Hash stored.
+- `GET /v1/api-clients` — each with `key_prefix`, `last_used_at`,
+  `duplicates_24h` and `last_duplicate_at` (repeated message ids seen).
+- `POST /v1/api-clients/{id}/rotate` — new key returned once; old one dead.
+- `POST /v1/api-clients/{id}/revoke` — deactivates. Never deleted.
+Needs the `integration:admin` scope (`integration:read` to list).
+
+### Subscribers
+- `POST /v1/subscribers` — `{ name, url, secret?, event_types, warehouses,
+  owner, active }`. Creates or updates by name. `event_types` takes exact
+  names, `transfer.*` or `*`. On create the HMAC `secret` is generated if not
+  given and returned once (`201`); on update it is never returned (`200`).
+- `GET /v1/subscribers` — with `status` (`idle`, `ok`, `retrying`, `failed`),
+  `last_delivery_at`, `pending` and `failed` counts.
+
+### Event queue
+- `GET /v1/events` — newest first. Filters `status`, `subscriber`,
+  `event_type`, `external_ref`, `limit`, `offset`. Each row: `event_id`,
+  `event_type`, `subscriber`, `attempts`, `next_attempt_at`, `status`,
+  `last_error`, `delivered_at`, `external_ref`.
+- `POST /v1/events/{id}/retry` — "retry now": back to pending, attempts reset.
+
+### Users, operators and devices
+- `POST /v1/users` — `{ username, display_name, email, role, warehouses,
+  password }` (12 characters minimum). `GET /v1/users`. `PATCH /v1/users/{id}`.
+  `POST /v1/users/{id}/deactivate`, `/reactivate`, `/password`. You cannot
+  deactivate yourself.
+- `POST /v1/operators` — `{ code, name, pin, badge, roles, warehouses }`;
+  roles from `picker`, `packer`, `receiver`, `counter`, `supervisor`. `GET`,
+  `PATCH /{id}`, `POST /{id}/reset-pin` `{ pin }`, `/unlock`, `/deactivate`,
+  `/reactivate`. PINs are hashed; never returned.
+- `POST /v1/devices` — `{ code, name, warehouse }` registers a scanner (or
+  updates by code). `GET /v1/devices`. `POST /v1/devices/{id}/deactivate`.
+- `GET /v1/audit-log` — insert-only. Newest first. Filters `actor`, `action`
+  (prefix), `limit`, `offset`.
+Needs `access:admin` to change, `access:read` to list.
 
 ### Scopes
 A key carries a list of scopes, `area:verb` or `area:*` or `*`:
 `master:read`, `master:write`, `stock:read`, `stock:write`, `tasks:read`,
-`tasks:write`, `integration:admin`. It also carries the warehouse codes it may
-touch (or `*`) and one owner (or `*`). A call outside any of those is `403`.
+`tasks:write`, `integration:read`, `integration:admin`, `access:read`,
+`access:admin`. It also carries the warehouse codes it may touch (or `*`)
+and one owner (or `*`). A signed-in person gets scopes from their role and
+warehouses from their account. A call outside any of those is `403`.
 A missing or unknown key is `401`.
 
 ## Outbound events

@@ -21,6 +21,12 @@ class NotFound(Exception):
         super().__init__(message)
 
 
+class Unauthorised(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
 class Forbidden(Exception):
     def __init__(self, message: str):
         self.message = message
@@ -49,6 +55,11 @@ def install(app: FastAPI) -> None:
     @app.exception_handler(NotFound)
     async def _not_found(request: Request, exc: NotFound):
         return JSONResponse(status_code=404, content={"detail": exc.message})
+
+    @app.exception_handler(Unauthorised)
+    async def _unauthorised(request: Request, exc: Unauthorised):
+        return JSONResponse(status_code=401, content={"detail": exc.message},
+                            headers={"WWW-Authenticate": "Bearer"})
 
     @app.exception_handler(Forbidden)
     async def _forbidden(request: Request, exc: Forbidden):

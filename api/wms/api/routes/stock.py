@@ -4,14 +4,13 @@ from __future__ import annotations
 from decimal import Decimal
 
 from fastapi import APIRouter, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from wms.api.deps import DB, authorise, require
+from wms.api.deps import DB, Principal, authorise, require
 from wms.api.errors import FieldError, NotFound
 from wms.api.schemas import StockAtLocation, StockAtShelf, StockBySku, StockLine
-from wms.models import ApiClient, Location, Product, StockBalance, Warehouse
-from wms.services.access import allows_warehouse
+from wms.models import Location, Product, StockBalance, Warehouse
 
 router = APIRouter(tags=["stock"])
 
@@ -19,9 +18,9 @@ router = APIRouter(tags=["stock"])
 @router.get("/stock", response_model=StockBySku)
 def where_is_it(
     db: DB, sku: str = Query(), warehouse: str | None = None, batch: str | None = None,
-    owner: str = "DEFAULT", client: ApiClient = require("stock:read"),
+    owner: str = "DEFAULT", who: Principal = require("stock:read"),
 ):
-    authorise(client, warehouse=warehouse, owner=owner)
+    authorise(who, warehouse=warehouse, owner=owner)
     product = db.execute(
         select(Product).where(Product.owner == owner, Product.sku == sku)
     ).scalar_one_or_none()
@@ -39,7 +38,7 @@ def where_is_it(
         q = q.join(Warehouse, Warehouse.id == StockBalance.warehouse_id).where(Warehouse.code == warehouse)
     if batch:
         q = q.where(StockBalance.batch == batch)
-    rows = [r for r in db.execute(q).scalars() if allows_warehouse(client, r.location.warehouse.code)]
+    rows = [r for r in db.execute(q).scalars() if who.allows_warehouse(r.location.warehouse.code)]
     rows.sort(key=lambda r: (r.received_at is None, r.received_at, r.location.code))
 
     locations = [
@@ -80,10 +79,10 @@ def resolve_location(db, ref: str, warehouse: str | None) -> Location:
 @router.get("/locations/{ref}/stock", response_model=StockAtShelf)
 def what_is_here(
     ref: str, db: DB, warehouse: str | None = None, batch: str | None = None,
-    owner: str | None = None, client: ApiClient = require("stock:read"),
+    owner: str | None = None, who: Principal = require("stock:read"),
 ):
     loc = resolve_location(db, ref, warehouse)
-    authorise(client, warehouse=loc.warehouse.code, owner=owner)
+    authorise(who, warehouse=loc.warehouse.code, owner=owner)
     q = (
         select(StockBalance).options(selectinload(StockBalance.product))
         .where(StockBalance.location_id == loc.id, StockBalance.on_hand != 0)
@@ -93,7 +92,7 @@ def what_is_here(
     if owner:
         q = q.where(StockBalance.owner == owner)
     rows = db.execute(q).scalars().all()
-    rows = [r for r in rows if r.owner == client.owner or client.owner == "*"]
+    rows = [r for r in rows if who.allows_owner(r.owner)]
     rows.sort(key=lambda r: (r.product.sku, r.received_at is None, r.received_at, r.batch or ""))
     return StockAtShelf(
         wms_id=str(loc.id), warehouse=loc.warehouse.code, location=loc.code, zone=loc.zone.code,
@@ -106,3 +105,75 @@ def what_is_here(
             for r in rows
         ],
     )
+
+
+# --- ledger ---------------------------------------------------------------
+
+from datetime import datetime  # noqa: E402
+
+from pydantic import BaseModel  # noqa: E402
+
+from wms.api.schemas import Page, Qty  # noqa: E402
+from wms.models import StockLedger, Zone  # noqa: E402
+
+
+class LedgerOut(BaseModel):
+    wms_id: str
+    at: datetime
+    movement_type: str
+    reason: str | None
+    warehouse: str
+    location: str
+    zone: str
+    sku: str
+    batch: str | None
+    owner: str
+    qty_change: Qty
+    uom: str
+    received_at: datetime | None
+    actor: str
+    device: str | None
+    task_id: str | None
+    external_ref: str | None
+    container_id: str | None
+    note: str | None
+
+
+@router.get("/stock/ledger", response_model=Page[LedgerOut])
+def ledger(
+    db: DB, sku: str | None = None, location: str | None = None, warehouse: str | None = None,
+    batch: str | None = None, owner: str = "DEFAULT", movement_type: str | None = None,
+    limit: int = Query(default=100, le=1000), offset: int = 0,
+    who: Principal = require("stock:read"),
+):
+    """Newest first. Nothing here is ever overwritten."""
+    authorise(who, warehouse=warehouse, owner=owner)
+    q = (
+        select(StockLedger, Product, Location, Zone, Warehouse)
+        .join(Product, Product.id == StockLedger.product_id)
+        .join(Location, Location.id == StockLedger.location_id)
+        .join(Zone, Zone.id == Location.zone_id)
+        .join(Warehouse, Warehouse.id == StockLedger.warehouse_id)
+        .where(StockLedger.owner == owner)
+    )
+    if sku:
+        q = q.where(Product.sku == sku)
+    if location:
+        q = q.where(Location.code == location)
+    if warehouse:
+        q = q.where(Warehouse.code == warehouse)
+    if batch:
+        q = q.where(StockLedger.batch == batch)
+    if movement_type:
+        q = q.where(StockLedger.movement_type == movement_type)
+    if "*" not in who.warehouses:
+        q = q.where(Warehouse.code.in_(who.warehouses))
+    total = db.execute(select(func.count()).select_from(q.subquery())).scalar_one()
+    rows = db.execute(q.order_by(StockLedger.id.desc()).limit(limit).offset(offset)).all()
+    return Page(items=[LedgerOut(
+        wms_id=str(l.id), at=l.at, movement_type=l.movement_type, reason=l.reason,
+        warehouse=w.code, location=loc.code, zone=z.code, sku=p.sku, batch=l.batch, owner=l.owner,
+        qty_change=l.qty_change, uom=l.uom, received_at=l.received_at, actor=l.actor,
+        device=l.device, task_id=str(l.task_id) if l.task_id else None,
+        external_ref=l.external_ref, container_id=l.container_id, note=l.note,
+    ) for l, p, loc, z, w in rows], total=total)

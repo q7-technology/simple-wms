@@ -3,7 +3,7 @@ from sqlalchemy import text
 
 from wms.api import errors
 from wms.api.deps import DB
-from wms.api.routes import products, stock, structure
+from wms.api.routes import access, auth, integration, products, stock, structure
 
 app = FastAPI(
     title="Simple WMS",
@@ -15,9 +15,12 @@ app = FastAPI(
 errors.install(app)
 
 v1 = APIRouter(prefix="/v1")
+v1.include_router(auth.router)
 v1.include_router(structure.router)
 v1.include_router(products.router)
 v1.include_router(stock.router)
+v1.include_router(integration.router)
+v1.include_router(access.router)
 
 
 @v1.get("/health", tags=["system"])

@@ -15,6 +15,13 @@ def iso_utc(dt: datetime) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _matches(pattern: str, event_type: str) -> bool:
+    """`*` matches all; `transfer.*` matches every transfer event."""
+    if pattern == "*" or pattern == event_type:
+        return True
+    return pattern.endswith(".*") and event_type.startswith(pattern[:-1])
+
+
 def matching_subscribers(session: Session, event_type: str, warehouse: str | None,
                          owner: str) -> list[Subscriber]:
     subs = session.execute(
@@ -22,7 +29,7 @@ def matching_subscribers(session: Session, event_type: str, warehouse: str | Non
     ).scalars().all()
     out = []
     for s in subs:
-        if not ("*" in s.event_types or event_type in s.event_types):
+        if not any(_matches(pattern, event_type) for pattern in s.event_types):
             continue
         if warehouse and not ("*" in s.warehouses or warehouse in s.warehouses):
             continue

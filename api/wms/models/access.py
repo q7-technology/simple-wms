@@ -38,7 +38,7 @@ class Operator(Base):
     name: Mapped[str] = mapped_column(String(120))
     pin_hash: Mapped[str | None] = mapped_column(String(200))
     badge: Mapped[str | None] = mapped_column(String(128), unique=True)
-    role: Mapped[str] = mapped_column(String(32), default="picker")
+    roles: Mapped[list] = mapped_column(JSONB, default=list)  # picker, packer, receiver, counter, supervisor
     warehouses: Mapped[list] = mapped_column(JSONB, default=list)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
     failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
@@ -96,3 +96,19 @@ class AuditLog(Base):
     device: Mapped[str | None] = mapped_column(String(64))
     ip: Mapped[str | None] = mapped_column(INET)
     detail: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+
+class UserSession(Base):
+    """A desktop session: the refresh token (hashed) that mints short-lived access tokens."""
+
+    __tablename__ = "user_session"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    refresh_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ip: Mapped[str | None] = mapped_column(INET)
+    user_agent: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = created_at_column()
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
