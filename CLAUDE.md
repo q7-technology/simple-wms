@@ -45,10 +45,11 @@ design/flows/        swimlane flow diagrams
 design/deck/         build-brief slides (reference only)
 design/canvas/       Design-file sources (do not edit; regenerated from the canvas)
 site/                landing page (static)
-api/                 FastAPI app, Alembic migrations, worker   (to be created, step 1)
-apps/desktop/        React desktop app                         (to be created, step 1)
+api/                 FastAPI app, Alembic migrations, worker, pytest
+apps/desktop/        React desktop app (Vite), Vitest
 apps/scanner/        React scanner PWA                         (to be created, step 2)
-docker-compose.yml                                             (to be created, step 1)
+deploy/Caddyfile     reverse proxy and static serving
+docker-compose.yml   api, worker, db, caddy
 ```
 
 When building a screen, open its file in `design/screens/` and match layout,

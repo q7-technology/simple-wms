@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Q7 Technology design system. See docs/screens.md. */
+@theme {
+  --color-ground: #0d1117;
+  --color-ink: #ccd6f6;
+  --color-muted: #8892b0;
+  --color-brand: #29abe2;
+  --color-gold: #f7941d;
+  --color-ok: #4ade80;
+  --color-line: rgba(41, 171, 226, 0.2);
+  --color-line-soft: rgba(41, 171, 226, 0.1);
+  --color-line-strong: rgba(41, 171, 226, 0.3);
+  --color-brand-tint: rgba(41, 171, 226, 0.1);
+  --color-card: rgba(13, 17, 23, 0.6);
+  --color-gold-line: rgba(247, 148, 29, 0.3);
+  --color-ok-line: rgba(74, 222, 128, 0.3);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--color-brand); }
+a:hover { color: #64ffda; }
+
+input, select, textarea, button { font: inherit; }
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.input {
+  height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px;
+  background: var(--color-ground); border: 1px solid var(--color-line);
+  color: var(--color-ink); font-size: 14px; width: 100%;
+}
+.input:focus { outline: none; border-color: var(--color-brand); }
+.input:disabled { color: var(--color-muted); }
+select.input { appearance: none; padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; }
+
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.card { border-radius: 8px; border: 1px solid var(--color-line); background: var(--color-card); }
+.row-line { border-bottom: 1px solid var(--color-line-soft); }
+.mono { font-family: var(--font-mono); }

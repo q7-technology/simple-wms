@@ -12,7 +12,9 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 
 Status: **build step 1 (skeleton) done**. Sites, warehouses, zones, locations,
 products, the append-only ledger, API keys with message id de-duplication,
-and the event worker. Step 2 (inbound) is next.
+the event worker, desktop sign in and the step 1 desktop screens (stock
+lookup, locations, products, integrations, users and devices, settings).
+Step 2 (inbound and the scanner PWA) is next.
 
 ## What is in this repo
 
@@ -31,6 +33,7 @@ design/            the designs, exported from the Claude Design file
   canvas/          original artboard sources
 site/              the landing page (static, no build step)
 api/               FastAPI app, migrations, worker, tests (see api/README.md)
+apps/desktop/      React desktop app (see apps/desktop/README.md)
 deploy/            Caddyfile
 docker-compose.yml api, worker, db, caddy
 ```
@@ -49,13 +52,17 @@ scanner PWA) · Docker Compose · Caddy.
 git clone https://github.com/q7-technology/simple-wms
 cd simple-wms
 cp .env.example .env            # set POSTGRES_PASSWORD and WMS_SECRET_KEY
+(cd apps/desktop && npm install && npm run build)
 docker compose up -d
+docker compose exec api wms create-user --username you --role admin
 docker compose exec api wms create-api-client --name erp
 ```
 
-The last line prints an API key once. Use it as `Authorization: Bearer <key>`
-against `https://<WMS_DOMAIN>/v1/...`. Interactive docs are at `/docs`.
-See `api/README.md` for running the API and tests outside Docker.
+Open `https://<WMS_DOMAIN>/` (default `https://localhost/`, self-signed) and
+sign in with the user you made. The last line prints an API key once; systems
+use it as `Authorization: Bearer <key>` against `/v1/...`. Interactive API
+docs are at `/docs`. See `api/README.md` and `apps/desktop/README.md` for
+running either outside Docker.
 
 ## Support
 
