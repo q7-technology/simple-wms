@@ -1,0 +1,422 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Deliveries",
+      "w": 1440,
+      "x": 0,
+      "y": -112
+    },
+    "DeliveryDetail.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Delivery detail",
+      "w": 1440,
+      "x": 1520,
+      "y": -112,
+      "is_interactive": true
+    },
+    "BatchPick.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Batch pick builder",
+      "w": 1440,
+      "x": 3040,
+      "y": -112
+    },
+    "TaskBoard.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Task board",
+      "w": 1440,
+      "x": 0,
+      "y": 908
+    },
+    "Production.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Production orders",
+      "w": 1440,
+      "x": 1520,
+      "y": 908
+    },
+    "Receiving.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Receiving",
+      "w": 1440,
+      "x": 3040,
+      "y": 908
+    },
+    "Transfers.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Transfers",
+      "w": 1440,
+      "x": 0,
+      "y": 1928
+    },
+    "Stock.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Stock lookup",
+      "w": 1440,
+      "x": 1520,
+      "y": 1928
+    },
+    "Replenishment.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Replenishment and counts",
+      "w": 1440,
+      "x": 3040,
+      "y": 1928
+    },
+    "Locations.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Locations",
+      "w": 1440,
+      "x": 0,
+      "y": 2948
+    },
+    "Products.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Products",
+      "w": 1440,
+      "x": 1520,
+      "y": 2948
+    },
+    "Containers.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Containers (later)",
+      "w": 1440,
+      "x": 3040,
+      "y": 2948
+    },
+    "Integrations.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Integrations and printing",
+      "w": 1440,
+      "x": 0,
+      "y": 3968
+    },
+    "PrintTemplate.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Print point detail",
+      "w": 1440,
+      "x": 1520,
+      "y": 3968
+    },
+    "ImportExport.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Import and export",
+      "w": 1440,
+      "x": 3040,
+      "y": 3968
+    },
+    "Reports.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Reports",
+      "w": 1440,
+      "x": 0,
+      "y": 4988
+    },
+    "Settings.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Settings",
+      "w": 1440,
+      "x": 1520,
+      "y": 4988
+    },
+    "Owners.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Owners (3PL, later)",
+      "w": 1440,
+      "x": 3040,
+      "y": 4988
+    },
+    "Users.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Users, roles and devices",
+      "w": 1440,
+      "x": 0,
+      "y": 6008
+    },
+    "Login.dc.html": {
+      "h": 900,
+      "title": "Desktop \u00b7 Sign in",
+      "w": 1440,
+      "x": 1520,
+      "y": 6008
+    },
+    "ScannerLogin.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Sign in",
+      "w": 390,
+      "x": 0,
+      "y": 7480
+    },
+    "ScannerMenu.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Menu",
+      "w": 390,
+      "x": 470,
+      "y": 7480
+    },
+    "ScannerPick.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Pick",
+      "w": 390,
+      "x": 940,
+      "y": 7480
+    },
+    "ScannerShortPick.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Short pick reason",
+      "w": 390,
+      "x": 1410,
+      "y": 7480
+    },
+    "ScannerBatchSort.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Batch sort",
+      "w": 390,
+      "x": 1880,
+      "y": 7480
+    },
+    "ScannerPack.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Pack",
+      "w": 390,
+      "x": 2350,
+      "y": 7480
+    },
+    "ScannerProduction.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Production receipt",
+      "w": 390,
+      "x": 2820,
+      "y": 7480
+    },
+    "ScannerReceive.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Receive",
+      "w": 390,
+      "x": 3290,
+      "y": 7480
+    },
+    "ScannerMove.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Move",
+      "w": 390,
+      "x": 0,
+      "y": 8444
+    },
+    "ScannerCount.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Cycle count",
+      "w": 390,
+      "x": 470,
+      "y": 8444
+    },
+    "ScannerLookup.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Look up",
+      "w": 390,
+      "x": 940,
+      "y": 8444
+    },
+    "ScannerTransferReceive.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Receive transfer",
+      "w": 390,
+      "x": 1410,
+      "y": 8444
+    },
+    "ScannerWrongScan.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Wrong scan",
+      "w": 390,
+      "x": 1880,
+      "y": 8444
+    },
+    "ScannerOffline.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Offline",
+      "w": 390,
+      "x": 2350,
+      "y": 8444
+    },
+    "ScannerLocked.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scanner \u00b7 Locked out",
+      "w": 390,
+      "x": 2820,
+      "y": 8444
+    },
+    "FlowOverview.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 760,
+      "title": "Overview \u00b7 how stock moves",
+      "page": "flows"
+    },
+    "FlowDelivery.dc.html": {
+      "x": 0,
+      "y": 880,
+      "w": 1670,
+      "h": 788,
+      "title": "Flow 1 \u00b7 Outbound delivery",
+      "page": "flows"
+    },
+    "FlowReceipt.dc.html": {
+      "x": 0,
+      "y": 1788,
+      "w": 2050,
+      "h": 788,
+      "title": "Flow 2 \u00b7 Inbound receipt and putaway",
+      "page": "flows"
+    },
+    "FlowProduction.dc.html": {
+      "x": 0,
+      "y": 2696,
+      "w": 2430,
+      "h": 788,
+      "title": "Flow 3 \u00b7 Production",
+      "page": "flows"
+    },
+    "FlowTransfer.dc.html": {
+      "x": 0,
+      "y": 3604,
+      "w": 2050,
+      "h": 788,
+      "title": "Flow 4 \u00b7 Cross-warehouse transfer",
+      "page": "flows"
+    },
+    "FlowReplenCount.dc.html": {
+      "x": 0,
+      "y": 4512,
+      "w": 2050,
+      "h": 788,
+      "title": "Flow 5 \u00b7 Replenishment and cycle count",
+      "page": "flows"
+    },
+    "FlowEvents.dc.html": {
+      "x": 0,
+      "y": 5420,
+      "w": 1860,
+      "h": 788,
+      "title": "Flow 6 \u00b7 Events and print jobs",
+      "page": "flows"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-19T09:50:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/code/artifact/850e3032-fc87-44d9-9d48-864ba28ae4b8",
+      "copiedAt": "2026-09-19T09:50:00Z",
+      "namespace": "q7-technology",
+      "title": "Q7 Technology",
+      "version": "1789747256-087b"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "screens"
+  },
+  "notes": {
+    "desktop": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Desktop = control",
+      "w": 240,
+      "x": 0,
+      "y": -360
+    },
+    "scanner": {
+      "kind": "title1",
+      "maxW": 3680,
+      "text": "Scanner = execution",
+      "w": 240,
+      "x": 0,
+      "y": 7240
+    },
+    "flows-title": {
+      "kind": "title1",
+      "maxW": 2430,
+      "text": "Process flows \u00b7 every task ends in a ledger line",
+      "w": 240,
+      "x": 0,
+      "y": -260,
+      "page": "flows"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "DeliveryDetail.dc.html",
+    "BatchPick.dc.html",
+    "TaskBoard.dc.html",
+    "Production.dc.html",
+    "Receiving.dc.html",
+    "Transfers.dc.html",
+    "Stock.dc.html",
+    "Replenishment.dc.html",
+    "Locations.dc.html",
+    "Products.dc.html",
+    "Containers.dc.html",
+    "Integrations.dc.html",
+    "PrintTemplate.dc.html",
+    "ImportExport.dc.html",
+    "Reports.dc.html",
+    "Settings.dc.html",
+    "Owners.dc.html",
+    "Users.dc.html",
+    "Login.dc.html",
+    "ScannerLogin.dc.html",
+    "ScannerMenu.dc.html",
+    "ScannerPick.dc.html",
+    "ScannerShortPick.dc.html",
+    "ScannerBatchSort.dc.html",
+    "ScannerPack.dc.html",
+    "ScannerProduction.dc.html",
+    "ScannerReceive.dc.html",
+    "ScannerMove.dc.html",
+    "ScannerCount.dc.html",
+    "ScannerLookup.dc.html",
+    "ScannerTransferReceive.dc.html",
+    "ScannerWrongScan.dc.html",
+    "ScannerOffline.dc.html",
+    "ScannerLocked.dc.html",
+    "FlowOverview.dc.html",
+    "FlowDelivery.dc.html",
+    "FlowReceipt.dc.html",
+    "FlowProduction.dc.html",
+    "FlowTransfer.dc.html",
+    "FlowReplenCount.dc.html",
+    "FlowEvents.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "screens",
+      "name": "Screens"
+    },
+    {
+      "id": "flows",
+      "name": "Process flows"
+    }
+  ],
+  "title": "Simple WMS UI"
+}

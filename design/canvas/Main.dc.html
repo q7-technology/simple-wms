@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WMS desktop - Deliveries</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0d1117;font-family:ui-sans-serif,system-ui,sans-serif;color:#ccd6f6}
+a{color:#29abe2}a:hover{color:#64ffda}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #0d1117; color: #ccd6f6; font-family: ui-sans-serif, system-ui, sans-serif;">
+
+  <!-- Top bar -->
+  <header style="height: 64px; box-sizing: border-box; display: flex; align-items: center; gap: 24px; padding: 0 24px; border-bottom: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 32px; height: 32px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </div>
+      <span style="font-size: 20px; font-weight: 700; line-height: 28px;">Simple WMS</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; gap: 4px; margin-left: 16px;">
+      <a href="#deliveries" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #ccd6f6; text-decoration: none; background: rgba(41,171,226,0.1); border: 1px solid rgba(41,171,226,0.3);">Deliveries</a>
+      <a href="#production" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Production</a>
+      <a href="#transfers" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Transfers</a>
+      <a href="#stock" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Stock</a>
+      <a href="#replenishment" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Replenishment</a>
+      <a href="#integrations" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Integrations</a>
+    </nav>
+    <div style="flex-grow: 1;"></div>
+    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; color: #8892b0;">
+      <span>Warehouse</span>
+      <select style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;">
+        <option>BAL-WH01 · Ballarat</option>
+        <option>MEL-WH01 · Melbourne</option>
+      </select>
+    </label>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 9999px; border: 1px solid rgba(41,171,226,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">LL</div>
+      <span style="color: #8892b0;">Supervisor</span>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <div style="flex-grow: 1; display: flex; min-height: 0;">
+
+    <!-- Main column -->
+    <main style="flex-grow: 1; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 24px; min-width: 0;">
+
+      <div style="display: flex; align-items: flex-end; gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Ballarat · Saturday 19 Sep</div>
+          <h1 style="margin: 0; font-size: 30px; line-height: 36px; font-weight: 700;"><span style="color: #29abe2;">Deliveries</span> today</h1>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; background: transparent; border: 1px solid #f7941d; color: #f7941d; font-size: 14px; font-weight: 500; cursor: pointer;">Import CSV</button>
+        <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; background: #29abe2; border: 1px solid #29abe2; color: #0d1117; font-size: 14px; font-weight: 500; cursor: pointer;">Create delivery</button>
+      </div>
+
+      <!-- Stat tiles -->
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+        <div style="box-sizing: border-box; padding: 20px 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">Waiting to pick</span>
+          <span style="font-size: 36px; line-height: 40px; font-weight: 700;">18</span>
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">3 due before 10:00</span>
+        </div>
+        <div style="box-sizing: border-box; padding: 20px 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">Picking now</span>
+          <span style="font-size: 36px; line-height: 40px; font-weight: 700;">6</span>
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">4 operators on the floor</span>
+        </div>
+        <div style="box-sizing: border-box; padding: 20px 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">Packed, not shipped</span>
+          <span style="font-size: 36px; line-height: 40px; font-weight: 700;">11</span>
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">2 short shipped</span>
+        </div>
+        <div style="box-sizing: border-box; padding: 20px 24px; border-radius: 8px; border: 1px solid rgba(247,148,29,0.3); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">Events waiting to send</span>
+          <span style="font-size: 36px; line-height: 40px; font-weight: 700; color: #f7941d;">3</span>
+          <span style="font-size: 12px; line-height: 16px; color: #8892b0;">ERP listener not answering since 09:12</span>
+        </div>
+      </div>
+
+      <!-- Filter row -->
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <label style="position: relative; display: flex; align-items: center; width: 320px;">
+          <span style="position: absolute; left: 12px; display: flex;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892b0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+          <input type="search" placeholder="Search reference, customer or SKU" style="width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px 0 36px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;">
+        </label>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 9999px; background: rgba(41,171,226,0.1); border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-size: 12px; font-weight: 600; cursor: pointer;">All</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 9999px; background: transparent; border: 1px solid rgba(41,171,226,0.2); color: #8892b0; font-size: 12px; font-weight: 600; cursor: pointer;">Waiting</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 9999px; background: transparent; border: 1px solid rgba(41,171,226,0.2); color: #8892b0; font-size: 12px; font-weight: 600; cursor: pointer;">Picking</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 9999px; background: transparent; border: 1px solid rgba(41,171,226,0.2); color: #8892b0; font-size: 12px; font-weight: 600; cursor: pointer;">Packed</button>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 9999px; background: transparent; border: 1px solid rgba(41,171,226,0.2); color: #8892b0; font-size: 12px; font-weight: 600; cursor: pointer;">Short</button>
+      </div>
+
+      <!-- Table -->
+      <div style="border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); overflow: hidden; display: flex; flex-direction: column;">
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); gap: 0; padding: 12px 24px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0; border-bottom: 1px solid rgba(41,171,226,0.1);">
+          <span>Reference</span><span>Ship to</span><span>Lines</span><span>Pick mode</span><span>Due</span><span>Status</span><span>Operator</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1); align-items: center;">
+          <span style="font-weight: 600;">0080012345</span><span style="color: #8892b0;">Acme Auto Parts, Geelong</span><span>4</span><span>Single</span><span style="color: #f7941d;">09:30</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); background: rgba(41,171,226,0.1); color: #ccd6f6;">Picking</span></span>
+          <span style="color: #8892b0;">Sam · SCN-BAL-07</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1); align-items: center;">
+          <span style="font-weight: 600;">0080012346</span><span style="color: #8892b0;">Westside Motors, Ballarat</span><span>12</span><span>Batch B-14</span><span style="color: #f7941d;">09:30</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); background: rgba(41,171,226,0.1); color: #ccd6f6;">Picking</span></span>
+          <span style="color: #8892b0;">Priya · SCN-BAL-03</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1); align-items: center;">
+          <span style="font-weight: 600;">0080012347</span><span style="color: #8892b0;">Repco, Wendouree</span><span>2</span><span>Batch B-14</span><span>11:00</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(41,171,226,0.2); color: #8892b0;">Waiting</span></span>
+          <span style="color: #8892b0;">—</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1); align-items: center;">
+          <span style="font-weight: 600;">0080012340</span><span style="color: #8892b0;">Hume Trucks, Albury</span><span>7</span><span>Single</span><span>Shipped</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(247,148,29,0.3); color: #f7941d;">Short 1</span></span>
+          <span style="color: #8892b0;">Sam · packed 08:52</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1); align-items: center;">
+          <span style="font-weight: 600;">0080012338</span><span style="color: #8892b0;">Acme Auto Parts, Geelong</span><span>3</span><span>Single</span><span>Shipped</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(41,171,226,0.2); color: #8892b0;">Packed</span></span>
+          <span style="color: #8892b0;">Jo · packed 08:40</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 220px 110px 120px 110px 110px minmax(0, 1fr); padding: 14px 24px; font-size: 14px; line-height: 20px; align-items: center;">
+          <span style="font-weight: 600;">0080012336</span><span style="color: #8892b0;">Bendix, Ballarat</span><span>9</span><span>Single</span><span>Shipped</span>
+          <span><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(41,171,226,0.2); color: #8892b0;">Shipped</span></span>
+          <span style="color: #8892b0;">Jo · 08:10 · tracking sent</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Detail panel -->
+    <aside aria-label="Delivery detail" style="width: 400px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow: hidden;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Delivery</div>
+        <div style="font-size: 24px; line-height: 1; font-weight: 600; letter-spacing: -0.025em;">0080012345</div>
+        <div style="font-size: 14px; line-height: 20px; color: #8892b0;">Acme Auto Parts · 12 Example St, Geelong VIC 3220</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Pick mode</span><span style="font-size: 14px; line-height: 20px;">Single</span></div>
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Required by</span><span style="font-size: 14px; line-height: 20px; color: #f7941d;">Today 09:30</span></div>
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Owner</span><span style="font-size: 14px; line-height: 20px;">DEFAULT</span></div>
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Short allowed</span><span style="font-size: 14px; line-height: 20px;">Yes</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Progress</div>
+        <div style="display: flex; gap: 6px;">
+          <div style="flex-grow: 1; height: 6px; border-radius: 9999px; background: #29abe2;"></div>
+          <div style="flex-grow: 1; height: 6px; border-radius: 9999px; background: #29abe2;"></div>
+          <div style="flex-grow: 1; height: 6px; border-radius: 9999px; background: rgba(41,171,226,0.2);"></div>
+          <div style="flex-grow: 1; height: 6px; border-radius: 9999px; background: rgba(41,171,226,0.2);"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: #8892b0;"><span>Allocated</span><span>Picked</span><span>Packed</span><span>Shipped</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Lines</div>
+        <div style="display: flex; flex-direction: column; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2);">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 14px; line-height: 20px;"><span>ABC123 · Brake pad set</span><span style="color: #ccd6f6;">10 / 10</span></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 14px; line-height: 20px;"><span>DEF456 · Rotor 280 mm</span><span style="color: #ccd6f6;">4 / 4</span></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 14px; line-height: 20px;"><span>GHI789 · Wiper 22"</span><span style="color: #f7941d;">2 / 6</span></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 14px; line-height: 20px;"><span>JKL012 · Oil filter</span><span style="color: #8892b0;">0 / 12</span></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Events sent</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; line-height: 16px; color: #8892b0;">
+          <div style="display: flex; justify-content: space-between;"><span>delivery.allocated → ERP</span><span>08:58 · delivered</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>print carton-label → Platen</span><span>—</span></div>
+        </div>
+      </div>
+
+      <div style="flex-grow: 1;"></div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" style="flex-grow: 1; height: 40px; border-radius: 6px; background: transparent; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-size: 14px; font-weight: 500; cursor: pointer;">Reprint</button>
+        <button type="button" style="flex-grow: 1; height: 40px; border-radius: 6px; background: transparent; border: 1px solid #f7941d; color: #f7941d; font-size: 14px; font-weight: 500; cursor: pointer;">Cancel delivery</button>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

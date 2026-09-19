@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Desktop - Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0d1117;font-family:ui-sans-serif,system-ui,sans-serif;color:#ccd6f6}
+a{color:#29abe2}a:hover{color:#64ffda}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #0d1117; color: #ccd6f6; font-family: ui-sans-serif, system-ui, sans-serif;">
+
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+  <div style="width: 420px; box-sizing: border-box; padding: 32px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 24px; line-height: 1; font-weight: 600; letter-spacing: -0.025em;">Simple WMS</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Desktop · control</span></div></div>
+    <label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Username</span><input type="text" value="leighton" style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"></label>
+    <label style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Password</span><input type="password" value="••••••••••" style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"></label>
+    <button type="button" style=" height: 44px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; background: #29abe2; border: 1px solid #29abe2; color: #0d1117; font-weight: 600;">Sign in</button>
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="flex-grow: 1; height: 1px; background: rgba(41,171,226,0.1);"></div><span style="font-size: 12px; line-height: 16px; color: #8892b0;">or</span><div style="flex-grow: 1; height: 1px; background: rgba(41,171,226,0.1);"></div></div>
+    <button type="button" style=" height: 44px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; background: transparent; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-weight: 500;">Sign in with single sign-on</button>
+    <div style="display: flex; align-items: center; gap: 8px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892b0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Admins are asked for a second factor after this step</span></div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

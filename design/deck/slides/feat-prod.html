@@ -1,0 +1,14 @@
+<section id="feat-prod" data-transition="fade" style="background:#0d1117; color:#ccd6f6; font-family:Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px; ">
+<div style="display:flex; flex-direction:column; gap:12px"><p style="font-size:24px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#29abe2">Features · 3 of 3</p><h2 style="font-size:72px; font-weight:bold; line-height:1.1"><span style="color:#29abe2">Production</span> and scanning</h2></div>
+<div style="display:flex; gap:32px">
+  <div style="flex:1; display:flex; flex-direction:column; gap:24px">
+    <h3 style="font-size:40px; font-weight:bold">Production orders</h3>
+    <ul style="font-size:26px; line-height:1.5; color:#ccd6f6; padding:0 0 0 40px"><li>Pick components with the same engine, drop at a line-side location, event <b>production.components_issued</b></li><li>Scan the production order to put away finished goods, pallet by pallet, running total against expected</li><li>Batch comes from the order's QR code: read-only on screen, blocked if missing or mismatched</li><li>Over-receipt tolerance with supervisor badge</li><li>Per-warehouse switch: has the ERP already counted the goods receipt? If yes, bins only and no event</li></ul>
+  </div>
+  <div style="flex:1; display:flex; flex-direction:column; gap:24px">
+    <h3 style="font-size:40px; font-weight:bold">One scan parser</h3>
+    <ul style="font-size:26px; line-height:1.5; color:#ccd6f6; padding:0 0 0 40px"><li>Tries GS1 (QR, DataMatrix, GS1-128, Digital Link), then JSON in a QR, then per-site custom patterns, then plain text lookup</li><li>Handles the group separator character and symbology prefixes</li><li>One code can fill product, batch and quantity at once</li><li>Each screen says what it expects: scanning a shelf when it wanted a product gives a friendly message</li><li>Unknown scans are logged with raw text so a new pattern can be built from real examples</li><li>Runs on the scanner for speed and behind <b>POST /v1/scans/parse</b> for other systems</li></ul>
+  </div>
+</div>
+<div style="position:absolute; left:128px; bottom:56px; width:1664px; display:flex; align-items:center; gap:16px"><img src="/_blob/cb4c2e75e9d74e326253a07a7656c076" alt="Q7 Technology" style="width:40px; height:40px; object-fit:contain"><p style="font-size:24px; color:#8892b0">Q7 Technology · Simple WMS build brief · 7</p></div>
+</section>

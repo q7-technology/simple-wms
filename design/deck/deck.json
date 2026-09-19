@@ -1,0 +1,70 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-19T10:45:00Z"
+  },
+  "title": "Simple WMS build brief",
+  "cover": "cover",
+  "order": [
+    "cover",
+    "idea",
+    "principles",
+    "scope",
+    "feat-stock",
+    "feat-work",
+    "feat-prod",
+    "api-in",
+    "api-body",
+    "api-out",
+    "platen",
+    "security",
+    "flow-overview",
+    "flow-out",
+    "flow-in",
+    "flow-transfer",
+    "stack",
+    "arch",
+    "data",
+    "phases",
+    "later",
+    "open",
+    "next"
+  ],
+  "sections": {
+    "intro": {
+      "description": "What the system is and the rules it follows",
+      "start": "cover"
+    },
+    "features": {
+      "description": "Every feature agreed in planning, grouped",
+      "start": "feat-stock"
+    },
+    "integration": {
+      "description": "API in, events out, printing and security",
+      "start": "api-in"
+    },
+    "flows": {
+      "description": "How stock moves, flow by flow",
+      "start": "flow-overview"
+    },
+    "tech": {
+      "description": "Stack, architecture, data model and build order",
+      "start": "stack"
+    },
+    "close": {
+      "description": "Open questions and next steps",
+      "start": "open"
+    }
+  },
+  "faces": {},
+  "designSystems": [
+    {
+      "title": "Q7 Technology",
+      "namespace": "q7-technology",
+      "artifact": "https://claude.ai/code/artifact/850e3032-fc87-44d9-9d48-864ba28ae4b8",
+      "version": "1789747256-087b",
+      "copiedAt": "2026-09-19T10:45:00Z"
+    }
+  ]
+}

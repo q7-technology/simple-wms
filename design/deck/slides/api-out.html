@@ -1,0 +1,13 @@
+<section id="api-out" data-transition="fade" style="background:#0d1117; color:#ccd6f6; font-family:Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:40px; ">
+<div style="display:flex; flex-direction:column; gap:12px"><p style="font-size:24px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#29abe2">Integration</p><h2 style="font-size:72px; font-weight:bold; line-height:1.1"><span style="color:#29abe2">Events out:</span> one envelope, many subscribers</h2></div>
+<div style="display:flex; gap:32px">
+  <div style="flex:1"><p style="font-family:'Courier New', monospace; font-size:24px; line-height:1.4; color:#ccd6f6; background:#14161a; padding:32px; border:2px solid rgba(41,171,226,0.2); border-radius:16px; white-space:normal">{<br>&nbsp;&nbsp;"event_id": "uuid",<br>&nbsp;&nbsp;"event_type": "delivery.shipped",<br>&nbsp;&nbsp;"occurred_at": "2026-09-19T04:12:00Z",<br>&nbsp;&nbsp;"warehouse": "BAL-WH01",<br>&nbsp;&nbsp;"owner": "DEFAULT",<br>&nbsp;&nbsp;"external_ref": "0080012345",<br>&nbsp;&nbsp;"data": {{ "short": true, "lines": [ ... ],<br>&nbsp;&nbsp;&nbsp;&nbsp;"packages": [ ... ] }}<br>}}</p>
+  <p style="font-size:24px; color:#8892b0; line-height:1.4">HMAC-signed header per subscriber. Queued and retried until the listener answers 2xx.</p></div>
+  <div style="flex:1; display:flex; flex-direction:column; gap:16px">
+    <h3 style="font-size:36px; font-weight:bold">Event types</h3>
+    <table style="font-size:24px; color:#ccd6f6; border:1px solid rgba(41,171,226,0.3); width:1664px"><tr style="background:rgba(41,171,226,0.1)"><th style="width:55%">Event</th><th style="width:45%">Who usually listens</th></tr><tr><td>receipt.confirmed</td><td>ERP</td></tr><tr><td>stock.moved · stock.adjusted</td><td>ERP</td></tr><tr><td>replenishment.completed</td><td>ERP</td></tr><tr><td>delivery.allocated / picked / packed / shipped</td><td>ERP, carriers, EDI broker</td></tr><tr><td>transfer.shipped · transfer.received</td><td>ERP (two legs)</td></tr><tr><td>production.components_issued · production.received</td><td>ERP</td></tr></table>
+    <p style="font-size:24px; color:#8892b0; line-height:1.4">A subscription list says who gets which events at which URL. The ERP, a carrier and Platen are all just subscribers.</p>
+  </div>
+</div>
+<div style="position:absolute; left:128px; bottom:56px; width:1664px; display:flex; align-items:center; gap:16px"><img src="/_blob/cb4c2e75e9d74e326253a07a7656c076" alt="Q7 Technology" style="width:40px; height:40px; object-fit:contain"><p style="font-size:24px; color:#8892b0">Q7 Technology · Simple WMS build brief · 10</p></div>
+</section>

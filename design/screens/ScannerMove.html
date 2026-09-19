@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Scanner - Move</title>
+<style>
+body{margin:0;background:#0d1117;font-family:ui-sans-serif,system-ui,sans-serif;color:#ccd6f6}
+a{color:#29abe2}a:hover{color:#64ffda}
+html,body{min-height:100%}
+body{display:flex;justify-content:center;padding:24px 0}
+a{cursor:pointer}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0d1117; color: #ccd6f6; font-family: ui-sans-serif, system-ui, sans-serif;">
+<header style="box-sizing: border-box; padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(41,171,226,0.2);">
+    <a href="ScannerMenu.html" aria-label="Back to menu" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid rgba(41,171,226,0.2); text-decoration: none;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccd6f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Move · within warehouse</span><span style="font-size: 16px; line-height: 24px; font-weight: 600;">Free move</span></div>
+    <span style="font-size: 12px; line-height: 16px; color: #8892b0;">Sam · BAL</span>
+  </header><main style="flex-grow: 1; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;"><section style="box-sizing: border-box; padding: 20px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 8px;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">From</span><span style="font-size: 44px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em;">BK-04-01-C</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Scanned · 72 EA ABC123 here · batch B2601</span></section>
+  <section style="box-sizing: border-box; padding: 20px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;"><div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 20px; line-height: 28px; font-weight: 700;">ABC123</span><span style="font-size: 14px; line-height: 20px; font-weight: 400; color: #8892b0;">Brake pad set</span></div><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; border: 1px solid rgba(41,171,226,0.2); color: #8892b0;">Batch B2601</span></div>
+      <div style="display: flex; align-items: baseline; gap: 8px;"><span style="font-size: 36px; line-height: 40px; font-weight: 700;">12</span><span style="font-size: 16px; line-height: 24px; color: #8892b0;">EA to move · 72 here</span></div></section>
+  <label style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Quantity</span><div style="display: flex; gap: 8px;">
+      <button type="button" aria-label="Less" style="width: 56px; height: 56px; border-radius: 6px; background: transparent; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-size: 24px; cursor: pointer;">−</button>
+      <input type="number" value="12" style="flex-grow: 1; height: 56px; box-sizing: border-box; text-align: center; font-size: 28px; font-weight: 700; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6;">
+      <button type="button" aria-label="More" style="width: 56px; height: 56px; border-radius: 6px; background: transparent; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-size: 24px; cursor: pointer;">+</button></div></label>
+  <section style="box-sizing: border-box; padding: 20px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.3); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 8px;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">To</span><span style="font-size: 44px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em;">PF-01-02-A</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Scan the destination shelf</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Mixed-product shelves are allowed here</span></section>
+  <label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Reason</span><select style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>Tidy</option><option>Consolidate</option><option>Damaged</option><option>Quality hold</option></select></label></main><footer style="box-sizing: border-box; padding: 16px; display: flex; gap: 8px; border-top: 1px solid rgba(41,171,226,0.2);"><button type="button" style="flex-grow: 1; height: 56px; padding: 0 16px; border-radius: 6px; font-size: 16px; cursor: pointer; background: transparent; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; font-weight: 500;">Cancel</button><button type="button" style="flex-grow: 2; height: 56px; padding: 0 16px; border-radius: 6px; font-size: 16px; cursor: pointer; background: #29abe2; border: 1px solid #29abe2; color: #0d1117; font-weight: 600;">Confirm move</button></footer>
+</div>
+</body>
+</html>

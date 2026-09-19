@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Desktop - Print template</title>
+<style>
+body{margin:0;background:#0d1117;font-family:ui-sans-serif,system-ui,sans-serif;color:#ccd6f6}
+a{color:#29abe2}a:hover{color:#64ffda}
+html,body{min-height:100%}
+body{display:flex;justify-content:center;padding:24px 0}
+a{cursor:pointer}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #0d1117; color: #ccd6f6; font-family: ui-sans-serif, system-ui, sans-serif;">
+<header style="height: 64px; box-sizing: border-box; display: flex; align-items: center; gap: 24px; padding: 0 24px; border-bottom: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 32px; height: 32px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
+      <span style="font-size: 20px; font-weight: 700; line-height: 28px;">Simple WMS</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; gap: 4px; margin-left: 16px;"><a href="#deliveries" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Deliveries</a><a href="#production" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Production</a><a href="#transfers" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Transfers</a><a href="#stock" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Stock</a><a href="#replenishment" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Replenishment</a><a href="#integrations" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #ccd6f6; text-decoration: none; background: rgba(41,171,226,0.1); border: 1px solid rgba(41,171,226,0.3);">Integrations</a><a href="#users" style="font-size: 14px; font-weight: 500; line-height: 20px; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Users</a></nav>
+    <div style="flex-grow: 1;"></div>
+    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; color: #8892b0;"><span>Warehouse</span>
+      <select style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>BAL-WH01 · Ballarat</option><option>MEL-WH01 · Melbourne</option></select></label>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 9999px; border: 1px solid rgba(41,171,226,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">LL</div>
+      <span style="color: #8892b0;">Supervisor</span>
+    </div>
+  </header>
+  <div style="flex-grow: 1; display: flex; min-height: 0;">
+    <main style="flex-grow: 1; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 24px; min-width: 0; overflow: hidden;"><div style="display: flex; align-items: flex-end; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Print point</span><h1 style="margin: 0; font-size: 30px; line-height: 36px; font-weight: 700;"><span style="color: #29abe2;">carton-label</span> v3 · delivery.packed</h1></div>
+    <div style="flex-grow: 1;"></div><button type="button" style=" height: 40px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; background: transparent; border: 1px solid #f7941d; color: #f7941d; font-weight: 500;">Send a test</button><button type="button" style=" height: 40px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; background: #29abe2; border: 1px solid #29abe2; color: #0d1117; font-weight: 600;">Save</button></div><div style="display: grid; grid-template-columns: 420px minmax(0, 1fr) 360px; gap: 24px; flex-grow: 1; min-height: 0;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 10px; "><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">When</span><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Event</span><select style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>delivery.packed</option><option>receipt.confirmed</option><option>production.received</option><option>delivery.allocated</option><option>transfer.shipped</option></select></label><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Warehouse</span><select style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>BAL-WH01</option><option>MEL-WH01</option><option>All</option></select></label><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(41,171,226,0.1);"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;"><span style="font-size: 14px; line-height: 20px; font-weight: 400; color: #ccd6f6;">Enabled</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Fires on every event</span></div><span style="display: inline-block; width: 40px; height: 22px; border-radius: 9999px; background: #29abe2; position: relative;"><span style="position: absolute; top: 2px; left: 20px; width: 18px; height: 18px; border-radius: 9999px; background: #0d1117;"></span></span></div></div>
+      <div style="box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 10px; "><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">What</span><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Template name (in Platen)</span><input type="text" value="carton-label" style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"></label><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Version</span><input type="text" value="v3" style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"></label><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Copies</span><select style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>1 per carton</option><option>1 per delivery</option><option>2 per carton</option></select></label></div>
+      <div style="box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 10px; "><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Where</span><label style="display: flex; flex-direction: column; gap: 6px; "><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Printer</span><select style="height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px; background: #0d1117; border: 1px solid rgba(41,171,226,0.2); color: #ccd6f6; font-size: 14px;"><option>Packing bench 2</option><option>Packing bench 1</option><option>Receiving dock</option><option>Line 3 Zebra</option><option>Office</option></select></label><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Printer names come from Platen</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Data sent to Platen · fixed shape</span><pre style="margin: 0; box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; color: #ccd6f6; overflow: hidden; flex-grow: 1;">{
+  "job_id": "uuid",
+  "template": "carton-label",
+  "version": "v3",
+  "printer": "packing-bench-2",
+  "copies": 1,
+  "reference": { "type": "delivery", "ref": "0080012345", "package_no": 1 },
+  "data": {
+    "ship_to": { "name": "Acme Auto Parts", "address": "12 Example St",
+                 "suburb": "Geelong", "state": "VIC", "postcode": "3220" },
+    "delivery_ref": "0080012345",
+    "package_no": 1, "package_count": 2,
+    "weight_kg": 8.4,
+    "carrier": null, "tracking_no": null,
+    "sscc": null,
+    "lines": [ { "sku": "ABC123", "qty": 10, "uom": "EA" } ]
+  }
+}</pre></div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 8px; "><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Recent jobs</span><div style="display: flex; flex-direction: column; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2);"><div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1);"><span>0080012338 · carton 1</span><span style="color: #8892b0;">printed 08:40</span></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1);"><span>0080012340 · carton 1</span><span style="color: #8892b0;">printed 08:52</span></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 14px; line-height: 20px; border-bottom: 1px solid rgba(41,171,226,0.1);"><span>0080012340 · carton 2</span><span style="color: #8892b0;">printed 08:52</span></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 14px; line-height: 20px; "><span>0080012345 · carton 1</span><span style="color: #8892b0;">waiting · not packed</span></div></div></div>
+      <div style="box-sizing: border-box; padding: 20px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 8px; "><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Fields Platen may use</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">ship_to, delivery_ref, package_no, package_count, weight_kg, carrier, tracking_no, sscc, lines[]</span><span style="font-size: 12px; line-height: 16px; color: #8892b0;">Adding a field here is a new version. Old versions keep working.</span></div>
+    </div>
+  </div></main>
+  </div>
+</div>
+</body>
+</html>
