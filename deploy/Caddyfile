@@ -1,0 +1,28 @@
+{$WMS_DOMAIN} {
+	encode gzip
+
+	# The API is the only door.
+	handle /v1/* {
+		reverse_proxy api:8000
+	}
+	handle /docs* {
+		reverse_proxy api:8000
+	}
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+
+	# Scanner PWA (build step 2)
+	handle_path /scan* {
+		root * /srv/scanner
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Desktop app (build step 1 onwards)
+	handle {
+		root * /srv/desktop
+		try_files {path} /index.html
+		file_server
+	}
+}

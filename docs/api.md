@@ -198,22 +198,26 @@ Event: `delivery.packed`. Fires the `carton-label` print point.
 ```json
 {
   "sku": "ABC123",
-  "total_on_hand": 168,
-  "total_available": 158,
+  "uom": "EA",
+  "total_on_hand": "168",
+  "total_available": "158",
   "locations": [{
     "warehouse": "BAL-WH01",
     "location": "PF-01-02-A",
     "zone": "PICKFACE",
     "batch": null,
-    "on_hand": 48,
-    "reserved": 10,
-    "available": 38,
+    "owner": "DEFAULT",
+    "on_hand": "48",
+    "reserved": "10",
+    "available": "38",
     "received_at": "2026-08-30"
   }]
 }
 ```
-Omit `warehouse` to search every site. `GET /v1/locations/{id}/stock` is the
-reverse: what is on a shelf. Filters: `batch`, `owner`.
+Omit `warehouse` to search every site. Locations come back oldest receipt
+first (FIFO order). Quantities are decimal strings so nothing rounds them.
+`GET /v1/locations/{id}/stock` is the reverse: what is on a shelf. Filters:
+`batch`, `owner`.
 
 ### POST /v1/locations/suggest — where should it go?
 ```json
@@ -242,12 +246,106 @@ Formats tried in order: GS1 → JSON in QR → custom per-site patterns → plai
 text lookup. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
 
+### Master data
+
+All four create or update by code (`status` in the reply says which). Fields
+left out of an update keep their value. Only a key with the `master:write`
+scope may call them; `master:read` for the GET side.
+
+#### POST /v1/sites
+```json
+{ "message_id": "uuid", "code": "BAL", "name": "Ballarat", "timezone": "Australia/Melbourne" }
+```
+
+#### POST /v1/warehouses
+```json
+{ "message_id": "uuid", "code": "BAL-WH01", "site": "BAL", "name": "Ballarat 1",
+  "settings": { "erp_counts_gr": false, "allow_ship_short": true, "blind_counts": true,
+                "receipt_tolerance_pct": 5, "idle_logout_minutes": 15 } }
+```
+
+#### POST /v1/zones
+```json
+{ "message_id": "uuid", "warehouse": "BAL-WH01", "code": "PICKFACE", "name": "Pick face", "kind": "pickface" }
+```
+`kind`: `bulk`, `pickface`, `staging`, `in_transit`, `overflow`, `line_side`.
+
+#### POST /v1/locations
+```json
+{
+  "message_id": "uuid",
+  "warehouse": "BAL-WH01",
+  "code": "BK-04-01-C",
+  "zone": "BULK",
+  "type": "shelf",
+  "access": "ground",
+  "mixing": "mixed",
+  "capacity": 2, "capacity_uom": "PALLET",
+  "pick_sequence": 410,
+  "barcode": "LOC-BK-04-01-C",
+  "active": true
+}
+```
+`type`: `shelf`, `floor`, `rack`, `dock`, `line_side`, `in_transit`.
+`access`: `ground`, `step`, `forklift`. `mixing`: `mixed`, `single_sku`,
+`single_batch`. `GET /v1/locations?warehouse=BAL-WH01` lists them in pick
+sequence; filters `zone`, `active`, `limit`, `offset`.
+
+#### POST /v1/products
+```json
+{
+  "message_id": "uuid",
+  "owner": "DEFAULT",
+  "sku": "ABC123",
+  "name": "Widget",
+  "uom": "EA",
+  "decimals_allowed": false,
+  "batch_tracked": false,
+  "preferred_zone": "PICKFACE",
+  "pickface_min": 24, "pickface_max": 96,
+  "barcodes": [
+    { "barcode": "09312345000012", "kind": "gtin" },
+    { "barcode": "19312345000019", "kind": "carton", "qty_per": 12 }
+  ],
+  "active": true
+}
+```
+`barcodes`, when present, replaces the whole set. A barcode belongs to one
+product. `GET /v1/products?q=widg` lists; `GET /v1/products/{sku}` fetches one.
+Products are unique per owner and sku.
+
+### GET /v1/locations/{id}/stock — what is here?
+`{id}` is the WMS id or the location code (add `warehouse=` if the code is
+used in more than one warehouse). Filters: `batch`, `owner`.
+```json
+{
+  "wms_id": "17",
+  "warehouse": "BAL-WH01",
+  "location": "BK-04-01-C",
+  "zone": "BULK",
+  "stock": [{
+    "sku": "ABC123", "name": "Widget", "batch": null, "owner": "DEFAULT",
+    "on_hand": "120", "reserved": "0", "available": "120", "uom": "EA",
+    "received_at": "2026-08-30"
+  }]
+}
+```
+Quantities are returned as decimal strings so nothing rounds them.
+
 ### Also
-- `POST /v1/products`, `POST /v1/locations` — master data.
+- `GET /v1/health` — `{ "status": "ok" }` once the database answers.
 - `POST /v1/imports/{type}` — CSV upload with preview (`dry_run: true`).
 - `POST /v1/auth/scanner-login` — `{ device_id, operator_id, pin, warehouse }`
   → `{ token, expires_in, operator, warehouses }`.
 - `POST /v1/api-clients` — `{ name, scopes, warehouses, owner, ip_allowlist }`.
+  The first key is made on the host with `wms create-api-client`.
+
+### Scopes
+A key carries a list of scopes, `area:verb` or `area:*` or `*`:
+`master:read`, `master:write`, `stock:read`, `stock:write`, `tasks:read`,
+`tasks:write`, `integration:admin`. It also carries the warehouse codes it may
+touch (or `*`) and one owner (or `*`). A call outside any of those is `403`.
+A missing or unknown key is `401`.
 
 ## Outbound events
 

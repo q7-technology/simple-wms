@@ -10,7 +10,9 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Multi-warehouse from day one** — transfers with an in-transit bucket
 - **Prints nothing itself** — template + JSON to Platen or any print service
 
-Status: **planning**. The spec is complete; code starts at build step 1.
+Status: **build step 1 (skeleton) done**. Sites, warehouses, zones, locations,
+products, the append-only ledger, API keys with message id de-duplication,
+and the event worker. Step 2 (inbound) is next.
 
 ## What is in this repo
 
@@ -28,24 +30,32 @@ design/            the designs, exported from the Claude Design file
   deck/            the 23-slide build brief (sources)
   canvas/          original artboard sources
 site/              the landing page (static, no build step)
+api/               FastAPI app, migrations, worker, tests (see api/README.md)
+deploy/            Caddyfile
+docker-compose.yml api, worker, db, caddy
 ```
 
-Code lands in `api/`, `apps/desktop/` and `apps/scanner/` as the build steps
-in `docs/brief.md` are done.
+`apps/desktop/` and `apps/scanner/` land with their build steps in
+`docs/brief.md`.
 
 ## Stack
 
 Python 3.12 + FastAPI · PostgreSQL 16 · Vite + React + Tailwind (desktop and
 scanner PWA) · Docker Compose · Caddy.
 
-## Getting started (once step 1 lands)
+## Getting started
 
 ```
 git clone https://github.com/q7-technology/simple-wms
 cd simple-wms
-cp .env.example .env
+cp .env.example .env            # set POSTGRES_PASSWORD and WMS_SECRET_KEY
 docker compose up -d
+docker compose exec api wms create-api-client --name erp
 ```
+
+The last line prints an API key once. Use it as `Authorization: Bearer <key>`
+against `https://<WMS_DOMAIN>/v1/...`. Interactive docs are at `/docs`.
+See `api/README.md` for running the API and tests outside Docker.
 
 ## Support
 
