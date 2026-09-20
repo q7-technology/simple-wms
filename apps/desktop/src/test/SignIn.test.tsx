@@ -138,3 +138,41 @@ describe("SignIn with a second factor", () => {
     expect(await screen.findByText("Wrong username or password · 3 tries left")).toBeInTheDocument();
   });
 });
+
+
+describe("SignIn with single sign-on", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    api.setSession(null);
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("says nothing about it when the install has no provider", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/v1/auth/sso" ? jsonResponse(200, { enabled: false, name: null })
+                             : jsonResponse(404, {}));
+    renderSignIn();
+    expect(await screen.findByText("Single sign-on is not set up on this install."))
+      .toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sign in with/ })).not.toBeInTheDocument();
+  });
+
+  it("offers the provider by name and sends the browser to it", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/v1/auth/sso") return jsonResponse(200, { enabled: true, name: "Entra ID" });
+      if (url === "/v1/auth/sso/start") {
+        return jsonResponse(200, { authorize_url: "https://login.example/authorize?x=1",
+                                   state: "st-1", expires_in: 600 });
+      }
+      return jsonResponse(404, {});
+    });
+    renderSignIn();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Sign in with Entra ID" }));
+    expect(assign).toHaveBeenCalledWith("https://login.example/authorize?x=1");
+  });
+});

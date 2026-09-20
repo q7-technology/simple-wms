@@ -12,7 +12,8 @@ from sqlalchemy import select
 from wms.api.deps import DB, Who, client_ip
 from wms.api.errors import Conflict, FieldError, Forbidden, Unauthorised
 from wms.models import User
-from wms.services import access, audit, sessions, totp
+from wms.config import get_settings
+from wms.services import access, audit, sessions, sso, totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -235,6 +236,89 @@ def me(who: Who):
         scopes=who.scopes, kind=who.kind,
         two_factor=bool(who.user.totp_secret) if who.user else False,
     )
+
+
+# --- single sign-on ---------------------------------------------------------
+
+class SsoStatusOut(BaseModel):
+    enabled: bool
+    name: str | None
+
+
+class SsoStartOut(BaseModel):
+    authorize_url: str
+    state: str
+    expires_in: int
+
+
+class SsoCallbackIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    code: str = Field(min_length=1, max_length=2000)
+    state: str = Field(min_length=1, max_length=200)
+
+
+def _sso_error(exc):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=exc.status, content={"detail": exc.message, "code": exc.code})
+
+
+@router.get("/sso", response_model=SsoStatusOut)
+def sso_status():
+    """Whether the sign-in screen should offer the button at all."""
+    return SsoStatusOut(enabled=sso.configured(), name=sso.provider_name())
+
+
+@router.get("/sso/start", response_model=SsoStartOut)
+def sso_start():
+    """Where to send the browser. The PKCE verifier stays here."""
+    try:
+        return SsoStartOut(**sso.start())
+    except sso.SsoError as exc:
+        return _sso_error(exc)
+
+
+@router.post("/sso/callback", response_model=SessionOut)
+def sso_callback(body: SsoCallbackIn, request: Request, db: DB):
+    """The browser came back with a code. Swap it, see who it is, sign them in."""
+    try:
+        identity = sso.finish(body.code, body.state)
+    except sso.SsoError as exc:
+        return _sso_error(exc)
+
+    user = None
+    if identity.email:
+        user = db.execute(select(User).where(User.email == identity.email)).scalars().first()
+    if user is None and identity.username:
+        user = db.execute(select(User).where(User.username == identity.username)).scalars().first()
+
+    settings = get_settings()
+    if user is None and settings.oidc_create_users and identity.username:
+        user = User(username=identity.username, display_name=identity.display_name or identity.username,
+                    email=identity.email, role=settings.oidc_default_role, warehouses=["*"],
+                    owner="*", password_hash=None)
+        db.add(user)
+        db.flush()
+        audit.record(db, actor_type="user", actor=user.username, action="user.created_by_sso",
+                     ip=_ip(request), detail={"provider": sso.provider_name(),
+                                              "subject": identity.subject})
+    if user is None or not user.active:
+        audit.record(db, actor_type="user", actor=identity.who, action="login_sso_refused",
+                     ip=_ip(request), detail={"reason": "no account, or inactive"})
+        db.commit()
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403, content={
+            "code": "no_account",
+            "detail": f"{identity.who} signed in with the provider, but has no active account here. "
+                      f"A supervisor can make one.",
+        })
+    if _is_locked(user):
+        return _refused("this account is locked; a supervisor can unlock it", "locked")
+
+    audit.record(db, actor_type="user", actor=user.username, action="login_sso", ip=_ip(request),
+                 detail={"provider": sso.provider_name(), "subject": identity.subject})
+    # The provider has already said who they are, so no second factor here.
+    return _signed_in(db, user, request)
 
 
 class TotpSetupOut(BaseModel):

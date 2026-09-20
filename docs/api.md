@@ -784,6 +784,30 @@ stock, tasks, read integrations and users; `inventory_controller` master
 data, stock, tasks; `receiver` and `picker` read master data and stock, work
 tasks.
 
+### Single sign-on
+Optional, and off unless the install sets `WMS_OIDC_ISSUER`,
+`WMS_OIDC_CLIENT_ID` and `WMS_OIDC_REDIRECT_URI`.
+
+- `GET /v1/auth/sso` → `{ enabled, name }`. The sign-in screen offers the
+  button only when this says so.
+- `GET /v1/auth/sso/start` → `{ authorize_url, state, expires_in }`. Send the
+  browser to the URL. It is the authorization code flow with PKCE, and the
+  verifier stays on the server, so a code lifted in transit is worth nothing.
+- `POST /v1/auth/sso/callback` — `{ code, state }` → the same session a
+  password sign in returns. The state is good once and for ten minutes.
+
+The code is exchanged server to server with the provider's token endpoint
+over TLS, and identity comes from its userinfo endpoint. Nothing verifies a
+signature, because nothing has to: the tokens arrive down an authenticated
+channel from the issuer itself, not through the browser.
+
+A person is matched by email, then by username. Someone the provider knows
+but the WMS does not is `403 no_account` and is named in the message, unless
+`WMS_OIDC_CREATE_USERS` is on, which makes them an account with
+`WMS_OIDC_DEFAULT_ROLE` and no password. Off by default: supervisors create
+accounts and IT audits them. A second factor is not asked for after single
+sign-on, because the provider has already said who they are.
+
 ### Second factor
 Time-based one-time passwords, the ordinary kind any authenticator app
 speaks. Optional, and worth it for an admin.

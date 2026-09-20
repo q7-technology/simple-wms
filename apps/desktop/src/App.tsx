@@ -3,6 +3,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import { Shell } from "./ui/Shell";
 import { SignIn } from "./pages/SignIn";
+import { SsoReturn } from "./pages/SsoReturn";
 import { Stock } from "./pages/Stock";
 import { Locations } from "./pages/Locations";
 import { Products } from "./pages/Products";
@@ -29,6 +30,7 @@ export function App() {
       <AuthProvider>
         <Routes>
           <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sso" element={<SsoReturn />} />
           <Route element={<RequireAuth />}>
             <Route element={<Shell />}>
               <Route index element={<Navigate to="/stock" replace />} />

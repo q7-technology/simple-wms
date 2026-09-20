@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { ApiError } from "../api/client";
+import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { Button, Field, Input } from "../ui";
+import { Button, Field, Input, Muted } from "../ui";
 import { Logo } from "../ui/Logo";
 
 function sentence(text: string): string {
@@ -20,6 +20,26 @@ export function SignIn() {
   // set once the password is accepted and the phone still has to answer
   const [challenge, setChallenge] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  // whether this install has a provider at all
+  const [sso, setSso] = useState<{ enabled: boolean; name: string | null } | null>(null);
+
+  useEffect(() => {
+    void api.get<{ enabled: boolean; name: string | null }>("/v1/auth/sso")
+      .then(setSso)
+      .catch(() => setSso({ enabled: false, name: null }));
+  }, []);
+
+  async function startSso() {
+    setError(null);
+    setBusy(true);
+    try {
+      const { authorize_url } = await api.get<{ authorize_url: string }>("/v1/auth/sso/start");
+      window.location.assign(authorize_url);
+    } catch (err) {
+      setError(refusal(err));
+      setBusy(false);
+    }
+  }
 
   if (user) return <Navigate to="/stock" replace />;
 
@@ -121,9 +141,15 @@ export function SignIn() {
         <div className="flex items-center gap-3">
           <div className="grow h-px bg-line-soft" /><span className="text-xs text-muted">or</span><div className="grow h-px bg-line-soft" />
         </div>
-        <Button type="button" className="h-11" disabled title="Single sign-on is configured per site; not set up here yet">
-          Sign in with single sign-on
-        </Button>
+        {sso?.enabled ? (
+          <Button type="button" className="h-11" disabled={busy} onClick={() => void startSso()}>
+            Sign in with {sso.name ?? "single sign-on"}
+          </Button>
+        ) : (
+          <Muted className="text-xs leading-4 text-center">
+            Single sign-on is not set up on this install.
+          </Muted>
+        )}
         <div className="flex items-center gap-2 text-xs leading-4 text-muted">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892b0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <span>Admins are asked for a second factor after this step</span>

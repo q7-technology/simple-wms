@@ -11,6 +11,7 @@ interface AuthState {
   setWarehouse: (code: string) => void;
   signIn: (username: string, password: string) => Promise<SignInResult>;
   signInWithCode: (challenge: string, code: string) => Promise<void>;
+  signInWithSso: (code: string, state: string) => Promise<void>;
   signOut: () => Promise<void>;
   reloadWarehouses: () => Promise<void>;
   can: (scope: string) => boolean;
@@ -69,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { needsCode: false };
   }, [loadMe]);
 
+  const signInWithSso = useCallback(async (code: string, state: string) => {
+    const body = await api.post<Session & { user: SessionUser }>("/v1/auth/sso/callback",
+                                                                { code, state });
+    api.setSession(body);
+    await loadMe();
+  }, [loadMe]);
+
   const signInWithCode = useCallback(async (challenge: string, code: string) => {
     const body = await api.post<Session & { user: SessionUser }>("/v1/auth/login/totp",
                                                                  { challenge, code });
@@ -104,10 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const value = useMemo<AuthState>(() => ({
-    ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signOut,
-    reloadWarehouses: loadWarehouses, can,
-  }), [ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signOut,
-       loadWarehouses, can]);
+    ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signInWithSso,
+    signOut, reloadWarehouses: loadWarehouses, can,
+  }), [ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signInWithSso,
+       signOut, loadWarehouses, can]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
