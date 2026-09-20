@@ -375,6 +375,37 @@ audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
 Custom per-site patterns come later.
 
+## Reports
+
+Nothing here keeps its own numbers. Every figure is read from `stock_ledger`
+or from the balances that rebuild from it, so a report can never drift from
+what actually happened.
+
+`GET /v1/reports` lists them with their filters. Every report answers in one
+shape, and `format=csv` downloads exactly the same thing:
+```json
+{ "report": "movements", "warehouse": "BAL-WH01", "owner": "DEFAULT",
+  "from": "2026-09-01", "to": "2026-09-20",
+  "describe": "Every movement by day and type: what came in, what went out.",
+  "columns": ["day", "movement_type", "lines", "qty_in", "qty_out", "net"],
+  "rows": [{ "day": "2026-09-20", "movement_type": "pick", "lines": 12,
+             "qty_in": "48", "qty_out": "48", "net": "0" }],
+  "totals": { "lines": 12, "qty_in": "48", "qty_out": "48" } }
+```
+
+| Report | Rows | Filters beyond warehouse and owner |
+|---|---|---|
+| `stock-on-hand` | sku, name, warehouse, zone, location, batch, on_hand, reserved, available, received_at | `zone`, `sku`, `group_by=location\|product` |
+| `movements` | day, movement_type, lines, qty_in, qty_out, net | `from`, `to`, `sku`, `movement_type` |
+| `pick-rate` | operator, lines, units, first_at, last_at, hours, lines_per_hour, units_per_hour | `from`, `to`, `operator` |
+| `variances` | at, location, zone, sku, batch, qty_change, reason, actor, note, ledger_id | `from`, `to`, `sku`, `reason` |
+| `shipped` | day, deliveries, lines, units, short, packages | `from`, `to` |
+
+`group_by=product` on stock on hand rolls the locations up and adds
+`locations` and `batches` counts. An operator with a single pick has no
+measurable span, so `lines_per_hour` is `null` rather than a made-up number.
+Reading a report needs `stock:read`.
+
 ## Owners
 
 Whose stock it is. Every row in the system carries an `owner`, and a single

@@ -8,7 +8,7 @@ one out of the source and one into the destination. The materialised
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import delete, func, select, text
@@ -50,6 +50,8 @@ class LedgerLine:
     api_client_id: int | None = None
     external_ref: str | None = None
     note: str | None = None
+    # when it happened. Defaults to now; an imported historical movement says so.
+    at: datetime | None = None
 
 
 def post(session: Session, lines: list[LedgerLine]) -> list[StockLedger]:
@@ -101,6 +103,7 @@ def post(session: Session, lines: list[LedgerLine]) -> list[StockLedger]:
             api_client_id=line.api_client_id,
             external_ref=line.external_ref,
             note=line.note,
+            **({"at": line.at} if line.at is not None else {}),
         )
         session.add(row)
         rows.append(row)
