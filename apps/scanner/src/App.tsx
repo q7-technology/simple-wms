@@ -6,6 +6,8 @@ import { Receive } from "./pages/Receive";
 import { Move } from "./pages/Move";
 import { Count } from "./pages/Count";
 import { Lookup } from "./pages/Lookup";
+import { Pick } from "./pages/Pick";
+import { Pack } from "./pages/Pack";
 import { Locked } from "./pages/Locked";
 
 function RequireOperator() {
@@ -25,6 +27,10 @@ export function App() {
             <Route path="/" element={<Menu />} />
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive/:taskId" element={<Receive />} />
+            <Route path="/pick" element={<Pick />} />
+            <Route path="/pick/:taskId" element={<Pick />} />
+            <Route path="/pack" element={<Pack />} />
+            <Route path="/pack/:ref" element={<Pack />} />
             <Route path="/move" element={<Move />} />
             <Route path="/count" element={<Count />} />
             <Route path="/count/:taskId" element={<Count />} />

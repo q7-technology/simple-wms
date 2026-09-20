@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 
 const NAV: { to: string; label: string; step?: number }[] = [
   { to: "/tasks", label: "Tasks" },
-  { to: "/deliveries", label: "Deliveries", step: 3 },
+  { to: "/deliveries", label: "Deliveries" },
   { to: "/receiving", label: "Receiving" },
   { to: "/production", label: "Production", step: 5 },
   { to: "/transfers", label: "Transfers", step: 5 },

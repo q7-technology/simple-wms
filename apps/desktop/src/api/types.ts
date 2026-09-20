@@ -135,3 +135,41 @@ export interface ScanResult {
   raw: string; format: string; type: string; fields: Record<string, string>;
   resolved: Record<string, unknown> | null; matches_expected: boolean | null; message: string | null;
 }
+
+/* --- step 3: deliveries ------------------------------------------------- */
+
+export interface ShipTo {
+  name: string; address?: string | null; suburb?: string | null; state?: string | null;
+  postcode?: string | null; country?: string | null; contact?: string | null;
+  phone?: string | null; email?: string | null;
+}
+export interface DeliveryLine {
+  delivery_line: number; sku: string; name: string; batch: string | null;
+  qty_ordered: string; qty_allocated: string; qty_picked: string; qty_shipped: string;
+  uom: string; short_reason: string | null;
+}
+export interface PackageLine { delivery_line: number; sku: string; batch: string | null; qty: string; uom: string }
+export interface DeliveryPackage {
+  package_no: number; type: string; container_id: string | null; sscc: string | null;
+  weight_kg: string | null; length_cm: string | null; width_cm: string | null; height_cm: string | null;
+  packed_by: string | null; created_at: string; lines: PackageLine[];
+}
+export type DeliveryStatus =
+  | "new" | "allocated" | "picking" | "picked" | "packing" | "packed" | "shipped" | "cancelled";
+export interface Delivery {
+  wms_id: string; external_ref: string; owner: string; warehouse: string; pick_mode: string;
+  priority: "low" | "normal" | "high"; required_by: string | null; ship_to: ShipTo;
+  carrier_hint: string | null; carrier: string | null; tracking_no: string | null;
+  allow_short: boolean; status: DeliveryStatus; short: boolean; staging_location: string | null;
+  note: string | null; created_at: string; allocated_at: string | null; picked_at: string | null;
+  packed_at: string | null; shipped_at: string | null; cancelled_at: string | null;
+  lines: DeliveryLine[]; packages: DeliveryPackage[]; task: Task | null; pack_task: Task | null;
+  events: { event_type: string; subscriber: string; status: string; at: string }[];
+}
+export interface AllocationRow {
+  delivery_line: number; sku: string; qty_ordered: string; qty_allocated: string; uom: string; short: string;
+}
+export interface DeliveryAccepted extends Accepted { allocation: AllocationRow[] }
+
+export type ShortReason =
+  | "not_found" | "short_on_shelf" | "damaged" | "location_unreadable" | "customer_cancelled";

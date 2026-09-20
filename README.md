@@ -10,13 +10,11 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Multi-warehouse from day one** — transfers with an in-transit bucket
 - **Prints nothing itself** — template + JSON to Platen or any print service
 
-Status: **build step 2 (inbound) done**. On top of the skeleton: the task
-engine, expected receipts with put-away, moves, blind cycle counts with
-supervisor approval, replenishment, putaway suggestions, the scan parser,
-CSV imports with preview, scanner sign in with lockout, the step 2 desktop
-screens (task board, receiving, replenishment and counts, import) and the
-scanner PWA (sign in, menu, receive, move, count, look up). Step 3
-(outbound: deliveries, pick, pack, ship) is next.
+Status: **build step 3 (outbound) done**. On top of steps 1 and 2: pick
+orders that reserve stock FIFO and say what could not be allocated, picking
+to the packing bench, short picks with a reason and a supervisor badge that
+raise a count, packing into cartons and shipping, with the whole outbound
+event set. Step 4 (Platen: print points, job status, reprint) is next.
 
 ## What is in this repo
 

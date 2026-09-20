@@ -348,6 +348,8 @@ def _confirm_pick(db, task, line, product, qty, batch, from_code, to_code, conta
     if line.actual_qty >= line.expected_qty:
         line.status = "done"
         line.completed_at = datetime.now(UTC)
+    for fn in COMPLETION_HOOKS.get("pick.confirmed", []):
+        fn(db, task, None)
 
 
 # Short-pick reasons that mean the shelf quantity is wrong, so it gets counted.

@@ -13,6 +13,8 @@ import { TaskBoard } from "./pages/TaskBoard";
 import { Receiving } from "./pages/Receiving";
 import { Replenishment } from "./pages/Replenishment";
 import { ImportExport } from "./pages/ImportExport";
+import { Deliveries } from "./pages/Deliveries";
+import { DeliveryDetail } from "./pages/DeliveryDetail";
 
 export function App() {
   return (
@@ -23,6 +25,8 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<Shell />}>
               <Route index element={<Navigate to="/stock" replace />} />
+              <Route path="/deliveries" element={<Deliveries />} />
+              <Route path="/deliveries/:ref" element={<DeliveryDetail />} />
               <Route path="/tasks" element={<TaskBoard />} />
               <Route path="/receiving" element={<Receiving />} />
               <Route path="/replenishment" element={<Replenishment />} />

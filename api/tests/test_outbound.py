@@ -211,6 +211,22 @@ def test_picking_moves_stock_to_staging_and_frees_the_reservation(client, db, st
                                           "short_reason": None}]
 
 
+def test_delivery_says_picking_once_the_first_line_is_off_the_shelf(client, db, structure, headers):
+    s = structure
+    stock(db, s, s.abc, s.bk1, "10")
+    stock(db, s, s.abc, s.pf, "10")
+    client.post("/v1/deliveries", headers=headers, json=delivery_body(lines=[
+        {"delivery_line": 10, "sku": "ABC123", "qty": 20, "uom": "EA"}]))
+    task_id = client.get("/v1/deliveries/0080012345", headers=headers).json()["task"]["wms_id"]
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "allocated"
+
+    client.post(f"/v1/tasks/{task_id}/lines/1/confirm", headers=headers, json=msg(qty=10, uom="EA"))
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "picking"
+
+    client.post(f"/v1/tasks/{task_id}/lines/2/confirm", headers=headers, json=msg(qty=10, uom="EA"))
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "picked"
+
+
 def test_short_pick_needs_a_reason_and_a_supervisor_and_raises_a_count(client, db, structure, headers, supervisor_badge):
     s = structure
     task_id = open_delivery(client, db, s, headers)
@@ -429,6 +445,39 @@ def test_cancel_releases_the_reservation_and_cancels_the_task(client, db, struct
     assert events(db)[-1] == ("delivery.cancelled", {"delivery_ref": "0080012345", "reason": "customer changed their mind"})
     # a shipped delivery cannot be cancelled
     assert client.post("/v1/deliveries/0080012345/cancel", headers=headers, json=msg()).status_code == 409
+
+
+def test_cancelling_after_picking_puts_the_bench_stock_back(client, db, structure, headers):
+    """Nothing is left stranded at the packing bench."""
+    s = structure
+    task_id = open_delivery(client, db, s, headers)
+    client.post(f"/v1/tasks/{task_id}/lines/1/confirm", headers=headers, json=msg(qty=10, uom="EA", operator="op-017"))
+
+    client.post("/v1/deliveries/0080012345/cancel", headers=headers, json=msg(reason="customer rang"))
+    putaways = client.get("/v1/tasks", headers=headers, params={"warehouse": "BAL-WH01", "type": "putaway"}).json()
+    assert putaways["total"] == 1
+    task = putaways["items"][0]
+    assert task["priority"] == "high"
+    assert "0080012345 was cancelled" in task["note"]
+    assert [(l["sku"], l["expected_qty"], l["from_location"], l["to_location"]) for l in task["lines"]] == [
+        ("ABC123", "10", "PACK-01", None)]
+
+    # the operator scans a shelf and the stock is home again
+    r = client.post(f"/v1/tasks/{task['wms_id']}/lines/1/confirm", headers=headers, json=msg(
+        qty=10, uom="EA", location="BK-04-01-C", operator="op-017"))
+    assert r.status_code == 202, r.text
+    assert r.json()["task"]["status"] == "done"
+    assert client.get("/v1/locations/PACK-01/stock", headers=headers,
+                      params={"warehouse": "BAL-WH01"}).json()["stock"] == []
+    assert client.get("/v1/stock", headers=headers, params={"sku": "ABC123"}).json()["total_available"] == "10"
+
+
+def test_cancelling_before_picking_leaves_no_putaway(client, db, structure, headers):
+    s = structure
+    open_delivery(client, db, s, headers)
+    client.post("/v1/deliveries/0080012345/cancel", headers=headers, json=msg(reason="duplicate"))
+    assert client.get("/v1/tasks", headers=headers,
+                      params={"warehouse": "BAL-WH01", "type": "putaway"}).json()["total"] == 0
 
 
 def test_cancelling_the_pick_task_cancels_the_delivery(client, db, structure, headers):

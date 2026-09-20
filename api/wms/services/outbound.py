@@ -98,6 +98,15 @@ def allocate(db: Session, delivery: Delivery, warehouse: Warehouse, created_by: 
     return summary
 
 
+@tasks.on_complete("pick.confirmed")
+def _picking_started(db: Session, task: Task, reason: str | None) -> None:
+    """The first line off a shelf means the order is being picked."""
+    delivery = delivery_for_task(db, task)
+    if delivery is not None and delivery.status == "allocated":
+        delivery.status = "picking"
+        db.flush()
+
+
 @tasks.on_complete("pick")
 def _pick_finished(db: Session, task: Task, reason: str | None) -> None:
     delivery = delivery_for_task(db, task)
@@ -240,6 +249,39 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
              "packages": package_summary(delivery)})
 
 
+def stranded_at_staging(db: Session, delivery: Delivery) -> list[tuple[Product, str | None, Decimal, str]]:
+    """What this delivery has sitting on the packing bench: picked, not shipped."""
+    out: dict[tuple[int, str | None], tuple[Decimal, str]] = {}
+    task = db.get(Task, delivery.pick_task_id) if delivery.pick_task_id else None
+    for l in (task.lines if task else []):
+        if l.actual_qty:
+            key = (l.product_id, l.batch)
+            qty, uom = out.get(key, (Decimal(0), l.uom))
+            out[key] = (qty + l.actual_qty, uom)
+    if delivery.status == "shipped":
+        return []
+    return [(db.get(Product, product_id), batch, qty, uom)
+            for (product_id, batch), (qty, uom) in out.items() if qty > 0]
+
+
+def putaway_stranded_stock(db: Session, delivery: Delivery, wh: Warehouse, reason: str) -> Task | None:
+    """Stock on the bench for a cancelled order needs a home. Raise a put-away
+    task so it goes back on a shelf instead of sitting there."""
+    stranded = stranded_at_staging(db, delivery)
+    if not stranded:
+        return None
+    staging = db.get(Location, delivery.staging_location_id)
+    task = tasks.create(
+        db, type="putaway", warehouse=wh, owner=delivery.owner, source_type="delivery",
+        source_ref=delivery.external_ref, priority="high", created_by="wms",
+        note=f"Back on a shelf: {delivery.external_ref} was cancelled ({reason})" if reason
+        else f"Back on a shelf: {delivery.external_ref} was cancelled",
+        lines=[tasks.LineSpec(product=product, expected_qty=qty, uom=uom, batch=batch,
+                              from_location=staging) for product, batch, qty, uom in stranded])
+    db.flush()
+    return task
+
+
 def cancel(db: Session, delivery: Delivery, wh: Warehouse, reason: str | None, actor: tasks.Actor) -> None:
     if delivery.status == "shipped":
         raise tasks.TaskError("already_shipped", f"{delivery.external_ref} has already shipped; it cannot be cancelled")
@@ -253,6 +295,7 @@ def cancel(db: Session, delivery: Delivery, wh: Warehouse, reason: str | None, a
         task = db.get(Task, task_id) if task_id else None
         if task and task.status not in ("done", "cancelled"):
             tasks.cancel(db, task, reason, actor)
+    putaway_stranded_stock(db, delivery, wh, reason or "")
     db.flush()
     emit(db, "delivery.cancelled", warehouse=wh.code, owner=delivery.owner,
          external_ref=delivery.external_ref,

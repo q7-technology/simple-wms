@@ -61,8 +61,9 @@ decimals and always carry a unit of measure.
   shelf the stock was reserved at. Picking moves the stock to the warehouse's
   staging area; it leaves the building at ship. A warehouse with no staging
   zone is a `422` naming what to add.
-- Statuses: `new`, `allocated`, `picking`, `picked`, `packing`, `packed`,
-  `shipped`, `cancelled`.
+- Statuses: `new`, `allocated` (stock held, pick task waiting), `picking`
+  (the first line is off the shelf), `picked`, `packing` (a carton is closed
+  but not the last), `packed`, `shipped`, `cancelled`.
 - `GET /v1/deliveries?warehouse=&status=` lists (soonest required first, then
   priority); `GET /v1/deliveries/{ref}` returns the delivery with its lines,
   packages, both tasks and the events sent.
@@ -71,8 +72,9 @@ decimals and always carry a unit of measure.
   Refused `409 short_not_allowed` when the order is short and
   `allow_short` is false.
 - `POST /v1/deliveries/{ref}/cancel` — `{ message_id, reason }`. Cancels the
-  open tasks and gives every reservation back. A shipped delivery cannot be
-  cancelled. Cancel, never delete.
+  open tasks and gives every reservation back. Anything already picked to the
+  bench raises a high-priority put-away task, so no stock is stranded there.
+  A shipped delivery cannot be cancelled. Cancel, never delete.
 - Events: `delivery.allocated`, `delivery.picked`, `delivery.packed`,
   `delivery.shipped`, `delivery.cancelled`.
 
