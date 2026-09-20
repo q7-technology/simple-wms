@@ -69,7 +69,29 @@ services:
     depends_on:
       - api
 
+  # Nightly dump of the database. Not started by `up`; run it from cron:
+  #   0 2 * * *  cd /srv/simple-wms && docker compose run --rm backup
+  # Or once, by hand, to check it works: docker compose run --rm backup
+  backup:
+    image: postgres:16
+    profiles: ["backup"]
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-wms}
+      POSTGRES_USER: ${POSTGRES_USER:-wms}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./deploy/backup.sh:/usr/local/bin/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+
 volumes:
   pgdata:
+  backups:
   caddy_data:
   caddy_config:

@@ -104,6 +104,18 @@ jobs:
           done
           docker compose exec -T api python -c "print('api is importable')"
           test "${ok:-0}" = 1 || (docker compose logs api; exit 1)
+      - name: A backup is taken, and it restores
+        run: |
+          docker compose run --rm backup
+          docker compose exec -T db psql -U wms -d postgres -c 'create database restore_check'
+          FILE=$(docker compose run --rm --entrypoint sh backup -c 'ls -1 /backups/*.sql.gz | tail -1' | tr -d '"'"'\r'"'"')
+          docker compose run --rm --entrypoint sh backup \
+            -c "gunzip -c $FILE | psql --host db --username wms --dbname restore_check --quiet -o /dev/null"
+          # the append-only trigger has to survive a restore, or the ledger
+          # stops being a ledger the moment anyone uses a backup
+          docker compose exec -T db psql -U wms -d restore_check -tAc \
+            "select count(*) from pg_trigger where tgname = 'stock_ledger_append_only'" | grep -qx 1
+
       - name: Logs on failure
         if: failure()
         run: docker compose logs

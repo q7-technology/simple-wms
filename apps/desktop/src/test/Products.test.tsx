@@ -33,6 +33,7 @@ function renderPage() {
       <AuthProvider>
         <Routes>
           <Route path="/products" element={<Products />} />
+          <Route path="/import" element={<h1>Import and export</h1>} />
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
@@ -60,6 +61,11 @@ function baseFetch(url: string, init: RequestInit): Response | null {
     return jsonResponse(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
   }
   return null;
+}
+
+/** Every stock lookup made, oldest first. */
+function stockCalls(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls.map((c) => String(c[0])).filter((u) => u.startsWith("/v1/stock?"));
 }
 
 /** Every print job posted, oldest first. */
@@ -188,6 +194,50 @@ describe("Products", () => {
     bodies = printJobs(fetchMock);
     expect(bodies[1].reference).toEqual({ type: "product", ref: "ABC123", batch: "B2611", qty: "12" });
     expect(window.localStorage.getItem("wms.printer")).toBe("Office");
+  });
+
+  it("sends Import CSV to the import screen", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByText("ABC123");
+    const button = screen.getByRole("button", { name: "Import CSV" });
+    expect(button).toBeEnabled();
+    expect(button).not.toHaveAttribute("title");
+    await user.click(button);
+    expect(await screen.findByRole("heading", { name: "Import and export" })).toBeInTheDocument();
+  });
+
+  it("checks the pick face only when Below min is clicked, then filters on it", async () => {
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.startsWith("/v1/stock?sku=ABC123&warehouse=")) {
+        return jsonResponse(200, { sku: "ABC123", uom: "EA", total_on_hand: "40", total_available: "40", locations: [
+          { warehouse: "BAL-WH01", location: "PF-01-02-A", zone: "PICKFACE", batch: null, owner: "DEFAULT", on_hand: "40", reserved: "0", available: "40", received_at: "2026-08-30" },
+        ] });
+      }
+      return baseFetch(url, init) ?? jsonResponse(404, { detail: `no route ${url}` });
+    });
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByText("ABC123");
+    // nothing is looked up until the chip is asked for
+    expect(stockCalls(fetchMock)).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: /Below min/ }));
+    await waitFor(() => expect(screen.queryByText("LUB-05")).not.toBeInTheDocument());
+    expect(screen.getByText("ABC123")).toBeInTheDocument();
+
+    // only the products with a minimum are looked up, in this warehouse
+    const calls = stockCalls(fetchMock);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("sku=ABC123");
+    expect(calls[0]).toContain("warehouse=BAL-WH01");
+
+    // the answer is kept: coming back to the chip asks nothing again
+    await user.click(screen.getByRole("button", { name: "All" }));
+    expect(screen.getByText("LUB-05")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Below min/ }));
+    await waitFor(() => expect(screen.queryByText("LUB-05")).not.toBeInTheDocument());
+    expect(stockCalls(fetchMock)).toHaveLength(1);
   });
 
   it("adds a new product and shows API field errors under the field", async () => {

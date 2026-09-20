@@ -180,10 +180,12 @@ describe("Import and export", () => {
     renderPage();
     await screen.findByText("CSV fallback");
     for (const label of ["Expected receipts", "Products", "Locations"]) {
-      expect(screen.getByRole("button", { name: label })).toBeEnabled();
+      const chip = screen.getByText(label, { selector: "button" });
+      expect(chip).toBeEnabled();
     }
-    expect(screen.queryByRole("button", { name: /Deliveries/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Transfers" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Deliveries/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Transfers")).not.toBeInTheDocument();
+    expect(screen.queryByText("Replenishments")).not.toBeInTheDocument();
     for (const button of screen.getAllByRole("button")) {
       expect(button.getAttribute("title") ?? "").not.toMatch(/step/i);
     }

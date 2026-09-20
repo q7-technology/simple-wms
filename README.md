@@ -69,6 +69,32 @@ use it as `Authorization: Bearer <key>` against `/v1/...`. Interactive API
 docs are at `/docs`. See `api/README.md` and `apps/desktop/README.md` for
 running either outside Docker.
 
+## Backups
+
+```
+docker compose run --rm backup          # one dump, now
+```
+
+It writes a gzipped `pg_dump` into the `backups` volume, checks the file
+unzips, and drops anything older than `BACKUP_KEEP_DAYS` (14 by default).
+Run it nightly from the host's cron:
+
+```
+0 2 * * *  cd /srv/simple-wms && docker compose run --rm backup
+```
+
+Copy the dumps off the machine as well. A VM snapshot is not a database
+backup, and neither is a copy on the same disk. To check one restores:
+
+```
+docker compose exec db psql -U wms -d postgres -c 'create database restore_check'
+docker compose run --rm --entrypoint sh backup \
+  -c 'gunzip -c /backups/<file>.sql.gz | psql --host db --username wms --dbname restore_check'
+```
+
+CI does exactly that on every push, and checks the append-only trigger
+survives the restore.
+
 ## Running the tests
 
 ```
