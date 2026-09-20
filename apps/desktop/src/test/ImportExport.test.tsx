@@ -1,0 +1,141 @@
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { api } from "../api/client";
+import { AuthProvider } from "../auth/AuthContext";
+import { RequireAuth } from "../auth/RequireAuth";
+import { ImportExport } from "../pages/ImportExport";
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+}
+
+const ME = { wms_id: "1", username: "leighton", display_name: "Leighton L.", role: "admin", warehouses: ["*"], scopes: ["*"], kind: "user" };
+const WAREHOUSES = [
+  { wms_id: "1", code: "BAL-WH01", site: "BAL", name: "Ballarat", settings: {}, active: true },
+  { wms_id: "2", code: "MEL-WH01", site: "MEL", name: "Melbourne", settings: {}, active: true },
+];
+const CSV = "sku,name,uom\nABC123,Brake pad set,EA\nABC12,Mystery part,\n";
+
+const PREVIEW = {
+  message_id: "m1", type: "products", rows_read: 2, ready: 1, problems: 1, committed: false, imported: 0, summary: "as 1 product",
+  preview: [
+    { row: 1, problem: null, data: { sku: "ABC123", name: "Brake pad set", uom: "EA" } },
+    { row: 2, problem: "uom: required", data: { sku: "ABC12", name: "Mystery part", uom: "" } },
+  ],
+};
+const COMMITTED = { ...PREVIEW, message_id: "m2", committed: true, imported: 1 };
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={["/import"]}>
+      <AuthProvider>
+        <Routes>
+          <Route element={<RequireAuth />}>
+            <Route path="/import" element={<ImportExport />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("Import and export", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    api.setSession({ token: "t", refresh_token: "r", expires_in: 900 });
+    fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+      if (url === "/v1/auth/refresh") return json(200, { token: "t2", refresh_token: "r2", expires_in: 900 });
+      if (url === "/v1/auth/me") return json(200, ME);
+      if (url === "/v1/warehouses") return json(200, { items: WAREHOUSES, total: 2 });
+      if (url === "/v1/imports/products" && init?.method === "POST") {
+        const body = JSON.parse(init.body as string);
+        return json(202, body.dry_run ? PREVIEW : COMMITTED);
+      }
+      return json(404, { detail: `no route ${url}` });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => { vi.unstubAllGlobals(); api.setSession(null); });
+
+  it("previews pasted CSV with problems first, then imports", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    expect(await screen.findByText("CSV fallback")).toBeInTheDocument();
+    expect(screen.getByText(/nothing is written until Import is pressed/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export stock on hand" })).toBeDisabled();
+
+    const previewButton = screen.getByRole("button", { name: "Preview" });
+    expect(previewButton).toBeDisabled();
+
+    const textarea = screen.getByLabelText("or paste CSV");
+    await user.click(textarea);
+    await user.paste(CSV);
+    expect(screen.getByText("2 rows pasted")).toBeInTheDocument();
+    expect(previewButton).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Products" }));
+    expect(previewButton).toBeEnabled();
+    await user.click(previewButton);
+
+    // the dry run
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find((c) => (c[0] as string) === "/v1/imports/products");
+      expect(call).toBeDefined();
+      const body = JSON.parse((call![1] as RequestInit).body as string);
+      expect(body).toMatchObject({ warehouse: "BAL-WH01", owner: "DEFAULT", csv: CSV, dry_run: true, skip_problems: true });
+      expect(typeof body.message_id).toBe("string");
+    });
+
+    // tiles and preview, problems first
+    expect(await screen.findByText("Preview · problems first")).toBeInTheDocument();
+    const problems = screen.getByText("Rows with problems").parentElement as HTMLElement;
+    expect(within(problems).getByText("1")).toHaveClass("text-gold");
+    expect(within(problems).getByText("fix or skip")).toBeInTheDocument();
+    expect(within(screen.getByText("Ready to import").parentElement as HTMLElement).getByText("as 1 product")).toBeInTheDocument();
+    expect(screen.getByText("uom: required")).toHaveClass("text-gold");
+    expect(screen.getByText("OK")).toBeInTheDocument();
+    const rows = screen.getAllByText(/^(ABC12|ABC123)$/).map((el) => el.textContent);
+    expect(rows).toEqual(["ABC12", "ABC123"]);
+    expect(screen.getByText("SKU")).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("UOM")).toBeInTheDocument();
+
+    // the commit
+    await user.click(screen.getByRole("button", { name: "Import 1 row" }));
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.filter((c) => (c[0] as string) === "/v1/imports/products");
+      expect(calls).toHaveLength(2);
+      const body = JSON.parse((calls[1][1] as RequestInit).body as string);
+      expect(body).toMatchObject({ warehouse: "BAL-WH01", owner: "DEFAULT", csv: CSV, dry_run: false, skip_problems: true });
+    });
+    expect(await screen.findByText("Imported 1 row as 1 product")).toBeInTheDocument();
+    expect(screen.queryByText("Preview · problems first")).not.toBeInTheDocument();
+    expect(textarea).toHaveValue("");
+  });
+
+  it("shows a field error in gold when the commit is refused", async () => {
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url === "/v1/auth/refresh") return json(200, { token: "t2", refresh_token: "r2", expires_in: 900 });
+      if (url === "/v1/auth/me") return json(200, ME);
+      if (url === "/v1/warehouses") return json(200, { items: WAREHOUSES, total: 2 });
+      if (url === "/v1/imports/products" && init?.method === "POST") {
+        const body = JSON.parse(init.body as string);
+        if (body.dry_run) return json(202, PREVIEW);
+        return json(422, { errors: [{ field: "csv", message: "1 row has problems and skip_problems is off" }] });
+      }
+      return json(404, { detail: `no route ${url}` });
+    });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText("or paste CSV"));
+    await user.paste(CSV);
+    await user.click(screen.getByRole("button", { name: "Products" }));
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    await user.click(await screen.findByRole("button", { name: "Import 1 row" }));
+    expect(await screen.findByText("csv: 1 row has problems and skip_problems is off")).toBeInTheDocument();
+    // the preview stays so the rows can be fixed
+    expect(screen.getByText("Preview · problems first")).toBeInTheDocument();
+  });
+});

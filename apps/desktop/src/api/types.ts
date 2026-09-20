@@ -89,3 +89,49 @@ export interface AuditRow {
   wms_id: string; at: string; actor_type: string; actor: string; action: string; target_type: string | null;
   target: string | null; device: string | null; ip: string | null; detail: Record<string, unknown>;
 }
+
+/* --- step 2: tasks and inbound ------------------------------------------ */
+
+export type TaskStatus = "waiting" | "in_progress" | "needs_supervisor" | "done" | "cancelled";
+export type LineStatus = "open" | "done" | "short" | "variance" | "cancelled";
+
+export interface TaskLine {
+  line_no: number; source_line: number | null; sku: string; name: string; batch: string | null;
+  expected_qty: string | null; actual_qty: string | null; variance: string | null; uom: string;
+  from_location: string | null; to_location: string | null; container_id: string | null;
+  status: LineStatus; reason: string | null; completed_at: string | null;
+}
+export interface Task {
+  wms_id: string; type: string; title: string; status: TaskStatus; warehouse: string; owner: string;
+  priority: "low" | "normal" | "high"; source_type: string | null; source_ref: string | null;
+  assigned_to: string | null; device: string | null; needs_supervisor: boolean; note: string | null;
+  created_by: string | null; created_at: string; started_at: string | null; completed_at: string | null;
+  cancelled_at: string | null; progress: { done: number; total: number }; lines: TaskLine[];
+}
+export interface TaskReply extends Accepted { task: Task; line: TaskLine | null }
+
+export interface ReceiptLine {
+  line: number; sku: string; name: string; batch: string | null; expected_qty: string; received_qty: string; uom: string;
+}
+export interface Putaway {
+  ledger_id: string; at: string; sku: string; batch: string | null; qty: string; uom: string; location: string;
+  actor: string; device: string | null;
+}
+export interface Receipt {
+  wms_id: string; external_ref: string; owner: string; warehouse: string; supplier: string | null; kind: string;
+  expected_at: string | null; dock: string | null; carrier: string | null;
+  status: "expected" | "arrived" | "receiving" | "complete" | "closed_short" | "cancelled";
+  note: string | null; created_at: string; arrived_at: string | null; closed_at: string | null;
+  expected_total: string; received_total: string; lines: ReceiptLine[]; task: Task | null;
+  putaways: Putaway[]; events: { event_type: string; subscriber: string; status: string; at: string }[];
+}
+
+export interface ImportPreviewRow { row: number; problem: string | null; data: Record<string, string> }
+export interface ImportResult {
+  message_id: string; type: string; rows_read: number; ready: number; problems: number; committed: boolean;
+  imported: number; summary: string; preview: ImportPreviewRow[];
+}
+export interface ScanResult {
+  raw: string; format: string; type: string; fields: Record<string, string>;
+  resolved: Record<string, unknown> | null; matches_expected: boolean | null; message: string | null;
+}

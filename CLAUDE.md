@@ -47,7 +47,7 @@ design/canvas/       Design-file sources (do not edit; regenerated from the canv
 site/                landing page (static)
 api/                 FastAPI app, Alembic migrations, worker, pytest
 apps/desktop/        React desktop app (Vite), Vitest
-apps/scanner/        React scanner PWA                         (to be created, step 2)
+apps/scanner/        React scanner PWA (Vite, service worker), Vitest
 deploy/Caddyfile     reverse proxy and static serving
 docker-compose.yml   api, worker, db, caddy
 ```

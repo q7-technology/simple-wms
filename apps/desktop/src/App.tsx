@@ -9,6 +9,10 @@ import { Products } from "./pages/Products";
 import { Integrations } from "./pages/Integrations";
 import { Settings } from "./pages/Settings";
 import { Users } from "./pages/Users";
+import { TaskBoard } from "./pages/TaskBoard";
+import { Receiving } from "./pages/Receiving";
+import { Replenishment } from "./pages/Replenishment";
+import { ImportExport } from "./pages/ImportExport";
 
 export function App() {
   return (
@@ -19,6 +23,10 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<Shell />}>
               <Route index element={<Navigate to="/stock" replace />} />
+              <Route path="/tasks" element={<TaskBoard />} />
+              <Route path="/receiving" element={<Receiving />} />
+              <Route path="/replenishment" element={<Replenishment />} />
+              <Route path="/import" element={<ImportExport />} />
               <Route path="/stock" element={<Stock />} />
               <Route path="/locations" element={<Locations />} />
               <Route path="/products" element={<Products />} />

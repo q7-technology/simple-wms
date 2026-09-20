@@ -10,11 +10,13 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Multi-warehouse from day one** — transfers with an in-transit bucket
 - **Prints nothing itself** — template + JSON to Platen or any print service
 
-Status: **build step 1 (skeleton) done**. Sites, warehouses, zones, locations,
-products, the append-only ledger, API keys with message id de-duplication,
-the event worker, desktop sign in and the step 1 desktop screens (stock
-lookup, locations, products, integrations, users and devices, settings).
-Step 2 (inbound and the scanner PWA) is next.
+Status: **build step 2 (inbound) done**. On top of the skeleton: the task
+engine, expected receipts with put-away, moves, blind cycle counts with
+supervisor approval, replenishment, putaway suggestions, the scan parser,
+CSV imports with preview, scanner sign in with lockout, the step 2 desktop
+screens (task board, receiving, replenishment and counts, import) and the
+scanner PWA (sign in, menu, receive, move, count, look up). Step 3
+(outbound: deliveries, pick, pack, ship) is next.
 
 ## What is in this repo
 
@@ -34,6 +36,7 @@ design/            the designs, exported from the Claude Design file
 site/              the landing page (static, no build step)
 api/               FastAPI app, migrations, worker, tests (see api/README.md)
 apps/desktop/      React desktop app (see apps/desktop/README.md)
+apps/scanner/      React scanner PWA (see apps/scanner/README.md)
 deploy/            Caddyfile
 docker-compose.yml api, worker, db, caddy
 ```
@@ -53,13 +56,15 @@ git clone https://github.com/q7-technology/simple-wms
 cd simple-wms
 cp .env.example .env            # set POSTGRES_PASSWORD and WMS_SECRET_KEY
 (cd apps/desktop && npm install && npm run build)
+(cd apps/scanner && npm install && npm run build)
 docker compose up -d
 docker compose exec api wms create-user --username you --role admin
 docker compose exec api wms create-api-client --name erp
 ```
 
 Open `https://<WMS_DOMAIN>/` (default `https://localhost/`, self-signed) and
-sign in with the user you made. The last line prints an API key once; systems
+sign in with the user you made. The scanner PWA is at `/scan/`; register a
+device and an operator on the Users screen first. The last line prints an API key once; systems
 use it as `Authorization: Bearer <key>` against `/v1/...`. Interactive API
 docs are at `/docs`. See `api/README.md` and `apps/desktop/README.md` for
 running either outside Docker.

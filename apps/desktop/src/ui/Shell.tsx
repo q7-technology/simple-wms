@@ -4,13 +4,16 @@ import { initials } from "../lib/format";
 import { Logo } from "./Logo";
 
 const NAV: { to: string; label: string; step?: number }[] = [
+  { to: "/tasks", label: "Tasks" },
   { to: "/deliveries", label: "Deliveries", step: 3 },
+  { to: "/receiving", label: "Receiving" },
   { to: "/production", label: "Production", step: 5 },
   { to: "/transfers", label: "Transfers", step: 5 },
   { to: "/stock", label: "Stock" },
   { to: "/locations", label: "Locations" },
   { to: "/products", label: "Products" },
-  { to: "/replenishment", label: "Replenishment", step: 2 },
+  { to: "/replenishment", label: "Replenishment" },
+  { to: "/import", label: "Import" },
   { to: "/integrations", label: "Integrations" },
   { to: "/users", label: "Users" },
   { to: "/settings", label: "Settings" },
