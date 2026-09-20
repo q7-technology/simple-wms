@@ -39,6 +39,14 @@ function renderShell() {
   );
 }
 
+/** Wait until the shell has everything it asked the API for. The warehouse
+ * arrives after the page does, and it carries the idle limit, so a test that
+ * starts counting before it lands is counting against the wrong clock. */
+async function ready() {
+  await screen.findByText("Stock page");
+  await screen.findByRole("option", { name: /BAL-WH01/ });
+}
+
 /** Move the clock on and let the one-second tick settle. */
 async function idleFor(seconds: number) {
   await act(async () => { vi.advanceTimersByTime(seconds * 1000); });
@@ -96,7 +104,8 @@ describe("Shell idle logout", () => {
 
   it("says nothing while there is plenty of time left", async () => {
     renderShell();
-    expect(await screen.findByText("Stock page")).toBeInTheDocument();
+    await ready();
+    expect(screen.getByText("Stock page")).toBeInTheDocument();
     expect(screen.queryByText(/^Signing out in/)).not.toBeInTheDocument();
 
     // Thirteen minutes of nothing is still not worth a word.
@@ -106,7 +115,7 @@ describe("Shell idle logout", () => {
 
   it("warns with a countdown under two minutes", async () => {
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
 
     await idleFor(LIMIT - 120);
     expect(screen.getByText("Signing out in 2:00")).toBeInTheDocument();
@@ -119,7 +128,7 @@ describe("Shell idle logout", () => {
   it("clears the warning when someone says they are still there", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
 
     await idleFor(LIMIT - 105);
     expect(screen.getByText("Signing out in 1:45")).toBeInTheDocument();
@@ -135,16 +144,18 @@ describe("Shell idle logout", () => {
 
   it("signs out when the time runs out", async () => {
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
 
     await idleFor(LIMIT);
-    expect(posted).toContain("/v1/auth/logout");
+    // The sign-in screen only appears once the logout has been answered, so
+    // waiting for it is what makes the POST safe to assert.
     expect(await screen.findByText("Sign in")).toBeInTheDocument();
+    expect(posted).toContain("/v1/auth/logout");
   });
 
   it("keeps the session alive while someone is typing", async () => {
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
 
     for (let i = 0; i < 20; i++) {
       await idleFor(60);
@@ -174,14 +185,14 @@ describe("Shell warehouse clock", () => {
   it("says what time it is at the warehouse when that is not the reader's time", async () => {
     stubFetch([], ELSEWHERE);
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
     expect(await screen.findByTitle(`Warehouse time · ${ELSEWHERE}`)).toHaveTextContent(timeIn(ELSEWHERE));
   });
 
   it("says nothing when the warehouse is on the reader's own clock", async () => {
     stubFetch([], HERE);
     renderShell();
-    await screen.findByText("Stock page");
+    await ready();
     expect(screen.queryByTitle(/^Warehouse time/)).not.toBeInTheDocument();
   });
 });
