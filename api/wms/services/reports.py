@@ -283,7 +283,12 @@ def billing(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
     out: list[dict] = []
     units_in = units_out = Decimal(0)
     movements = 0
-    for measure, types, direction in BILLED:
+    # Anything the list above does not name is still work someone did. It is
+    # billed under its own name rather than left off the invoice.
+    named = {t for _, types, _ in BILLED for t in types}
+    strangers = tuple(sorted(set(seen) - named))
+    measures = BILLED + ([("Other movements", strangers, "both")] if strangers else [])
+    for measure, types, direction in measures:
         lines = 0
         qty = Decimal(0)
         uoms: set[str] = set()

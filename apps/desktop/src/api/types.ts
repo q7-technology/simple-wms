@@ -24,7 +24,10 @@ export interface WarehouseSettings {
   allow_hard_deletes: boolean;
 }
 export interface Warehouse {
-  wms_id: string; code: string; site: string; name: string; settings: WarehouseSettings; active: boolean;
+  wms_id: string; code: string; site: string; name: string;
+  /** The site's clock. Times are shown on it, not on the reader's. */
+  timezone?: string | null;
+  settings: WarehouseSettings; active: boolean;
 }
 export interface Zone { wms_id: string; warehouse: string; code: string; name: string; kind: string; active: boolean }
 export interface Location {

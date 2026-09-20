@@ -51,6 +51,9 @@ class WarehouseOut(Out):
     code: str
     site: str
     name: str
+    # The site's clock, carried down so a client can show a warehouse's own
+    # times to a reader sitting in another state.
+    timezone: str
     settings: dict
     active: bool
 

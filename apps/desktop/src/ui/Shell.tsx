@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { initials } from "../lib/format";
+import { initials, zoneNote } from "../lib/format";
 import { Logo } from "./Logo";
 
 const NAV: { to: string; label: string; step?: number }[] = [
@@ -29,6 +30,10 @@ const ROLE_LABEL: Record<string, string> = {
 /** Only warn near the end. A bar that always nags is one people stop reading. */
 const IDLE_WARN_SECONDS = 120;
 
+/** The warehouse clock shows hours and minutes, so a half-minute tick is
+ * plenty to keep it honest. */
+const CLOCK_TICK_MS = 30_000;
+
 function countdown(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
@@ -36,6 +41,14 @@ function countdown(seconds: number): string {
 export function Shell() {
   const { user, warehouses, warehouse, setWarehouse, signOut, idleLeftSeconds, touch } = useAuth();
   const warnIdle = idleLeftSeconds > 0 && idleLeftSeconds <= IDLE_WARN_SECONDS;
+  // Only worth saying when the warehouse keeps a different clock from the
+  // person reading the screen. Same clock, no note.
+  const [clock, setClock] = useState(() => zoneNote(warehouse?.timezone));
+  useEffect(() => {
+    setClock(zoneNote(warehouse?.timezone));
+    const timer = setInterval(() => setClock(zoneNote(warehouse?.timezone)), CLOCK_TICK_MS);
+    return () => clearInterval(timer);
+  }, [warehouse?.timezone]);
   return (
     <div className="min-h-screen flex flex-col">
       <header className="h-16 shrink-0 flex items-center gap-6 px-6 border-b border-line bg-card">
@@ -76,6 +89,14 @@ export function Shell() {
             {warehouses.map((w) => <option key={w.code} value={w.code}>{w.code} · {w.name}</option>)}
           </select>
         </label>
+        {clock && (
+          <span
+            title={`Warehouse time · ${warehouse?.timezone}`}
+            className="text-xs leading-4 text-muted whitespace-nowrap"
+          >
+            {clock.time} {clock.label}
+          </span>
+        )}
         <div className="flex items-center gap-2 text-sm leading-5">
           {warnIdle && (
             <span className="inline-flex items-center gap-2 rounded-full border border-gold-line px-2.5 py-0.5 text-xs leading-4 font-semibold text-gold whitespace-nowrap">

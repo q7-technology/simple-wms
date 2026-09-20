@@ -445,7 +445,9 @@ shipped counts packages that went out on a delivery. The two storage rows are
 read as at this moment rather than over the window, because a ledger says what
 moved and never what sat still. Where an owner's stock is held in more than
 one unit of measure the `uom` reads `mixed` instead of adding pallets to
-eaches.
+eaches. A movement type the report has never heard of is billed under `Other
+movements` rather than left off, so the invoice can never quietly under-count
+what the warehouse did.
 
 `group_by=product` on stock on hand rolls the locations up and adds
 `locations` and `batches` counts. An operator with a single pick has no
@@ -686,6 +688,11 @@ scope may call them; `master:read` for the GET side.
   "settings": { "erp_counts_gr": false, "allow_ship_short": true, "blind_counts": true,
                 "receipt_tolerance_pct": 5, "idle_logout_minutes": 15 } }
 ```
+A warehouse reads back with a `timezone`, carried down from its site. Stock
+moves on the warehouse's clock, so a client shows the warehouse's times and
+not the reader's: a 06:00 receipt in Perth reads 06:00 in Ballarat too. The
+desktop puts the warehouse's own time of day beside the warehouse picker
+whenever that clock is not the reader's.
 
 #### POST /v1/zones
 ```json

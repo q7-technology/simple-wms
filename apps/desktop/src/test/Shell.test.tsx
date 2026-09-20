@@ -44,14 +44,9 @@ async function idleFor(seconds: number) {
   await act(async () => { vi.advanceTimersByTime(seconds * 1000); });
 }
 
-describe("Shell idle logout", () => {
-  let posted: string[];
-
-  beforeEach(() => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    posted = [];
-    api.setSession({ token: "t", refresh_token: "r", expires_in: 900 });
-    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+/** One warehouse, on whichever clock the test is about. */
+function stubFetch(posted: string[], timezone: string | null) {
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
       const method = init?.method ?? "GET";
       if (method === "POST") posted.push(url);
       if (url === "/v1/auth/refresh") return json(200, { token: "t2", refresh_token: "r2", expires_in: 900 });
@@ -64,13 +59,34 @@ describe("Shell idle logout", () => {
       }
       if (url === "/v1/warehouses") {
         return json(200, {
-          items: [{ wms_id: "w1", code: "BAL-WH01", site: "BAL", name: "Ballarat", settings: SETTINGS, active: true }],
+          items: [{
+            wms_id: "w1", code: "BAL-WH01", site: "BAL", name: "Ballarat",
+            timezone, settings: SETTINGS, active: true,
+          }],
           total: 1,
         });
       }
       return json(404, { detail: `no mock for ${method} ${url}` });
     }));
+  }
+
+describe("Shell idle logout", () => {
+  let posted: string[];
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    posted = [];
+    api.setSession({ token: "t", refresh_token: "r", expires_in: 900 });
+    stubFetch(posted, null);
   });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    api.setSession(null);
+  });
+
+
 
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -136,5 +152,36 @@ describe("Shell idle logout", () => {
     }
     expect(posted).not.toContain("/v1/auth/logout");
     expect(screen.getByText("Stock page")).toBeInTheDocument();
+  });
+});
+
+
+/** Somewhere that is certainly not where this machine is. */
+const HERE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const ELSEWHERE = HERE === "Pacific/Kiritimati" ? "Australia/Perth" : "Pacific/Kiritimati";
+
+/** The time over there right now, worked out without the code under test. */
+function timeIn(tz: string): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(new Date());
+}
+
+describe("Shell warehouse clock", () => {
+  beforeEach(() => api.setSession({ token: "t", refresh_token: "r", expires_in: 900 }));
+  afterEach(() => { vi.unstubAllGlobals(); api.setSession(null); });
+
+  it("says what time it is at the warehouse when that is not the reader's time", async () => {
+    stubFetch([], ELSEWHERE);
+    renderShell();
+    await screen.findByText("Stock page");
+    expect(await screen.findByTitle(`Warehouse time · ${ELSEWHERE}`)).toHaveTextContent(timeIn(ELSEWHERE));
+  });
+
+  it("says nothing when the warehouse is on the reader's own clock", async () => {
+    stubFetch([], HERE);
+    renderShell();
+    await screen.findByText("Stock page");
+    expect(screen.queryByTitle(/^Warehouse time/)).not.toBeInTheDocument();
   });
 });

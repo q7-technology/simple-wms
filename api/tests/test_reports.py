@@ -271,3 +271,15 @@ def test_billing_downloads_as_csv_like_the_others(client, db, structure, headers
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/csv")
     assert r.text.splitlines()[0] == "measure,detail,count,qty,uom"
+
+
+def test_billing_never_quietly_drops_a_movement_it_does_not_know(client, db, structure, headers):
+    """An invoice that silently leaves work out is worse than one that names
+    something odd, so an unfamiliar movement type still has to be counted."""
+    s = structure
+    move(db, s, s.abc, s.bk1, "30", movement_type="scrap")
+    got = report(client, headers, "billing", warehouse="BAL-WH01")
+    rows = {r["measure"]: r for r in got["rows"]}
+    assert rows["Other movements"]["count"] == 1
+    assert rows["Other movements"]["detail"] == "scrap"
+    assert got["totals"]["movements"] == 1

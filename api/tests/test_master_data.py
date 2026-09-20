@@ -80,3 +80,23 @@ def test_key_scoped_to_another_warehouse_is_forbidden(client, db, headers):
     r = client.post("/v1/zones", headers={"Authorization": f"Bearer {raw}"},
                     json=msg(warehouse="BAL-WH01", code="BULK", name="Bulk", kind="bulk"))
     assert r.status_code == 403
+
+
+def test_a_warehouse_carries_its_sites_timezone(client, headers):
+    """A reader in Melbourne looking at Perth stock has to be shown Perth's
+    clock, so the warehouse has to say which clock that is."""
+    client.post("/v1/sites", headers=headers,
+                json=msg(code="PER", name="Perth", timezone="Australia/Perth"))
+    client.post("/v1/warehouses", headers=headers,
+                json=msg(code="PER-WH01", site="PER", name="Perth 1"))
+
+    r = client.get("/v1/warehouses", headers=headers)
+    assert r.status_code == 200, r.text
+    by_code = {w["code"]: w for w in r.json()["items"]}
+    assert by_code["PER-WH01"]["timezone"] == "Australia/Perth"
+
+    client.post("/v1/sites", headers=headers, json=msg(code="BAL", name="Ballarat"))
+    client.post("/v1/warehouses", headers=headers,
+                json=msg(code="BAL-WH01", site="BAL", name="Ballarat 1"))
+    again = {w["code"]: w for w in client.get("/v1/warehouses", headers=headers).json()["items"]}
+    assert again["BAL-WH01"]["timezone"] == "Australia/Melbourne"

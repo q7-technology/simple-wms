@@ -22,7 +22,8 @@ def site_out(s: Site) -> SiteOut:
 
 def warehouse_out(w: Warehouse) -> WarehouseOut:
     return WarehouseOut(wms_id=str(w.id), code=w.code, site=w.site.code, name=w.name,
-                        settings=settings.effective(w.settings), active=w.active)
+                        timezone=w.site.timezone, settings=settings.effective(w.settings),
+                        active=w.active)
 
 
 def zone_out(z: Zone) -> ZoneOut:

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from "../api/client";
 import type { Session } from "../api/client";
 import type { Me, SessionUser, Warehouse } from "../api/types";
+import { setDisplayZone } from "../lib/format";
 
 interface AuthState {
   ready: boolean;
@@ -111,6 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (warehouses.length === 0) return null;
     return warehouses.find((w) => w.code === warehouseCode) ?? warehouses[0];
   }, [warehouses, warehouseCode]);
+
+  // Every time on screen is the warehouse's own. Set once here, where the
+  // warehouse is known, rather than threaded through every component.
+  useEffect(() => { setDisplayZone(warehouse?.timezone ?? null); }, [warehouse?.timezone]);
 
   // Idle logout: a signed-in screen on the warehouse floor should not stay
   // signed in all night. The scanner already does this; so does the desktop.

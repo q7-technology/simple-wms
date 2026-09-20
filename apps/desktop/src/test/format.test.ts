@@ -1,4 +1,4 @@
-import { fmtQty, fmtDate, fmtWhen, initials } from "../lib/format";
+import { fmtQty, fmtDate, fmtWhen, initials, setDisplayZone, zoneNote } from "../lib/format";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -51,5 +51,60 @@ describe("initials", () => {
     expect(initials("Leighton Lauton")).toBe("LL");
     expect(initials("Sam")).toBe("S");
     expect(initials("Priya N. Kumar")).toBe("PN");
+  });
+});
+
+describe("the warehouse's own clock", () => {
+  afterEach(() => setDisplayZone(null));
+
+  it("shows times on the warehouse's clock, not the reader's", () => {
+    // 09:30 in Perth on a winter morning. Whatever zone this machine is set
+    // to, a reader looking at Perth stock should read half past nine.
+    const at = "2026-07-15T01:30:00Z";
+    setDisplayZone("Australia/Perth");
+    expect(fmtWhen(at, new Date("2026-07-15T02:00:00Z"))).toBe("09:30");
+    setDisplayZone("Australia/Melbourne");
+    expect(fmtWhen(at, new Date("2026-07-15T02:00:00Z"))).toBe("11:30");
+    setDisplayZone("UTC");
+    expect(fmtWhen(at, new Date("2026-07-15T02:00:00Z"))).toBe("01:30");
+  });
+
+  it("decides what counts as today on the warehouse's clock too", () => {
+    // 23:00 Wednesday in Perth is already Thursday in Melbourne. Asked on
+    // Perth's Thursday morning, Perth says a weekday and Melbourne a time.
+    const at = "2026-07-15T15:00:00Z";
+    const now = new Date("2026-07-16T02:00:00Z");
+    setDisplayZone("Australia/Perth");
+    expect(fmtWhen(at, now)).toBe("Wed");
+    setDisplayZone("Australia/Melbourne");
+    expect(fmtWhen(at, now)).toBe("01:00");
+  });
+
+  it("falls back to the reader's own clock when no zone is set", () => {
+    const now = new Date(2026, 6, 15, 10, 0, 0);
+    const anHourAgo = new Date(now.getTime() - 3600_000);
+    setDisplayZone(null);
+    expect(fmtWhen(anHourAgo.toISOString(), now)).toBe(anHourAgo.toTimeString().slice(0, 5));
+  });
+
+  it("ignores a zone name it cannot read rather than throwing", () => {
+    const now = new Date(2026, 6, 15, 10, 0, 0);
+    setDisplayZone("Mars/Olympus_Mons");
+    expect(fmtWhen(now.toISOString(), now)).toBe(now.toTimeString().slice(0, 5));
+  });
+
+  it("names the zone only when it is not the reader's own", () => {
+    const at = new Date("2026-07-15T02:00:00Z");
+    expect(zoneNote(null, at)).toBeNull();
+    expect(zoneNote(Intl.DateTimeFormat().resolvedOptions().timeZone, at)).toBeNull();
+    const elsewhere = Intl.DateTimeFormat().resolvedOptions().timeZone === "Pacific/Kiritimati"
+      ? "Australia/Perth" : "Pacific/Kiritimati";
+    expect(zoneNote(elsewhere, at)).not.toBeNull();
+  });
+
+  it("gives the zone's short name and its time of day", () => {
+    const note = zoneNote("Australia/Perth", new Date("2026-07-15T02:00:00Z"),
+                          "Australia/Melbourne");
+    expect(note).toEqual({ label: "AWST", time: "10:00" });
   });
 });
