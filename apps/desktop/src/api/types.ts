@@ -16,7 +16,10 @@ export interface WarehouseSettings {
   auto_pick_mode: "single" | "batch" | "auto"; batch_pick_max_orders: number;
   idle_logout_minutes: number; pin_lockout_tries: number; known_devices_only: boolean;
   queue_offline_confirmations: boolean; fifo_by_received_date: boolean; blind_counts: boolean;
-  decimals_allowed: boolean; platen_url: string | null; retry_failed_print_jobs: boolean;
+  decimals_allowed: boolean;
+  multi_owner: boolean;
+  gs1_company_prefix: string | null; sscc_extension_digit: number;
+  platen_url: string | null; retry_failed_print_jobs: boolean;
   default_copies: number; ledger_retention_years: number; duplicate_window_hours: number;
   allow_hard_deletes: boolean;
 }
@@ -254,4 +257,35 @@ export interface BatchSuggestion {
 }
 export interface StopConfirmed extends Accepted {
   picked: string; picks: BatchPick[]; batch_status: string; stops_left: number;
+}
+
+/* --- step 6: containers, owners, reports -------------------------------- */
+
+export type ContainerType = "pallet" | "carton" | "tote" | "cage";
+export interface ContainerContent {
+  sku: string; name: string; batch: string | null; qty: string; uom: string;
+  container_id: string; received_at: string | null;
+}
+export interface ContainerChild {
+  container_id: string; type: ContainerType; sscc: string | null; status: string;
+}
+export interface Container {
+  wms_id: string; container_id: string; sscc: string | null; owner: string; type: ContainerType;
+  warehouse: string; location: string | null; parent: string | null;
+  status: "open" | "closed" | "shipped" | "retired"; weight_kg: string | null; note: string | null;
+  created_at: string; closed_at: string | null; children: ContainerChild[];
+  contents: ContainerContent[]; total_qty: string;
+}
+
+export interface Owner {
+  wms_id: string; code: string; name: string; contact: string | null; email: string | null;
+  phone: string | null; settings: Record<string, unknown>; note: string | null; active: boolean;
+  created_at: string;
+}
+
+export interface ReportListing { report: string; describe: string; filters: string[] }
+export interface ReportResult {
+  report: string; warehouse: string; owner: string; from: string | null; to: string | null;
+  describe: string; columns: string[]; rows: Record<string, string | number | null>[];
+  totals: Record<string, string | number>;
 }

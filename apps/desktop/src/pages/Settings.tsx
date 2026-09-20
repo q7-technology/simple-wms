@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { Warehouse, WarehouseSettings } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -182,6 +183,14 @@ export function Settings() {
           </Group>
 
           <Group title="Data">
+            <Toggle
+              label="Multiple owners"
+              hint="Third-party warehousing: show the owner on every screen"
+              checked={(current as Record<string, unknown>).multi_owner === true}
+              onChange={editable ? (v) => setDraft((d) => ({ ...d, multi_owner: v } as Partial<WarehouseSettings>)) : undefined}
+              disabled={!editable}
+            />
+            <Muted className="text-xs leading-4 pb-2"><Link to="/owners">Manage owners</Link></Muted>
             <div className="flex gap-2 pb-2">
               {num("ledger_retention_years", "Ledger retention (years)")}
               {num("duplicate_window_hours", "Duplicate window (h)")}

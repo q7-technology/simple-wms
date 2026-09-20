@@ -19,6 +19,9 @@ import { DeliveryDetail } from "./pages/DeliveryDetail";
 import { BatchPick } from "./pages/BatchPick";
 import { Production } from "./pages/Production";
 import { Transfers } from "./pages/Transfers";
+import { Containers } from "./pages/Containers";
+import { Owners } from "./pages/Owners";
+import { Reports } from "./pages/Reports";
 
 export function App() {
   return (
@@ -39,6 +42,9 @@ export function App() {
               <Route path="/replenishment" element={<Replenishment />} />
               <Route path="/import" element={<ImportExport />} />
               <Route path="/stock" element={<Stock />} />
+              <Route path="/containers" element={<Containers />} />
+              <Route path="/owners" element={<Owners />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/locations" element={<Locations />} />
               <Route path="/products" element={<Products />} />
               <Route path="/integrations" element={<Integrations />} />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import type { LedgerRow, Page, Product, StockBySku } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -29,6 +29,7 @@ function rememberPrinter(name: string) {
 export function Stock() {
   const { warehouse, warehouses, can } = useAuth();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const sku = params.get("sku") ?? "";
   const [draft, setDraft] = useState(sku);
   const [allWarehouses, setAllWarehouses] = useState(false);
@@ -113,6 +114,7 @@ export function Stock() {
           accent="Stock"
           title="lookup"
           actions={<>
+            <Button onClick={() => navigate("/containers")}>Containers</Button>
             <Button variant="gold" disabled title="Comes with reports (step 6)">Export CSV</Button>
             <Button disabled title="Adjustments come with counts (step 2)">Adjust stock</Button>
           </>}

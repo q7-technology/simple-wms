@@ -16,7 +16,10 @@ export interface WarehouseSettings {
   auto_pick_mode: "single" | "batch" | "auto"; batch_pick_max_orders: number;
   idle_logout_minutes: number; pin_lockout_tries: number; known_devices_only: boolean;
   queue_offline_confirmations: boolean; fifo_by_received_date: boolean; blind_counts: boolean;
-  decimals_allowed: boolean; platen_url: string | null; retry_failed_print_jobs: boolean;
+  decimals_allowed: boolean;
+  multi_owner: boolean;
+  gs1_company_prefix: string | null; sscc_extension_digit: number;
+  platen_url: string | null; retry_failed_print_jobs: boolean;
   default_copies: number; ledger_retention_years: number; duplicate_window_hours: number;
   allow_hard_deletes: boolean;
 }
