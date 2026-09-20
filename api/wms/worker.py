@@ -81,6 +81,66 @@ def run_once(session: Session, http: httpx.Client, now: datetime | None = None,
     return len(rows)
 
 
+def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None = None,
+                    limit: int = 50) -> int:
+    """Hand due print jobs to Platen. The WMS renders nothing: it sends the
+    template name, version, printer, copies and the JSON. Platen answers
+    `accepted`, then tells us `printed` or `failed` on its own."""
+    from wms.models import PrintJob, Warehouse
+    from wms.services.settings import effective
+
+    now = now or datetime.now(UTC)
+    rows = session.execute(
+        select(PrintJob)
+        .where(PrintJob.status == "pending", PrintJob.next_attempt_at <= now)
+        .order_by(PrintJob.next_attempt_at, PrintJob.id)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    ).scalars().all()
+
+    sent = 0
+    for job in rows:
+        wh = session.get(Warehouse, job.warehouse_id) if job.warehouse_id else None
+        url = effective(wh.settings if wh else None)["platen_url"]
+        if not url:
+            # nowhere to send it yet; it waits until a Platen URL is set
+            continue
+        body = json.dumps({
+            "job_id": str(job.job_id), "template": job.template, "version": job.version,
+            "printer": job.printer, "copies": job.copies, "reference": job.reference,
+            "data": job.data,
+        }, separators=(",", ":")).encode()
+        headers = {"Content-Type": "application/json", "X-WMS-Job-Id": str(job.job_id),
+                   "X-WMS-Template": f"{job.template}/{job.version}", "User-Agent": "simple-wms/0.1"}
+        error = None
+        try:
+            resp = http.post(url, content=body, headers=headers,
+                             timeout=get_settings().worker_http_timeout_seconds)
+            if not 200 <= resp.status_code < 300:
+                error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+        except httpx.HTTPError as exc:
+            error = f"{type(exc).__name__}: {exc}"[:500]
+
+        job.attempts += 1
+        sent += 1
+        if error is None:
+            job.status = "accepted"
+            job.sent_at = now
+            job.last_error = None
+            log.info("print job %s (%s) accepted by %s", job.job_id, job.template, url)
+        else:
+            job.last_error = error
+            if job.attempts >= len(BACKOFF):
+                job.status = "failed"
+                log.warning("print job %s failed for good: %s", job.job_id, error)
+            else:
+                job.next_attempt_at = now + timedelta(seconds=BACKOFF[job.attempts - 1])
+                log.info("print job %s attempt %d failed, next at %s: %s",
+                         job.job_id, job.attempts, job.next_attempt_at, error)
+        session.commit()
+    return sent
+
+
 def purge_inbound_messages(session: Session, now: datetime | None = None) -> int:
     now = now or datetime.now(UTC)
     cutoff = now - timedelta(hours=get_settings().message_ttl_hours)
@@ -112,13 +172,13 @@ def main() -> None:
     make_session = get_sessionmaker()
     with make_session() as session:
         wait_for_schema(session)
-    log.info("worker started, polling every %ss", settings.worker_poll_seconds)
+    log.info("worker started, polling events and print jobs every %ss", settings.worker_poll_seconds)
     last_purge = 0.0
     with httpx.Client() as http:
         while True:
             try:
                 with make_session() as session:
-                    done = run_once(session, http)
+                    done = run_once(session, http) + send_print_jobs(session, http)
                     if time.monotonic() - last_purge > 3600:
                         purged = purge_inbound_messages(session)
                         last_purge = time.monotonic()

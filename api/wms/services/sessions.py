@@ -22,10 +22,10 @@ REFRESH_TTL = timedelta(days=14)
 # What each desktop role may do. API keys carry their own scope list.
 ROLE_SCOPES: dict[str, list[str]] = {
     "admin": ["*"],
-    "supervisor": ["master:*", "stock:*", "tasks:*", "integration:read", "access:read"],
-    "inventory_controller": ["master:*", "stock:*", "tasks:*"],
-    "receiver": ["master:read", "stock:read", "tasks:read", "tasks:write"],
-    "picker": ["master:read", "stock:read", "tasks:read", "tasks:write"],
+    "supervisor": ["master:*", "stock:*", "tasks:*", "printing:*", "integration:read", "access:read"],
+    "inventory_controller": ["master:*", "stock:*", "tasks:*", "printing:*"],
+    "receiver": ["master:read", "stock:read", "tasks:read", "tasks:write", "printing:write"],
+    "picker": ["master:read", "stock:read", "tasks:read", "tasks:write", "printing:write"],
 }
 
 
@@ -34,7 +34,7 @@ OPERATOR_PREFIX = "wms_o."
 
 
 def operator_scopes(roles: list[str]) -> list[str]:
-    scopes = ["tasks:read", "tasks:write", "stock:read", "master:read"]
+    scopes = ["tasks:read", "tasks:write", "stock:read", "master:read", "printing:write"]
     if "supervisor" in roles:
         scopes += ["tasks:approve", "access:read"]
     return scopes

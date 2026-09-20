@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,6 +50,29 @@ class OutboundEvent(Base):
     subscriber: Mapped[Subscriber] = relationship()
 
 
+class PrintPoint(Base):
+    """Event → template → printer, per warehouse. The map that decides what
+    gets printed when something happens."""
+
+    __tablename__ = "print_point"
+    __table_args__ = (UniqueConstraint("warehouse_id", "event_type", "template", "printer",
+                                       postgresql_nulls_not_distinct=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # null means every warehouse
+    warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    template: Mapped[str] = mapped_column(String(64))
+    version: Mapped[str] = mapped_column(String(16))
+    printer: Mapped[str] = mapped_column(String(64))
+    # 0 turns it off without losing the row; `active` does the same on purpose
+    copies: Mapped[int] = mapped_column(Integer, default=1)
+    owner: Mapped[str] = mapped_column(String(32), default="*")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = created_at_column()
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class PrintJob(Base):
     """Same queue idea for Platen. The WMS never renders a label."""
 
@@ -58,18 +81,24 @@ class PrintJob(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     job_id: Mapped[uuid.UUID] = mapped_column(Uuid, unique=True)
-    template: Mapped[str] = mapped_column(String(64))
+    warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    owner: Mapped[str] = mapped_column(String(32), default="DEFAULT")
+    template: Mapped[str] = mapped_column(String(64), index=True)
     version: Mapped[str] = mapped_column(String(16))
     printer: Mapped[str] = mapped_column(String(64))
     copies: Mapped[int] = mapped_column(Integer, default=1)
     reference: Mapped[dict] = mapped_column(JSONB, default=dict)
     data: Mapped[dict] = mapped_column(JSONB, default=dict)
     task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
-    # pending, sent, accepted, printed, failed
+    print_point_id: Mapped[int | None] = mapped_column(ForeignKey("print_point.id"))
+    reprint_of_id: Mapped[int | None] = mapped_column(ForeignKey("print_job.id"))
+    external_ref: Mapped[str | None] = mapped_column(String(64), index=True)
+    # pending, accepted, printed, failed
     status: Mapped[str] = mapped_column(String(16), default="pending")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(String(500))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     printed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = created_at_column()
 

@@ -75,4 +75,10 @@ def emit(
         session.add(row)
         rows.append(row)
     session.flush()
+
+    # print points hang off the same events, whether anyone subscribes or not
+    from wms.services import printing
+
+    printing.fire(session, event_type, warehouse_code=warehouse, owner=owner,
+                  external_ref=external_ref, data=data)
     return rows

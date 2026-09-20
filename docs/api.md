@@ -629,8 +629,8 @@ Needs `access:admin` to change, `access:read` to list.
 ### Scopes
 A key carries a list of scopes, `area:verb` or `area:*` or `*`:
 `master:read`, `master:write`, `stock:read`, `stock:write`, `tasks:read`,
-`tasks:write`, `integration:read`, `integration:admin`, `access:read`,
-`access:admin`. It also carries the warehouse codes it may touch (or `*`)
+`tasks:write`, `printing:read`, `printing:write`, `integration:read`,
+`integration:admin`, `access:read`, `access:admin`. It also carries the warehouse codes it may touch (or `*`)
 and one owner (or `*`). A signed-in person gets scopes from their role and
 warehouses from their account. A call outside any of those is `403`.
 A missing or unknown key is `401`.
@@ -696,7 +696,10 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 
 ## Print jobs (to Platen)
 
-Same queue as events. One job per print point firing.
+The WMS renders nothing. It sends a template name, a version, a printer,
+copies and JSON through the same durable queue as events, and Platen (or any
+print service) does the rendering.
+
 ```json
 {
   "job_id": "uuid",
@@ -709,15 +712,74 @@ Same queue as events. One job per print point firing.
     "ship_to": { "name": "Acme Auto Parts", "address": "12 Example St", "suburb": "Geelong", "state": "VIC", "postcode": "3220" },
     "delivery_ref": "0080012345",
     "package_no": 1, "package_count": 2,
-    "weight_kg": 8.4,
+    "weight_kg": "8.4",
     "carrier": null, "tracking_no": null,
     "sscc": null,
-    "lines": [{ "sku": "ABC123", "qty": 10, "uom": "EA" }]
+    "lines": [{ "sku": "ABC123", "qty": "10", "uom": "EA" }]
   }
 }
 ```
-Platen replies `accepted`, then `printed` or `failed`; the WMS stores the
-status against the task. Document types and their fixed data shapes:
-`location-label`, `product-label`, `carton-label`, `pallet-label`,
-`pick-list`, `packing-slip`, `transfer-docket`. Adding a field is a new
-version; old versions keep working.
+Headers: `X-WMS-Job-Id`, `X-WMS-Template: carton-label/v3`. The URL is the
+warehouse's `platen_url` setting; a job for a warehouse without one waits in
+the queue until it is set. A refusal is retried on the same backoff as
+events (1 min, 5, 30, 2 h), then marked `failed` for a reprint.
+
+### Print points — event → template → printer
+```json
+{ "warehouse": "BAL-WH01", "event_type": "delivery.packed",
+  "template": "carton-label", "printer": "Packing bench 2", "copies": 1,
+  "owner": "*", "active": true }
+```
+`POST /v1/print-points` creates or updates by warehouse, event, template and
+printer (`201` on create, `200` on update). A null `warehouse` covers every
+warehouse. `copies: 0` or `active: false` turns it off without losing the
+row. `GET /v1/print-points?warehouse=` lists;
+`POST /v1/print-points/{id}/deactivate` switches one off. Needs
+`integration:admin`.
+
+Every outbound event runs its print points, whether anyone subscribes to it
+or not. A template that cannot build its data prints nothing rather than
+blocking the movement that caused it.
+
+### GET /v1/print-templates
+Every document type, its current version, the fields Platen receives and the
+events that can fire it.
+
+| Template | Version | Fires on | `data` |
+|---|---|---|---|
+| `location-label` | v2 | `receipt.confirmed` | location, warehouse, zone, barcode, type, access, pick_sequence |
+| `product-label` | v1 | — | sku, name, uom, barcode, batch, batch_tracked, qty |
+| `carton-label` | v3 | `delivery.packed` | ship_to, delivery_ref, package_no, package_count, weight_kg, carrier, tracking_no, sscc, lines |
+| `pallet-label` | v1 | `production.received` | sku, name, batch, qty, uom, location, reference, sscc |
+| `pick-list` | v1 | `delivery.allocated` | delivery_ref, ship_to, required_by, priority, pick_mode, lines |
+| `packing-slip` | v1 | `delivery.packed` | delivery_ref, ship_to, carrier, tracking_no, packages, lines |
+| `transfer-docket` | v1 | `transfer.shipped` | transfer_ref, from/to warehouse, packages, lines (build step 5) |
+
+Adding a field is a new version; old versions keep working, because a
+printer out there is still rendering them. A reprint sends the version that
+was sent the first time.
+
+### POST /v1/print-jobs — print one now
+```json
+{ "message_id": "uuid", "warehouse": "BAL-WH01", "template": "location-label",
+  "printer": "Office", "copies": 3,
+  "reference": { "type": "location", "ref": "PF-01-02-A" } }
+```
+The WMS builds the data for the template you name: `reference.ref` is a
+location code, a SKU (with optional `batch` and `qty`) or a delivery
+reference (with `package_no` for a carton label). Something that is not
+there is a `422` on `reference`.
+
+- `GET /v1/print-jobs?warehouse=&status=&template=&printer=&external_ref=`
+  lists newest first, with the exact `data` that was sent.
+- `GET /v1/print-jobs/{id}` returns one.
+- `POST /v1/print-jobs/{id}/reprint` — `{ message_id, printer?, copies? }`.
+  The same data again as a new job with a new `job_id`. Never re-rendered,
+  never re-numbered.
+- `POST /v1/print-jobs/{job_id}/status` — what Platen says afterwards:
+  `{ "status": "printed" }` or `{ "status": "failed", "message": "out of
+  labels" }`. Found by the `job_id` the print service was given.
+  Statuses: `pending`, `accepted`, `printed`, `failed`.
+
+Reading needs `printing:read`, printing and reprinting `printing:write`.
+Supervisors, inventory controllers and scanner operators have them.
