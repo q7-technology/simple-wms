@@ -210,7 +210,12 @@ function CountTask({ taskId }: { taskId: string }) {
         {line && wrong && <WrongScan read={wrong} expected={expected} title={wrong.type === "location" ? "That is a different shelf" : undefined} onAgain={clear} />}
         {line && !wrong && (
           <>
-            <BigLocation eyebrow="Count" code={line.from_location ?? "—"} hint="Blind count · expected quantity is hidden" hint2={atShelf ? "Scanned · count everything of this product on the shelf" : undefined} />
+            <BigLocation
+              eyebrow="Count"
+              code={line.from_location ?? "—"}
+              hint={line.expected_qty === null ? "Blind count · expected quantity is hidden" : "Count everything of this product on the shelf"}
+              hint2={atShelf ? "Scanned · count everything of this product on the shelf" : undefined}
+            />
             {!atShelf && <ScanHint>Scan the shelf to start</ScanHint>}
             {atShelf && (
               <>
@@ -219,6 +224,12 @@ function CountTask({ taskId }: { taskId: string }) {
                   pill={line.batch ? <Pill>Batch {line.batch}</Pill> : undefined}
                   big={variance ? fmtQty(variance.actual_qty) : qty || "0"} bigHint={`${line.uom} counted`}
                 />
+                {/* Shown, never typed in for them. A counter who can see the
+                    figure spots an obvious mistake; one who is handed it
+                    stops counting. */}
+                {line.expected_qty !== null && !variance && (
+                  <span className="text-sm text-muted">System says {fmtQty(line.expected_qty, line.uom)}</span>
+                )}
                 {!variance && <QtyStepper label="Quantity on shelf" value={qty} onChange={setQty} decimals={allowsDecimals(line.uom)} />}
                 {variance && (
                   <>

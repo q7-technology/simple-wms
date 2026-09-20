@@ -212,7 +212,7 @@ Done on the spot: one `move` task, already complete, with two ledger lines
 with the stock. Refused with a field error if the quantity is not available
 or the destination allows one product or one batch only. Event: `stock.moved`.
 
-### POST /v1/counts — blind cycle count
+### POST /v1/counts — cycle count
 ```json
 {
   "message_id": "uuid",
@@ -226,8 +226,11 @@ or the destination allows one product or one batch only. Event: `stock.moved`.
 ```
 Give `locations`, or a `zone` for every active shelf in it, and optionally a
 `sku` to count only that product. One `count` task with a line per product
-and batch recorded on those shelves. The expected quantity is hidden from a
-line until it is counted. A count that matches verifies the shelf and writes
+and batch recorded on those shelves. The counter is shown what the system
+thinks is on the shelf, so an obvious mistake is caught before it becomes a
+variance. A site that wants a true blind count turns on `blind_counts` for
+the warehouse, and then `expected_qty` is `null` on an open count line and
+arrives only once the line has been counted. A count that matches verifies the shelf and writes
 nothing. A variance parks the line and the task in `needs_supervisor`; a
 supervisor approves it with a reason (`stock.adjusted`, one adjustment
 ledger line) or asks for a recount. The short-pick flow raises the same task.

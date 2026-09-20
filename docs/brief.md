@@ -192,11 +192,11 @@ decisions now, so change them here first.
 | Batch | A batch master, now | A batch table keyed by product and batch code, holding expiry, manufacture date, supplier lot and a released or quarantined status. The ledger keeps its batch string, so nothing already written changes; the table fills in behind it. |
 | Scanning | Scanners only | The scanner app reads a keyboard wedge. No camera, no decode library, no permission prompt. A phone can still use the app by typing a code. |
 | Floor login | 8 hours idle, 4-digit PIN | A picker signs in once a shift, not after every pallet. `idle_logout_minutes` defaults to 480 and PINs stay 4 to 8 digits so a site can ask for more. Lockout after 5 wrong tries. |
-| Counts | Show the expected quantity | Counting is no longer blind by default. The count task line has to carry the expected quantity to the scanner, and the count screen shows it. `blind_counts` stays as the per-warehouse switch for sites that want it hidden. |
+| Counts | Show the expected quantity | Built. The count line carries the expected quantity and the scanner shows it, without typing it into the entry box. `blind_counts` is the per-warehouse switch for a site that wants a true blind count, and it is off by default. |
 | Ledger retention | Roll the database by year | Nothing trims the ledger and no archive table exists. A yearly dump goes to cold storage and everything stays live, which is the only shape that does not argue with the append-only rule. |
 
-Three of these are work that is not built yet: the SAP adapter, the batch
-master, and the expected quantity on a count.
+Two of these are work that is not built yet: the SAP adapter and the batch
+master.
 
 ## Related artefacts
 

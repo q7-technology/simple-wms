@@ -135,7 +135,7 @@ def transfer_out(db, t: Transfer, full: bool = True) -> TransferOut:
         if not task_id or not full:
             return None
         task = db.execute(select(Task).options(*LOAD).where(Task.id == task_id)).scalar_one_or_none()
-        return task_out(task, wh.code) if task else None
+        return task_out(task, wh) if task else None
 
     bench = db.get(Location, t.staging_location_id) if t.staging_location_id else None
     bucket = db.get(Location, t.in_transit_location_id) if t.in_transit_location_id else None

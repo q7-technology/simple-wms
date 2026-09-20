@@ -127,7 +127,7 @@ def order_out(db, o: ProductionOrder, full: bool = True) -> ProductionOrderOut:
     task = None
     if full and o.issue_task_id:
         row = db.execute(select(Task).options(*LOAD).where(Task.id == o.issue_task_id)).scalar_one_or_none()
-        task = task_out(row, wh.code) if row else None
+        task = task_out(row, wh) if row else None
     return ProductionOrderOut(
         wms_id=str(o.id), external_ref=o.external_ref, owner=o.owner, warehouse=wh.code,
         required_by=o.required_by, priority=o.priority, status=o.status, note=o.note,

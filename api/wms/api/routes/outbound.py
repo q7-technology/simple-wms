@@ -153,7 +153,7 @@ def delivery_out(db, d: Delivery, wh: Warehouse, full: bool = True) -> DeliveryO
         if not task_id:
             return None
         t = db.execute(select(Task).options(*LOAD).where(Task.id == task_id)).scalar_one_or_none()
-        return task_out(t, wh.code) if t else None
+        return task_out(t, wh) if t else None
 
     events: list[EventSummary] = []
     if full:

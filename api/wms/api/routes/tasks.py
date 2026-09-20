@@ -12,7 +12,7 @@ from wms.api.errors import Conflict, FieldError, Forbidden, NotFound
 from wms.api.schemas import Page
 from wms.api.schemas_tasks import (
     ApproveIn, AssignIn, CancelIn, CloseIn, ConfirmIn, RecountIn, ShortIn, StartIn, TaskOut, TaskReply,
-    line_out, task_out,
+    blind, line_out, task_out,
 )
 from wms.models import Task, TaskLine, Warehouse
 from wms.services import access, stock
@@ -70,7 +70,7 @@ def run(db, who, request, body, task, fn) -> object:
         db.refresh(task)
         wh = db.get(Warehouse, task.warehouse_id)
         return TaskReply(message_id=body.message_id, wms_id=str(task.id), status="accepted",
-                         task=task_out(task, wh.code), line=line_out(task, line) if line is not None else None)
+                         task=task_out(task, wh), line=line_out(task, line, blind_counts=blind(wh)) if line is not None else None)
 
     return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
@@ -98,13 +98,13 @@ def list_tasks(
     rows = db.execute(
         q.order_by(engine.priority_order(Task.priority), Task.id).limit(limit).offset(offset)
     ).scalars().all()
-    return Page(items=[task_out(t, wh.code) for t in rows], total=total)
+    return Page(items=[task_out(t, wh) for t in rows], total=total)
 
 
 @router.get("/tasks/{id}", response_model=TaskOut)
 def get_task_detail(id: int, db: DB, who: Principal = require("tasks:read")):
     task, wh = get_task(db, id, who)
-    return task_out(task, wh.code)
+    return task_out(task, wh)
 
 
 @router.post("/tasks/{id}/start", status_code=202, response_model=TaskReply)

@@ -8,8 +8,9 @@ from pydantic import BaseModel, Field
 
 from wms.api.envelope import Accepted, Envelope
 from wms.api.schemas import Qty
-from wms.models import Task, TaskLine
+from wms.models import Task, TaskLine, Warehouse
 from wms.services import tasks as task_engine
+from wms.services.settings import effective
 
 
 class LineOut(BaseModel):
@@ -53,8 +54,16 @@ class TaskOut(BaseModel):
     lines: list[LineOut]
 
 
-def line_out(task: Task, l: TaskLine) -> LineOut:
-    blind = task.type == "count" and l.status == "open"
+def blind(warehouse: Warehouse) -> bool:
+    """Whether this warehouse counts blind."""
+    return bool(effective(warehouse.settings)["blind_counts"])
+
+
+def line_out(task: Task, l: TaskLine, *, blind_counts: bool = True) -> LineOut:
+    # A count can be blind, where the counter is never shown what the system
+    # thinks is there. It is a per-warehouse switch, and off by default: a
+    # counter who can see the figure catches an obvious mistake on the spot.
+    blind = blind_counts and task.type == "count" and l.status == "open"
     variance = None
     if task.type == "count" and l.actual_qty is not None and l.expected_qty is not None and l.status != "open":
         variance = l.actual_qty - l.expected_qty
@@ -67,15 +76,19 @@ def line_out(task: Task, l: TaskLine) -> LineOut:
     )
 
 
-def task_out(task: Task, warehouse_code: str) -> TaskOut:
+def task_out(task: Task, warehouse: Warehouse | str) -> TaskOut:
+    """The warehouse comes in whole where the caller has it, because the count
+    switch lives in its settings. A bare code still works and counts blind."""
+    blind_counts = True if isinstance(warehouse, str) else effective(warehouse.settings)["blind_counts"]
+    code = warehouse if isinstance(warehouse, str) else warehouse.code
     return TaskOut(
         wms_id=str(task.id), type=task.type, title=task_engine.title(task), status=task.status,
-        warehouse=warehouse_code, owner=task.owner, priority=task.priority, source_type=task.source_type,
+        warehouse=code, owner=task.owner, priority=task.priority, source_type=task.source_type,
         source_ref=task.source_ref, assigned_to=task.assigned_to, device=task.device,
         needs_supervisor=task.needs_supervisor, note=task.note, created_by=task.created_by,
         created_at=task.created_at, started_at=task.started_at, completed_at=task.completed_at,
         cancelled_at=task.cancelled_at, progress=task_engine.progress(task),
-        lines=[line_out(task, l) for l in task.lines],
+        lines=[line_out(task, l, blind_counts=blind_counts) for l in task.lines],
     )
 
 

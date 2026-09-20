@@ -142,7 +142,7 @@ def receipt_out(db, r: Receipt, wh: Warehouse, full: bool = True) -> ReceiptOut:
     if r.task_id:
         from wms.api.routes.tasks import LOAD
         t = db.execute(select(Task).options(*LOAD).where(Task.id == r.task_id)).scalar_one_or_none()
-        task = task_out(t, wh.code) if t else None
+        task = task_out(t, wh) if t else None
         if full and t:
             rows = db.execute(
                 select(StockLedger, Product, Location).join(Product, Product.id == StockLedger.product_id)

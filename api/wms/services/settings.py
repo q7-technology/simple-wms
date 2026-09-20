@@ -29,7 +29,9 @@ class WarehouseSettings(BaseModel):
     queue_offline_confirmations: bool = True
     # Stock rules
     fifo_by_received_date: bool = True
-    blind_counts: bool = True
+    # Off: the counter is shown what the system thinks is on the shelf. A site
+    # that wants a true blind count turns this on.
+    blind_counts: bool = False
     decimals_allowed: bool = True
     # Owners
     multi_owner: bool = False

@@ -285,6 +285,8 @@ def test_move_rejects_single_sku_shelf_with_another_product(client, db, structur
 def test_blind_count_variance_needs_supervisor_then_adjusts(client, db, structure, headers, listener, supervisor_badge):
     subscribe(db, listener, "stock.adjusted")
     s = structure
+    # This warehouse counts blind. It is a switch now, not the only way.
+    client.patch("/v1/warehouses/BAL-WH01/settings", headers=headers, json={"blind_counts": True})
     post(db, [LedgerLine(product_id=s.abc.id, location_id=s.pf.id, qty_change=Decimal("48"), uom="EA",
                          movement_type="receipt", actor="t", received_at=s.received)])
     db.commit()
@@ -375,3 +377,40 @@ def test_task_needs_stock_scope_for_writes(client, db, structure):
     h = {"Authorization": f"Bearer {raw}"}
     assert client.get("/v1/tasks", headers=h, params={"warehouse": "BAL-WH01"}).status_code == 200
     assert client.post("/v1/receipts", headers=h, json=receipt_body()).status_code == 403
+
+
+def test_a_count_shows_the_expected_quantity_unless_the_site_counts_blind(client, db, structure, headers):
+    """Counting blind is now a choice, not the only way. A counter who can see
+    the expected figure spots an obvious mistake before it becomes a variance
+    a supervisor has to sit through."""
+    s = structure
+    post(db, [LedgerLine(product_id=s.abc.id, location_id=s.pf.id, qty_change=Decimal("48"), uom="EA",
+                         movement_type="receipt", actor="t", received_at=s.received)])
+    db.commit()
+
+    r = client.post("/v1/counts", headers=headers, json=msg(warehouse="BAL-WH01", locations=["PF-01-02-A"]))
+    task = client.get(f"/v1/tasks/{r.json()['wms_id']}", headers=headers).json()
+    line = task["lines"][0]
+    assert line["status"] == "open"
+    assert line["expected_qty"] == "48"
+
+    # The same warehouse, switched to blind, hides it again on an open line.
+    client.patch("/v1/warehouses/BAL-WH01/settings", headers=headers, json={"blind_counts": True})
+    again = client.get(f"/v1/tasks/{task['wms_id']}", headers=headers).json()
+    assert again["lines"][0]["expected_qty"] is None
+
+
+def test_only_a_count_hides_anything(client, db, structure, headers):
+    """Blind counting must not blind the other tasks. A picker is always told
+    how much to pick, whatever the counting switch says."""
+    client.patch("/v1/warehouses/BAL-WH01/settings", headers=headers, json={"blind_counts": True})
+    s = structure
+    post(db, [LedgerLine(product_id=s.abc.id, location_id=s.pf.id, qty_change=Decimal("48"), uom="EA",
+                         movement_type="receipt", actor="t", received_at=s.received)])
+    db.commit()
+    client.post("/v1/deliveries", headers=headers, json=msg(
+        external_ref="D-BLIND", warehouse="BAL-WH01", ship_to={"name": "Acme"},
+        lines=[{"delivery_line": 10, "sku": "ABC123", "qty": 6, "uom": "EA"}]))
+    task_id = client.get("/v1/deliveries/D-BLIND", headers=headers).json()["task"]["wms_id"]
+    task = client.get(f"/v1/tasks/{task_id}", headers=headers).json()
+    assert task["lines"][0]["expected_qty"] == "6"

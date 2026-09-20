@@ -136,6 +136,29 @@ describe("Count", () => {
     expect(JSON.parse(call![1].body as string)).toMatchObject({ reason: "count_variance", supervisor_badge: "BADGE-SUP-01" });
   });
 
+  it("shows the expected quantity when the site does not count blind", async () => {
+    // The API sends the figure only where the warehouse allows it, so the
+    // screen shows whatever arrives and says nothing when nothing does.
+    const open = task([line(1, "PF-01-02-A", "ABC123", "Brake pad set", { expected_qty: "48" })], 0);
+    mockFetch((url, method, body) => {
+      if (url === "/v1/tasks/7" && method === "GET") return { body: open };
+      if (url === "/v1/scans/parse") return location(String(body.raw));
+      return undefined;
+    });
+    const user = userEvent.setup();
+    renderCount();
+
+    expect(await screen.findByText("Location 1 of 1")).toBeInTheDocument();
+    expect(screen.queryByText("Blind count · expected quantity is hidden")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Scan"), "PF-01-02-A{Enter}");
+    expect(await screen.findByText("ABC123")).toBeInTheDocument();
+    // Shown, but never typed in for them: the shelf still has to be counted.
+    expect(screen.getByText("System says 48 EA")).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton")).toHaveValue(null);
+    expect(screen.getByRole("button", { name: "Submit count" })).toBeDisabled();
+  });
+
   it("shows a different shelf as a wrong scan", async () => {
     mockFetch((url, method, body) => {
       if (url === "/v1/tasks/7" && method === "GET") return { body: task([line(1, "PF-01-02-A", "ABC123", "Brake pad set")], 0) };
