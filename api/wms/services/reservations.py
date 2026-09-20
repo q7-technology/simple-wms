@@ -6,10 +6,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 
-from wms.models import Location, Product, StockBalance, Task, TaskLine, Warehouse
+from wms.models import Batch, Location, Product, StockBalance, Task, TaskLine, Warehouse
 from wms.services import stock
 
 RESERVING_TYPES = ("pick", "transfer_pick", "production_issue")
@@ -34,15 +34,25 @@ class Reservation:
 
 def allocate(db: Session, *, warehouse: Warehouse, product: Product, qty: Decimal, uom: str,
              owner: str = "DEFAULT", batch: str | None = None) -> list[Reservation]:
-    """Hold `qty` of this product, oldest received first, then walk order.
-    Returns what could be held; the caller reports anything left over."""
+    """Hold `qty` of this product: earliest expiry first where one is known,
+    otherwise oldest received first, then walk order. Quarantined batches are
+    skipped. Returns what could be held; the caller reports the shortfall."""
+    # The batch master is joined in, not required: a batch nobody has
+    # described is ordinary stock. Where there is a record, it decides two
+    # things. Quarantined stock is never promised, and a known expiry date
+    # beats the received date, because the older pallet is no use if it
+    # outlives the one behind it.
     q = (
         select(StockBalance, Location)
         .join(Location, Location.id == StockBalance.location_id)
+        .outerjoin(Batch, and_(Batch.product_id == StockBalance.product_id,
+                               Batch.code == StockBalance.batch))
         .where(StockBalance.warehouse_id == warehouse.id, StockBalance.product_id == product.id,
                StockBalance.owner == owner, StockBalance.on_hand > StockBalance.reserved,
-               Location.active.is_(True))
-        .order_by(StockBalance.received_at.nulls_last(), Location.pick_sequence, Location.code)
+               Location.active.is_(True),
+               or_(Batch.id.is_(None), Batch.status != "quarantined"))
+        .order_by(Batch.expiry_date.asc().nulls_last(), StockBalance.received_at.nulls_last(),
+                  Location.pick_sequence, Location.code)
         .with_for_update(of=StockBalance)
     )
     if batch:

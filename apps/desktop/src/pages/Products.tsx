@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { Barcode, Page, Product, StockBySku } from "../api/types";
+import type { Accepted, Barcode, Batch, Page, Product, StockBySku } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { fmtQty, plural } from "../lib/format";
+import { fmtDate, fmtQty, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
-  Button, Chip, DetailHeader, DetailPanel, Field, Input, Muted, Notice, PageHeader, SearchInput,
-  Section, SegmentedChoice, Select, Table, Toggle, type Column,
+  Button, Chip, DetailHeader, DetailPanel, Field, Input, Muted, Notice, PageHeader, Pill,
+  SearchInput, Section, SegmentedChoice, Select, Table, Toggle, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -30,6 +30,25 @@ type Filter = "all" | "batch" | "nobarcode" | "belowmin";
 
 /** How many products with a min we check the pick face for. Enough for the chip, not a full scan. */
 const BELOW_MIN_SAMPLE = 25;
+
+/** A batch this close to its expiry date is worth a second look. */
+const EXPIRY_WARN_DAYS = 30;
+
+/** Whole days from today to a plain YYYY-MM-DD date. Negative once it is past. */
+function daysUntil(date: string, now: Date = new Date()): number {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const then = Date.UTC(y, m - 1, d);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((then - today) / 86_400_000);
+}
+
+/** Expiry reads in gold once it is past, or close enough to plan around. */
+function expiryLabel(b: Batch) {
+  if (!b.expiry_date) return <Muted className="shrink-0">No expiry</Muted>;
+  const days = daysUntil(b.expiry_date);
+  const text = `${days < 0 ? "Expired" : "Expires"} ${fmtDate(b.expiry_date)}`;
+  return <span className={days <= EXPIRY_WARN_DAYS ? "shrink-0 text-gold" : "shrink-0 text-muted"}>{text}</span>;
+}
 
 function pickfaceOnHand(stock: StockBySku): number {
   return stock.locations.filter((l) => l.zone === "PICKFACE").reduce((n, l) => n + Number(l.on_hand), 0);
@@ -97,6 +116,16 @@ export function Products() {
   );
   const save = useAction();
 
+  /* Batches of the selected product: master data, earliest expiry first. */
+  const canHoldBatch = can("stock:write");
+  const batches = useApi<Page<Batch>>(
+    selected ? () => api.get<Page<Batch>>("/v1/batches", { sku: selected.sku, owner: OWNER }) : null,
+    [selected?.sku],
+  );
+  const batchAction = useAction();
+  const [batchForm, setBatchForm] = useState<{ code: string; hold: boolean; reason: string; note: string } | null>(null);
+  const [batchDone, setBatchDone] = useState<string | null>(null);
+
   const canPrint = can("printing:write");
   const [printer, setPrinter] = useState(readPrinter);
   const [printOpen, setPrintOpen] = useState(false);
@@ -105,7 +134,9 @@ export function Products() {
   const [printBusy, setPrintBusy] = useState(false);
   const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
 
-  useEffect(() => { setSaved(null); setPrintOpen(false); setPrinted(null); }, [selected?.sku, adding]);
+  useEffect(() => {
+    setSaved(null); setPrintOpen(false); setPrinted(null); setBatchForm(null); setBatchDone(null);
+  }, [selected?.sku, adding]);
 
   /* Below min needs a stock lookup per product, so it is only done when asked for. */
   const [belowMin, setBelowMin] = useState<Set<string> | null>(null);
@@ -213,6 +244,37 @@ export function Products() {
     }
   }
 
+  /** One form at a time, and the button on the row opens and closes it. */
+  function openBatchForm(b: Batch) {
+    batchAction.clear();
+    setBatchDone(null);
+    setBatchForm((f) => (f && f.code === b.code
+      ? null
+      : { code: b.code, hold: b.status !== "quarantined", reason: "", note: "" }));
+  }
+
+  /** Holding leaves the stock where it is. It is only taken off the table. */
+  async function submitBatch(b: Batch) {
+    const wh = warehouse?.code;
+    if (!batchForm || !wh) return;
+    const hold = batchForm.hold;
+    const reason = batchForm.reason.trim();
+    const note = batchForm.note.trim();
+    if (hold && !reason) return;
+    const path = `/v1/batches/${encodeURIComponent(b.sku)}/${encodeURIComponent(b.code)}/${hold ? "quarantine" : "release"}`;
+    const reply = await batchAction.run(() => api.message<Accepted & { batch: Batch }>(path, {
+      warehouse: wh, owner: OWNER,
+      ...(hold ? { reason } : {}),
+      note: note || null,
+    }));
+    if (!reply) return;
+    setBatchForm(null);
+    setBatchDone(hold
+      ? `Held ${b.code}. It stays on the shelf, but nothing will be promised from it.`
+      : `Released ${b.code}. It can be picked again.`);
+    await batches.reload();
+  }
+
   const columns: Column<Product>[] = [
     { key: "sku", header: "SKU", width: "120px", render: (p) => <b>{p.sku}</b> },
     { key: "name", header: "Name", render: (p) => p.name },
@@ -235,6 +297,7 @@ export function Products() {
 
   const panelOpen = draft !== null;
   const generalError = save.error && Object.keys(save.fieldErrors).length === 0 ? save.error : null;
+  const batchError = batchAction.error && Object.keys(batchAction.fieldErrors).length === 0 ? batchAction.error : null;
 
   return (
     <>
@@ -463,6 +526,103 @@ export function Products() {
                     {onHand.data.locations.length > 0 && <Muted> · {plural(onHand.data.locations.length, "shelf", "shelves")}</Muted>}
                   </div>
                 )}
+              </Section>
+            )}
+
+            {selected && (
+              <Section title="Batches">
+                {batches.loading && !batches.data && <Muted className="text-sm">Loading…</Muted>}
+                {batches.error && <Notice tone="gold">{batches.error}</Notice>}
+                {batchDone && <Notice>{batchDone}</Notice>}
+                {batches.data?.items.length === 0 && (
+                  <Muted className="text-sm">
+                    No batches recorded for this product. A batch is recorded the first time it is received.
+                  </Muted>
+                )}
+                {batches.data && batches.data.items.length > 0 && (
+                  <div className="flex flex-col rounded-lg border border-line">
+                    {batches.data.items.map((b) => (
+                      <div key={b.code} className="flex flex-col gap-1.5 px-3 py-2.5 row-line last:border-b-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="mono text-sm leading-5 truncate">{b.code}</span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            {b.status === "quarantined"
+                              ? <Pill tone="warn">Quarantined</Pill>
+                              : <Pill tone="info">Released</Pill>}
+                            {canHoldBatch && (
+                              <Button
+                                small
+                                variant="ghost"
+                                aria-label={`${b.status === "quarantined" ? "Release" : "Hold"} ${b.code}`}
+                                onClick={() => openBatchForm(b)}
+                              >
+                                {b.status === "quarantined" ? "Release" : "Hold"}
+                              </Button>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 text-xs leading-4">
+                          {expiryLabel(b)}
+                          <Muted className="truncate">Made {fmtDate(b.manufactured_on)} · lot {b.supplier_lot ?? "—"}</Muted>
+                          <span className="grow" />
+                          <span className="shrink-0">{fmtQty(b.on_hand, selected.uom)} on hand</span>
+                        </div>
+                        {b.status === "quarantined" && b.reason && (
+                          <span className="text-xs leading-4 text-gold">Held: {b.reason}</span>
+                        )}
+                        {batchForm?.code === b.code && (
+                          <form
+                            className="flex flex-col gap-3 rounded-md border border-line p-3"
+                            onSubmit={(e) => { e.preventDefault(); void submitBatch(b); }}
+                          >
+                            {batchForm.hold && (
+                              <Field
+                                label="Reason"
+                                hint="Up to 64 characters. Whoever looks at the batch reads this."
+                                error={batchAction.fieldErrors.reason}
+                              >
+                                <Input
+                                  value={batchForm.reason}
+                                  maxLength={64}
+                                  autoFocus
+                                  onChange={(e) => setBatchForm({ ...batchForm, reason: e.target.value })}
+                                  placeholder="Quality hold"
+                                />
+                              </Field>
+                            )}
+                            <Field label="Note" error={batchAction.fieldErrors.note}>
+                              <Input
+                                value={batchForm.note}
+                                autoFocus={!batchForm.hold}
+                                onChange={(e) => setBatchForm({ ...batchForm, note: e.target.value })}
+                                placeholder="Optional"
+                              />
+                            </Field>
+                            {batchError && <Notice tone="gold">{batchError}</Notice>}
+                            <div className="flex gap-2 [&>*]:grow">
+                              <Button small type="button" aria-label={`Cancel ${b.code}`} onClick={() => setBatchForm(null)}>
+                                Cancel
+                              </Button>
+                              <Button
+                                small
+                                type="submit"
+                                variant="primary"
+                                aria-label={`Save ${b.code}`}
+                                disabled={batchAction.busy || (batchForm.hold && !batchForm.reason.trim())}
+                              >
+                                {batchAction.busy ? "Saving…" : "Save"}
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Muted className="text-xs leading-4">
+                  A held batch stays on the shelf and in the balances. It is simply never promised to
+                  anyone. Of the batches that can be picked, the one that expires first goes first.
+                </Muted>
               </Section>
             )}
           </>

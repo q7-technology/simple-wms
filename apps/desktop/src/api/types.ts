@@ -44,6 +44,15 @@ export interface Product {
   pickface_min: string | null; pickface_max: string | null; barcodes: Barcode[]; active: boolean;
 }
 
+/** A lot of one product. Quarantined stock stays on the shelf and in the
+ * balances; the allocator simply never promises it to anyone. */
+export interface Batch {
+  wms_id: string; sku: string; name: string; code: string;
+  expiry_date: string | null; manufactured_on: string | null; supplier_lot: string | null;
+  status: "released" | "quarantined"; reason: string | null; note: string | null;
+  on_hand: string; created_at: string; updated_at: string;
+}
+
 export interface StockAtLocation {
   warehouse: string; location: string; zone: string; batch: string | null; owner: string;
   on_hand: string; reserved: string; available: string; received_at: string | null;

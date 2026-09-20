@@ -11,7 +11,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from wms.models import Location, Product, Task, TaskLine, Warehouse
-from wms.services import stock
+from wms.services import batches, stock
 from wms.services.events import emit
 from wms.services.qty import qstr
 from wms.services.ledger import LedgerLine, post
@@ -239,6 +239,7 @@ def _confirm_receive(db, task, line, product, qty, batch, to_code, container_id,
         raise stock.RuleError("batch", f"{product.sku} is batch tracked; scan the batch")
     if qty <= 0:
         raise stock.RuleError("qty", "received quantity must be above zero")
+    batches.ensure(db, product, batch)
     stock.check_mixing(db, to, product, batch, field="location")
     total = (line.actual_qty or Decimal(0)) + qty
     settings = effective(_warehouse(db, task).settings)

@@ -4,7 +4,7 @@ from sqlalchemy import text
 from wms.api import errors
 from wms.api.deps import DB
 from wms.api.routes import (
-    access, auth, batch_pick, containers, imports, inbound, integration, outbound, owners,
+    access, auth, batch_pick, batches, containers, imports, inbound, integration, outbound, owners,
     printing, production, products, reports, scans, stock, structure, tasks, transfers,
 )
 import wms.services.inbound  # noqa: F401  registers task hooks
@@ -25,6 +25,7 @@ v1 = APIRouter(prefix="/v1")
 v1.include_router(auth.router)
 v1.include_router(structure.router)
 v1.include_router(products.router)
+v1.include_router(batches.router)
 v1.include_router(stock.router)
 v1.include_router(tasks.router)
 v1.include_router(inbound.router)

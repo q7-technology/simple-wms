@@ -15,7 +15,7 @@ from wms.api.errors import Conflict, FieldError, NotFound
 from wms.api.schemas import Page, Qty
 from wms.api.schemas_tasks import ActorFields, Priority, TaskOut, task_out
 from wms.models import Location, OutboundEvent, Product, Receipt, ReceiptLine, StockBalance, StockLedger, Task, TaskLine, Warehouse
-from wms.services import putaway, stock
+from wms.services import batches, putaway, stock
 from wms.services import tasks as engine
 from wms.services.stock import RuleError
 
@@ -188,6 +188,9 @@ def apply_receipt(db, body: ReceiptIn, created_by: str) -> Receipt:
         product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
         receipt.lines.append(ReceiptLine(line_no=l.line, product_id=product.id, batch=l.batch,
                                          expected_qty=l.qty, received_qty=Decimal(0), uom=l.uom))
+        # The batch master fills in behind the ledger: a batch the warehouse
+        # is about to handle gets a row, empty until somebody describes it.
+        batches.ensure(db, product, l.batch)
         specs.append(engine.LineSpec(product=product, expected_qty=l.qty, uom=l.uom, batch=l.batch, source_line=l.line))
     task = engine.create(db, type="receive", warehouse=wh, owner=body.owner, lines=specs, source_type="receipt",
                          source_ref=body.external_ref, created_by=created_by, note=body.supplier)

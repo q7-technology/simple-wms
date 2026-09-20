@@ -528,6 +528,50 @@ what is on it by asking the ledger, which is the only place that ever knew.
 
 Statuses: `open`, `closed`, `shipped`, `retired`.
 
+## Batches
+
+A batch code on the ledger is a plain string and always will be, so nothing
+already written depends on a record here existing. This is what that string
+means: when the batch expires, when it was made, whose lot it came from, and
+whether it may be sold. The table fills in behind the ledger. The first time
+a batch is named on a receipt, or scanned into one, a row appears with no
+expiry and a status of `released`, because a warehouse cannot hold stock it
+was never told about.
+
+- `POST /v1/batches` — `{ message_id, sku, code, expiry_date, manufactured_on,
+  supplier_lot, note }`. Creates or updates by product and batch code. Fields
+  left out keep their value, as everywhere else in the master data. Needs
+  `master:write`.
+- `GET /v1/batches?sku=&status=&expires_before=` — earliest expiry first,
+  because that is the one somebody has to act on; a batch with no expiry date
+  sorts last. `status` is `released` or `quarantined`. Needs `stock:read`.
+- `GET /v1/batches/{sku}/{code}` — one batch, with `on_hand` across every
+  warehouse and owner, because a batch is a thing in the world and not a
+  thing in one building.
+- `POST /v1/batches/{sku}/{code}/quarantine` — `{ message_id, reason, note }`.
+  Needs `stock:write`. Event: `batch.quarantined`.
+- `POST /v1/batches/{sku}/{code}/release` — `{ message_id, note }`. Needs
+  `stock:write`. Event: `batch.released`.
+
+```json
+{ "wms_id": "3", "sku": "ABC123", "name": "Widget", "code": "B2601",
+  "expiry_date": "2027-03-31", "manufactured_on": "2026-03-31",
+  "supplier_lot": "ACME-99", "status": "released", "reason": null,
+  "note": null, "on_hand": "48" }
+```
+
+Quarantining a batch moves nothing and writes nothing to the ledger. The
+stock stays on the shelf and stays in the balances; it is simply never
+promised to anyone again until it is released. Two rules follow from the
+record, and both are in the allocator:
+
+- A quarantined batch is skipped, so a delivery goes short rather than
+  promising stock that cannot be shipped.
+- A known expiry date beats the received date, so the batch that expires
+  first is picked first. The older pallet is no use if it outlives the one
+  behind it. Stock whose batch nobody has described is ordinary stock, picked
+  oldest received first as before.
+
 ## Batch picking
 
 One walk for several orders. Each order keeps its own pick task, its own
@@ -988,6 +1032,8 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 | `transfer.received` | transfer_ref, complete, lines qty_shipped/qty_received/variance | ERP |
 | `production.components_issued` | po_ref, complete, lines qty_requested/qty_issued, deliver_to | ERP |
 | `production.received` | po_ref, sku, batch, qty, uom, location, container_id, operator, received_total, expected, complete | ERP (unless ERP already counted GR) |
+| `batch.quarantined` | sku, batch, reason, note, on_hand | ERP, quality |
+| `batch.released` | sku, batch, note, on_hand | ERP, quality |
 
 ### `delivery.shipped` data
 ```json

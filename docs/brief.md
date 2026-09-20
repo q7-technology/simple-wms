@@ -189,14 +189,13 @@ decisions now, so change them here first.
 | Whose product | A Q7 product, open in the open | The source is public so anyone can trust it and host it, but the roadmap serves Q7 and Q7's clients. The API contract may change with a note in `docs/api.md`. No compatibility promise to outside integrators. |
 | First ERP | An SAP adapter | Built with `pyrfc`, which is why the API is Python. Goods receipt, goods issue and stock transfer postings, with their acknowledgements. The signed outbound events and the REST inbound door stay as they are and serve everyone else. |
 | Platen | Push, then callback | The worker posts template, version, printer, copies and JSON. Platen answers `accepted`, then calls `POST /v1/print-jobs/{job_id}/status` with `printed` or `failed`. Printer names live in the WMS as print points, so the printing screen can show which printer a job went to. Built and running. |
-| Batch | A batch master, now | A batch table keyed by product and batch code, holding expiry, manufacture date, supplier lot and a released or quarantined status. The ledger keeps its batch string, so nothing already written changes; the table fills in behind it. |
+| Batch | A batch master, now | Built. A batch table keyed by product and batch code, holding expiry, manufacture date, supplier lot and a released or quarantined status. The ledger keeps its batch string and the table fills in behind it: the first receipt that names a batch creates the row. Held stock stays on the shelf and is never promised, and a known expiry is picked before a later one. |
 | Scanning | Scanners only | The scanner app reads a keyboard wedge. No camera, no decode library, no permission prompt. A phone can still use the app by typing a code. |
 | Floor login | 8 hours idle, 4-digit PIN | A picker signs in once a shift, not after every pallet. `idle_logout_minutes` defaults to 480 and PINs stay 4 to 8 digits so a site can ask for more. Lockout after 5 wrong tries. |
 | Counts | Show the expected quantity | Built. The count line carries the expected quantity and the scanner shows it, without typing it into the entry box. `blind_counts` is the per-warehouse switch for a site that wants a true blind count, and it is off by default. |
 | Ledger retention | Roll the database by year | Nothing trims the ledger and no archive table exists. A yearly dump goes to cold storage and everything stays live, which is the only shape that does not argue with the append-only rule. |
 
-Two of these are work that is not built yet: the SAP adapter and the batch
-master.
+One of these is work that is not built yet: the SAP adapter.
 
 ## Related artefacts
 
