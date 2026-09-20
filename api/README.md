@@ -53,3 +53,7 @@ Point `TEST_DATABASE_URL` elsewhere if your database is not on 127.0.0.1:5433.
 
 The `stock_ledger` and `audit_log` tables have a trigger that raises on
 UPDATE or DELETE. Do not remove it. Correct a mistake with a new row.
+
+`tests/test_migrations.py` runs every migration up, down and up again on a
+database of its own, and checks the models and the migrations still agree.
+A fresh install is covered by the test suite, not by hope.

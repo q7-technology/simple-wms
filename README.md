@@ -8,13 +8,14 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Scanner PWA** — installs from the browser on Android handhelds, works through Wi-Fi drops
 - **One API, one event envelope** — signed, queued, retried
 - **Multi-warehouse from day one** — transfers with an in-transit bucket
-- **Prints nothing itself** — template + JSON to Platen or any print service
+- **Prints nothing itself** — versioned template + JSON to Platen or any print service
 
-Status: **build step 3 (outbound) done**. On top of steps 1 and 2: pick
-orders that reserve stock FIFO and say what could not be allocated, picking
-to the packing bench, short picks with a reason and a supervisor badge that
-raise a count, packing into cartons and shipping, with the whole outbound
-event set. Step 4 (Platen: print points, job status, reprint) is next.
+Status: **build step 4 (Platen) done**. On top of steps 1 to 3: seven
+versioned document types, print points that map an event to a template and a
+printer, a durable job queue with the same backoff as events, the status
+Platen sends back, and reprints that resend the same data. The WMS still
+renders nothing itself. Step 5 (batch pick and sort, production orders,
+transfers) is next.
 
 ## What is in this repo
 
