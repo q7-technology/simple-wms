@@ -28,7 +28,7 @@ type Priority = "low" | "normal" | "high";
 
 const PICK_MODES: { value: PickMode; label: string; soon?: string }[] = [
   { value: "single", label: "Single" },
-  { value: "batch", label: "Batch", soon: "Batch picking comes with step 5" },
+  { value: "batch", label: "Batch" },
   { value: "auto", label: "Auto" },
 ];
 
@@ -442,6 +442,7 @@ export function Deliveries() {
           accent="Deliveries"
           title="today"
           actions={<>
+            <Button variant="quiet" onClick={() => navigate("/deliveries/batches")}>Batch pick</Button>
             <Button variant="gold" onClick={() => navigate("/import")}>Import CSV</Button>
             {write && <Button variant="primary" onClick={() => { setAllocation(null); setMode("create"); }}>Create delivery</Button>}
           </>}

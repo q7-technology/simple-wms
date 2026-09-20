@@ -192,3 +192,66 @@ export interface PrintJob {
   next_attempt_at: string | null; last_error: string | null; external_ref: string | null;
   reprint_of: string | null; created_at: string; sent_at: string | null; printed_at: string | null;
 }
+
+/* --- step 5: transfers, production, batch picking ----------------------- */
+
+export type TransferStatus =
+  | "new" | "allocated" | "picking" | "picked" | "in_transit" | "receiving"
+  | "received" | "variance" | "closed" | "cancelled";
+export interface TransferLine {
+  line: number; sku: string; name: string; batch: string | null;
+  qty_requested: string; qty_allocated: string; qty_picked: string; qty_shipped: string;
+  qty_received: string; variance: string; uom: string;
+}
+export interface Transfer {
+  wms_id: string; external_ref: string; owner: string; from_warehouse: string; to_warehouse: string;
+  required_by: string | null; priority: "low" | "normal" | "high"; carrier_hint: string | null;
+  carrier: string | null; tracking_no: string | null; status: TransferStatus;
+  staging_location: string | null; in_transit_location: string | null; note: string | null;
+  variance_reason: string | null; created_at: string; allocated_at: string | null;
+  shipped_at: string | null; received_at: string | null; closed_at: string | null;
+  cancelled_at: string | null; lines: TransferLine[]; pick_task: Task | null; receive_task: Task | null;
+}
+
+export type ProductionStatus = "new" | "issuing" | "in_production" | "complete" | "cancelled";
+export interface ProductionOutput {
+  sku: string; name: string; batch: string | null; qty: string; qty_received: string; uom: string;
+}
+export interface ProductionComponent {
+  line: number; sku: string; name: string; batch: string | null; qty_requested: string;
+  qty_issued: string; short: string; uom: string; deliver_to: string;
+}
+export interface ProductionPallet {
+  wms_id: string; sku: string; batch: string | null; qty: string; uom: string; location: string;
+  container_id: string | null; operator: string | null; device: string | null;
+  supervisor: string | null; event_sent: boolean; created_at: string;
+}
+export interface ProductionOrder {
+  wms_id: string; external_ref: string; owner: string; warehouse: string; required_by: string | null;
+  priority: "low" | "normal" | "high"; status: ProductionStatus; note: string | null;
+  created_at: string; issued_at: string | null; completed_at: string | null;
+  cancelled_at: string | null; output: ProductionOutput; components: ProductionComponent[];
+  receipts: ProductionPallet[]; issue_task: Task | null;
+}
+
+export interface BatchTote {
+  tote: string; delivery: string; ship_to: string | null; status: DeliveryStatus; lines: number;
+}
+export interface BatchPick { tote: string; delivery: string; qty: string }
+export interface BatchStop {
+  stop: number; location: string; zone: string; pick_sequence: number; sku: string; name: string;
+  batch: string | null; qty: string; uom: string; picks: BatchPick[];
+}
+export interface PickBatch {
+  wms_id: string; external_ref: string; owner: string; warehouse: string;
+  status: "new" | "picking" | "picked" | "cancelled"; assigned_to: string | null; note: string | null;
+  created_by: string | null; created_at: string; started_at: string | null;
+  completed_at: string | null; cancelled_at: string | null; orders: number; lines: number;
+  stops: BatchStop[]; done_stops: number; totes: BatchTote[];
+}
+export interface BatchSuggestion {
+  zone: string; deliveries: string[]; orders: number; lines: number; stops: number; saved: number;
+}
+export interface StopConfirmed extends Accepted {
+  picked: string; picks: BatchPick[]; batch_status: string; stops_left: number;
+}

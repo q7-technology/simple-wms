@@ -16,6 +16,9 @@ import { Replenishment } from "./pages/Replenishment";
 import { ImportExport } from "./pages/ImportExport";
 import { Deliveries } from "./pages/Deliveries";
 import { DeliveryDetail } from "./pages/DeliveryDetail";
+import { BatchPick } from "./pages/BatchPick";
+import { Production } from "./pages/Production";
+import { Transfers } from "./pages/Transfers";
 
 export function App() {
   return (
@@ -27,7 +30,10 @@ export function App() {
             <Route element={<Shell />}>
               <Route index element={<Navigate to="/stock" replace />} />
               <Route path="/deliveries" element={<Deliveries />} />
+              <Route path="/deliveries/batches" element={<BatchPick />} />
               <Route path="/deliveries/:ref" element={<DeliveryDetail />} />
+              <Route path="/production" element={<Production />} />
+              <Route path="/transfers" element={<Transfers />} />
               <Route path="/tasks" element={<TaskBoard />} />
               <Route path="/receiving" element={<Receiving />} />
               <Route path="/replenishment" element={<Replenishment />} />

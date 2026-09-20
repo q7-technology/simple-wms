@@ -22,6 +22,8 @@ function taskPath(type: string, id: string, ref?: string): string | null {
   if (type === "count") return `/count/${id}`;
   if (type === "pick") return `/pick/${id}`;
   if (type === "pack") return ref ? `/pack/${ref}` : null;
+  if (type === "transfer_receive") return `/transfer-in/${id}`;
+  if (type === "production_issue") return `/pick/${id}`; // a production issue is picked like any other pick
   return null;
 }
 
@@ -44,18 +46,9 @@ const ICON = {
   count: <Icon><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></Icon>,
   pack: <Icon><path d="M12 3v6" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /></Icon>,
   lookup: <Icon><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></Icon>,
+  sort: <Icon><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></Icon>,
+  transfer: <Icon><path d="M2 9V6a2 2 0 0 1 2-2h11v11H2" /><path d="M15 8h3.5a1 1 0 0 1 .8.4l2.5 3.3a1 1 0 0 1 .2.6V17a1 1 0 0 1-1 1h-2" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M8 18h7" /></Icon>,
 };
-
-/** A tile for a task type that arrives in a later build step: same shape as Tile, muted, goes nowhere. */
-function LaterTile({ label, step, icon }: { label: ReactNode; step: string; icon: ReactNode }) {
-  return (
-    <div className="card h-24 flex flex-col items-center justify-center gap-1 text-muted text-sm font-medium opacity-60" title={step} aria-disabled="true">
-      <span className="text-muted">{icon}</span>
-      {label}
-      <span className="text-[10px] leading-3 uppercase tracking-wider">{step}</span>
-    </div>
-  );
-}
 
 export function Menu() {
   const { session, device, warehouse, online, queued, idleLeftSeconds, signOut } = useSession();
@@ -190,9 +183,11 @@ export function Menu() {
           <span className="eyebrow text-muted">Start a task</span>
           <div className="grid grid-cols-2 gap-3">
             <Tile to="/pick" label="Pick" icon={ICON.pick} />
+            <Tile to="/sort" label="Batch sort" icon={ICON.sort} />
             <Tile to="/pack" label="Pack" icon={ICON.pack} />
-            <LaterTile label="Production receipt" step="Step 5" icon={ICON.production} />
+            <Tile to="/production" label="Production receipt" icon={ICON.production} />
             <Tile to="/receive" label="Receive" icon={ICON.receive} />
+            <Tile to="/transfer-in" label="Receive transfer" icon={ICON.transfer} />
             <Tile to="/move" label="Move" icon={ICON.move} />
             <Tile to="/count" label="Count" icon={ICON.count} />
             <Tile to="/lookup" label="Look up" icon={ICON.lookup} />
