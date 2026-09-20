@@ -88,3 +88,101 @@ def test_receipts_import_groups_lines_by_reference(client, structure, headers):
     # importing again: the reference already exists
     r = run(client, headers, "receipts", csv, dry_run=True)
     assert "already exists" in r.json()["preview"][0]["problem"] or any("already exists" in (p["problem"] or "") for p in r.json()["preview"])
+
+
+# --- the documents the design's import screen is built around ----------------
+
+def test_deliveries_import_groups_lines_into_orders(client, structure, headers, db):
+    from decimal import Decimal
+
+    from wms.services.ledger import LedgerLine, post
+    post(db, [LedgerLine(product_id=structure.abc.id, location_id=structure.bk1.id,
+                         qty_change=Decimal("100"), uom="EA", movement_type="receipt",
+                         actor="jo", received_at=structure.received)])
+    db.commit()
+
+    csv = (
+        "reference,ship_to_name,address,suburb,state,postcode,required_by,priority,pick_mode,"
+        "allow_short,line,sku,batch,qty,uom\n"
+        "0080012345,Acme Auto Parts,12 Example St,Geelong,VIC,3220,2026-09-22,normal,single,yes,10,ABC123,,10,EA\n"
+        "0080012345,Acme Auto Parts,12 Example St,Geelong,VIC,3220,2026-09-22,normal,single,yes,20,ABC123,,4,EA\n"
+        "0080012346,Repco Wendouree,1220 Howitt St,Wendouree,VIC,3355,2026-09-22,high,batch,no,10,NOPE,,5,EA\n"
+        "0080012347,Autobarn,,Ballarat,VIC,3350,,normal,single,yes,10,ABC123,,0,EA\n"
+    )
+    r = run(client, headers, "deliveries", csv, dry_run=True)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["rows_read"] == 4
+    assert body["problems"] == 2
+    assert body["ready"] == 2
+    assert body["summary"] == "as 1 delivery"
+    # the design's preview says "did you mean ABC123?" on a typo, so we do too
+    assert body["preview"][0]["problem"] == "sku: unknown sku NOPE"
+    assert any("did you mean ABC123?" in (p["problem"] or "")
+               for p in run(client, headers, "deliveries",
+                            csv.replace(",NOPE,", ",ABC12,"), dry_run=True).json()["preview"])
+
+    r = run(client, headers, "deliveries", csv, dry_run=False, skip_problems=True)
+    assert r.status_code == 200, r.text
+    assert r.json()["imported"] == 2
+
+    got = client.get("/v1/deliveries/0080012345", headers=headers).json()
+    assert got["ship_to"] == {"name": "Acme Auto Parts", "address": "12 Example St",
+                              "suburb": "Geelong", "state": "VIC", "postcode": "3220"}
+    assert got["required_by"] == "2026-09-22"
+    assert [(l["delivery_line"], l["qty_ordered"]) for l in got["lines"]] == [(10, "10"), (20, "4")]
+    assert got["task"]["type"] == "pick"
+
+
+def test_replenishments_import(client, structure, headers, db):
+    from decimal import Decimal
+
+    from wms.services.ledger import LedgerLine, post
+    post(db, [LedgerLine(product_id=structure.abc.id, location_id=structure.bk1.id,
+                         qty_change=Decimal("100"), uom="EA", movement_type="receipt",
+                         actor="jo", received_at=structure.received)])
+    db.commit()
+
+    csv = (
+        "reference,priority,line,sku,qty,uom,to_location,from_location,batch\n"
+        "REP-1001,high,1,ABC123,48,EA,PF-01-02-A,,\n"
+        "REP-1002,normal,1,ABC123,12,EA,NOWHERE,,\n"
+    )
+    r = run(client, headers, "replenishments", csv, dry_run=False, skip_problems=True)
+    assert r.status_code == 200, r.text
+    assert r.json()["imported"] == 1
+    assert "to_location" in r.json()["preview"][0]["problem"]
+    tasks = client.get("/v1/tasks", headers=headers,
+                       params={"warehouse": "BAL-WH01", "type": "replenish"}).json()
+    assert [t["source_ref"] for t in tasks["items"]] == ["REP-1001"]
+    assert tasks["items"][0]["priority"] == "high"
+
+
+def test_transfers_import(client, structure, receiver, headers, db):
+    from decimal import Decimal
+
+    from wms.services.ledger import LedgerLine, post
+    post(db, [LedgerLine(product_id=structure.abc.id, location_id=structure.bk1.id,
+                         qty_change=Decimal("100"), uom="EA", movement_type="receipt",
+                         actor="jo", received_at=structure.received)])
+    db.commit()
+
+    csv = (
+        "reference,to_warehouse,required_by,priority,line,sku,batch,qty,uom\n"
+        "STO-1,MEL-WH01,2026-09-25,normal,1,ABC123,,12,EA\n"
+        "STO-2,NOWHERE,,normal,1,ABC123,,5,EA\n"
+    )
+    r = run(client, headers, "transfers", csv, dry_run=False, skip_problems=True)
+    assert r.status_code == 200, r.text
+    assert r.json()["imported"] == 1
+    got = client.get("/v1/transfers/STO-1", headers=headers).json()
+    assert got["from_warehouse"] == "BAL-WH01" and got["to_warehouse"] == "MEL-WH01"
+    assert got["lines"][0]["qty_requested"] == "12"
+
+
+def test_every_import_type_has_a_template(client, headers):
+    for name in ("products", "locations", "receipts", "deliveries", "replenishments", "transfers"):
+        r = client.get(f"/v1/imports/templates/{name}", headers=headers)
+        assert r.status_code == 200, f"{name}: {r.text}"
+        header, example = r.text.strip().splitlines()[:2]
+        assert header.count(",") == example.count(","), f"{name} template does not match its example"

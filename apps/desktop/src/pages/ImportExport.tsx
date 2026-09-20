@@ -9,15 +9,21 @@ import {
 } from "../ui";
 import { Main } from "../ui/Shell";
 
-type ImportType = "receipts" | "products" | "locations";
+type ImportType =
+  | "deliveries" | "receipts" | "products" | "locations" | "replenishments" | "transfers";
 
-/* The API imports three things: products, locations and expected receipts. */
+/* Everything the API will take, in the order the design lists them. */
 const IMPORT_AS: { value: ImportType; label: string }[] = [
+  { value: "deliveries", label: "Deliveries (pick orders)" },
   { value: "receipts", label: "Expected receipts" },
   { value: "products", label: "Products" },
   { value: "locations", label: "Locations" },
+  { value: "replenishments", label: "Replenishments" },
+  { value: "transfers", label: "Transfers" },
 ];
-const TEMPLATES: ImportType[] = ["receipts", "products", "locations"];
+const TEMPLATES: ImportType[] = [
+  "deliveries", "receipts", "products", "locations", "replenishments", "transfers",
+];
 const HEADERS: Record<string, string> = { sku: "SKU", uom: "UOM", qty: "Qty", gtin: "GTIN" };
 const MAX_DATA_COLUMNS = 4;
 

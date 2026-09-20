@@ -176,18 +176,32 @@ describe("Import and export", () => {
     expect(URL.createObjectURL).toHaveBeenCalled();
   });
 
-  it("only offers the three imports the API takes, with no step titles left", async () => {
+  it("offers every import the API takes, with no step titles left", async () => {
     renderPage();
     await screen.findByText("CSV fallback");
-    for (const label of ["Expected receipts", "Products", "Locations"]) {
-      const chip = screen.getByText(label, { selector: "button" });
-      expect(chip).toBeEnabled();
+    for (const label of ["Deliveries (pick orders)", "Expected receipts", "Products",
+                         "Locations", "Replenishments", "Transfers"]) {
+      expect(screen.getByText(label, { selector: "button" })).toBeEnabled();
     }
-    expect(screen.queryByText(/Deliveries/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Transfers")).not.toBeInTheDocument();
-    expect(screen.queryByText("Replenishments")).not.toBeInTheDocument();
     for (const button of screen.getAllByRole("button")) {
       expect(button.getAttribute("title") ?? "").not.toMatch(/step/i);
     }
+  });
+
+  it("previews a delivery import the way the design shows it", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("CSV fallback");
+    await user.click(screen.getByText("Deliveries (pick orders)", { selector: "button" }));
+    await user.type(screen.getByLabelText(/paste/i),
+      "reference,ship_to_name,line,sku,qty,uom\n0080012345,Acme,10,ABC123,10,EA");
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    const call = fetchMock.mock.calls.find(([u]) => String(u).startsWith("/v1/imports/deliveries"));
+    expect(call).toBeTruthy();
+    const body = JSON.parse((call![1] as RequestInit).body as string);
+    expect(body.dry_run).toBe(true);
+    expect(body.message_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(body.csv).toContain("0080012345");
   });
 });

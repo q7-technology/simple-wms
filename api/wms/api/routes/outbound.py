@@ -212,34 +212,40 @@ def _rules(fn):
         raise Conflict(e.code, e.message) from e
 
 
+def apply_delivery(db, body: DeliveryIn, created_by: str) -> tuple[Delivery, list[dict]]:
+    """Create the delivery and reserve for it. Shared by the endpoint and CSV import."""
+    wh = get_warehouse(db, body.warehouse)
+    existing = db.execute(select(Delivery).where(
+        Delivery.owner == body.owner, Delivery.external_ref == body.external_ref)).scalar_one_or_none()
+    if existing is not None:
+        raise FieldError("external_ref", f"delivery {body.external_ref} already exists (status {existing.status})")
+    seen = set()
+    delivery = Delivery(
+        owner=body.owner, external_ref=body.external_ref, message_id=body.message_id,
+        warehouse_id=wh.id, pick_mode=body.pick_mode, priority=body.priority,
+        required_by=body.required_by, ship_to=body.ship_to.model_dump(exclude_none=True),
+        carrier_hint=body.carrier_hint, allow_short=body.allow_short, note=body.note)
+    for i, l in enumerate(body.lines):
+        if l.delivery_line in seen:
+            raise FieldError(f"lines.{i}.delivery_line", f"line {l.delivery_line} repeats")
+        seen.add(l.delivery_line)
+        product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
+        delivery.lines.append(DeliveryLine(
+            line_no=l.delivery_line, product_id=product.id, batch=l.batch, qty_ordered=l.qty,
+            qty_allocated=Decimal(0), qty_picked=Decimal(0), qty_shipped=Decimal(0), uom=l.uom))
+    db.add(delivery)
+    db.flush()
+    summary = _rules(lambda: outbound.allocate(db, delivery, wh, created_by))
+    return delivery, summary
+
+
 @router.post("/deliveries", status_code=202, response_model=DeliveryAccepted)
 def create_delivery(body: DeliveryIn, request: Request, db: DB, who: Principal = require("tasks:write")):
     """Stock is reserved immediately; the reply says what could not be allocated."""
     authorise(who, warehouse=body.warehouse, owner=body.owner)
 
     def work():
-        wh = get_warehouse(db, body.warehouse)
-        existing = db.execute(select(Delivery).where(
-            Delivery.owner == body.owner, Delivery.external_ref == body.external_ref)).scalar_one_or_none()
-        if existing is not None:
-            raise FieldError("external_ref", f"delivery {body.external_ref} already exists (status {existing.status})")
-        seen = set()
-        delivery = Delivery(
-            owner=body.owner, external_ref=body.external_ref, message_id=body.message_id,
-            warehouse_id=wh.id, pick_mode=body.pick_mode, priority=body.priority,
-            required_by=body.required_by, ship_to=body.ship_to.model_dump(exclude_none=True),
-            carrier_hint=body.carrier_hint, allow_short=body.allow_short, note=body.note)
-        for i, l in enumerate(body.lines):
-            if l.delivery_line in seen:
-                raise FieldError(f"lines.{i}.delivery_line", f"line {l.delivery_line} repeats")
-            seen.add(l.delivery_line)
-            product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
-            delivery.lines.append(DeliveryLine(
-                line_no=l.delivery_line, product_id=product.id, batch=l.batch, qty_ordered=l.qty,
-                qty_allocated=Decimal(0), qty_picked=Decimal(0), qty_shipped=Decimal(0), uom=l.uom))
-        db.add(delivery)
-        db.flush()
-        summary = _rules(lambda: outbound.allocate(db, delivery, wh, who.name))
+        delivery, summary = apply_delivery(db, body, who.name)
         return DeliveryAccepted(message_id=body.message_id, wms_id=str(delivery.id), status="accepted",
                                 allocation=[AllocationRow(**row) for row in summary])
 

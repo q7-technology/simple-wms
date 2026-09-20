@@ -600,7 +600,8 @@ with field errors when the body is wrong (unknown shelf, not enough stock,
 mixing rule, batch mismatch).
 
 ### POST /v1/imports/{type} — CSV with preview
-`type` is `products`, `locations` or `receipts`. Templates:
+`type` is `products`, `locations`, `receipts`, `deliveries`,
+`replenishments` or `transfers`. Templates:
 `GET /v1/imports/templates/{type}`.
 ```json
 { "message_id": "uuid", "warehouse": "BAL-WH01", "owner": "DEFAULT",
@@ -613,8 +614,14 @@ mixing rule, batch mismatch).
 ```
 Problems come first in the preview. A dry run commits nothing. With
 `skip_problems: false` a run with problems is `422` and nothing is written.
-Receipts group rows by `reference`; a receipt with any bad line is skipped
-whole. Products and locations create or update, like their endpoints.
+
+Products and locations create or update, one row each, like their endpoints.
+The four document types group rows by `reference`, taking the document's own
+columns from its first row: a delivery's ship-to, a transfer's
+`to_warehouse`, a receipt's supplier. A document with any bad line is skipped
+whole and every one of its rows says so, because half an order is worse than
+none. An imported delivery, replenishment or transfer reserves stock and
+raises its task exactly as the API endpoint does.
 
 ### Master data
 

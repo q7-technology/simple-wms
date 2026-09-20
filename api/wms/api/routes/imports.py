@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from datetime import date
 from typing import Any
 
@@ -31,6 +32,23 @@ TEMPLATES: dict[str, tuple[str, str, str]] = {
     "receipts": (
         "reference,supplier,expected_at,line,sku,batch,qty,uom",
         "PO-88815,Supplier Co,2026-09-22,1,ABC123,,120,EA",
+        "tasks:write",
+    ),
+    "deliveries": (
+        "reference,ship_to_name,address,suburb,state,postcode,country,required_by,priority,"
+        "pick_mode,allow_short,carrier_hint,line,sku,batch,qty,uom",
+        "0080012345,Acme Auto Parts,12 Example St,Geelong,VIC,3220,AU,2026-09-22,normal,"
+        "single,yes,,10,ABC123,,10,EA",
+        "tasks:write",
+    ),
+    "replenishments": (
+        "reference,priority,line,sku,qty,uom,to_location,from_location,batch",
+        "REP-1001,normal,1,ABC123,48,EA,PF-01-02-A,,",
+        "tasks:write",
+    ),
+    "transfers": (
+        "reference,to_warehouse,required_by,priority,carrier_hint,line,sku,batch,qty,uom",
+        "STO-4500012,MEL-WH01,2026-09-25,normal,,1,ABC123,,120,EA",
         "tasks:write",
     ),
 }
@@ -97,7 +115,9 @@ def run_import(type: str, body: ImportIn, request: Request, db: DB, who: Princip
         raise Forbidden(f"importing {type} needs the {scope} scope")
     authorise(who, warehouse=body.warehouse, owner=body.owner)
     rows = read_rows(body.csv)
-    runner = {"products": _products, "locations": _locations, "receipts": _receipts}[type]
+    runner = {"products": _products, "locations": _locations, "receipts": _receipts,
+              "deliveries": _deliveries, "replenishments": _replenishments,
+              "transfers": _transfers}[type]
 
     def work():
         # Everything happens inside one savepoint so a dry run leaves nothing behind.
@@ -229,3 +249,130 @@ def _receipts(db, body: ImportIn, rows, who):
             preview.append(PreviewRow(row=n, problem=problem, data=r))
     imported = sum(1 for p in preview if p.problem is None)
     return preview, imported, f"as {receipts} receipt{'s' if receipts != 1 else ''}"
+
+
+def _grouped(rows) -> dict[str, list[tuple[int, dict]]]:
+    """Rows of one document, in the order they were read."""
+    groups: dict[str, list[tuple[int, dict]]] = {}
+    for n, r in enumerate(rows, start=1):
+        groups.setdefault(r.get("reference", ""), []).append((n, r))
+    return groups
+
+
+def _by_document(db, body: ImportIn, rows, build, noun: str, plural: str | None = None):
+    """Every import that makes documents works the same way: group the rows by
+    reference, refuse a whole document if any of its lines is wrong, and say
+    so on every row of it."""
+    preview: list[PreviewRow] = []
+    made = 0
+    for ref, items in _grouped(rows).items():
+        first = items[0][1]
+        line_problems: dict[int, str] = {}
+        lines: list[dict] = []
+        for n, r in items:
+            try:
+                lines.append(build.line(r, len(lines) + 1))
+            except (ValidationError, ValueError, KeyError) as exc:
+                line_problems[n] = _problem(exc) if isinstance(exc, ValidationError) else str(exc)
+
+        group_problem = None
+        if not line_problems:
+            def do(ref=ref, first=first, lines=lines):
+                build.document(ref, first, lines)
+            outcome = _try(db, do, items[0][0], first)
+            group_problem = outcome.problem
+            if group_problem is None:
+                made += 1
+        for n, r in items:
+            problem = line_problems.get(n)
+            if problem is None and line_problems:
+                problem = f"another line of this {noun} has a problem"
+            if problem is None and group_problem:
+                problem = re.sub(r"^lines\.\d+\.", "", group_problem)
+            preview.append(PreviewRow(row=n, problem=problem, data=r))
+    imported = sum(1 for p in preview if p.problem is None)
+    return preview, imported, f"as {made} {noun if made == 1 else (plural or noun + 's')}"
+
+
+class _Build:
+    def __init__(self, line, document):
+        self.line = line
+        self.document = document
+
+
+def _deliveries(db, body: ImportIn, rows, who):
+    from wms.api.routes.outbound import DeliveryIn, DeliveryLineIn, apply_delivery
+
+    if not body.warehouse:
+        raise FieldError("warehouse", "say which warehouse picks them")
+
+    def line(r, fallback_no):
+        return DeliveryLineIn.model_validate({
+            "delivery_line": int(r.get("line") or fallback_no * 10), "sku": r.get("sku", ""),
+            "batch": r.get("batch") or None, "qty": _num(r.get("qty", "")) or "0",
+            "uom": r.get("uom") or "EA"}).model_dump()
+
+    def document(ref, first, lines):
+        ship_to = {"name": first.get("ship_to_name") or first.get("ship_to") or ""}
+        for column in ("address", "suburb", "state", "postcode", "country", "contact", "phone", "email"):
+            if first.get(column):
+                ship_to[column] = first[column]
+        model = DeliveryIn.model_validate({
+            "message_id": str(body.message_id), "owner": body.owner, "warehouse": body.warehouse,
+            "external_ref": ref, "ship_to": ship_to,
+            "required_by": first["required_by"] if first.get("required_by") else None,
+            "priority": first.get("priority") or "normal",
+            "pick_mode": first.get("pick_mode") or "single",
+            "allow_short": _bool(first.get("allow_short", "yes")) if first.get("allow_short") else True,
+            "carrier_hint": first.get("carrier_hint") or None, "lines": lines})
+        apply_delivery(db, model, who.name)
+
+    return _by_document(db, body, rows, _Build(line, document), "delivery", "deliveries")
+
+
+def _replenishments(db, body: ImportIn, rows, who):
+    from wms.api.routes.inbound import ReplenIn, ReplenLineIn, apply_replenishment
+
+    if not body.warehouse:
+        raise FieldError("warehouse", "say which warehouse replenishes")
+
+    def line(r, fallback_no):
+        return ReplenLineIn.model_validate({
+            "line": int(r.get("line") or fallback_no), "sku": r.get("sku", ""),
+            "qty": _num(r.get("qty", "")) or "0", "uom": r.get("uom") or "EA",
+            "to_location": r.get("to_location", ""), "from_location": r.get("from_location") or None,
+            "batch": r.get("batch") or None}).model_dump()
+
+    def document(ref, first, lines):
+        model = ReplenIn.model_validate({
+            "message_id": str(body.message_id), "owner": body.owner, "warehouse": body.warehouse,
+            "external_ref": ref, "priority": first.get("priority") or "normal",
+            "source": "manual", "lines": lines})
+        apply_replenishment(db, model, who.name)
+
+    return _by_document(db, body, rows, _Build(line, document), "replenishment")
+
+
+def _transfers(db, body: ImportIn, rows, who):
+    from wms.api.routes.transfers import TransferIn, TransferLineIn, apply_transfer
+
+    if not body.warehouse:
+        raise FieldError("warehouse", "say which warehouse sends them")
+
+    def line(r, fallback_no):
+        return TransferLineIn.model_validate({
+            "line": int(r.get("line") or fallback_no), "sku": r.get("sku", ""),
+            "batch": r.get("batch") or None, "qty": _num(r.get("qty", "")) or "0",
+            "uom": r.get("uom") or "EA"}).model_dump()
+
+    def document(ref, first, lines):
+        model = TransferIn.model_validate({
+            "message_id": str(body.message_id), "owner": body.owner,
+            "external_ref": ref, "from_warehouse": first.get("from_warehouse") or body.warehouse,
+            "to_warehouse": first.get("to_warehouse", ""),
+            "required_by": first["required_by"] if first.get("required_by") else None,
+            "priority": first.get("priority") or "normal",
+            "carrier_hint": first.get("carrier_hint") or None, "lines": lines})
+        apply_transfer(db, model, who.name)
+
+    return _by_document(db, body, rows, _Build(line, document), "transfer")

@@ -155,6 +155,37 @@ def _rules(fn):
         raise Conflict(e.code, e.message) from e
 
 
+def apply_transfer(db, body: TransferIn, created_by: str) -> tuple[Transfer, list[dict]]:
+    """Create the transfer and reserve at the sender. Shared by the endpoint
+    and CSV import."""
+    if body.from_warehouse == body.to_warehouse:
+        raise FieldError("to_warehouse", "a transfer needs two different warehouses; use /v1/moves")
+    sender = get_warehouse(db, body.from_warehouse, "from_warehouse")
+    receiver = get_warehouse(db, body.to_warehouse, "to_warehouse")
+    existing = db.execute(select(Transfer).where(
+        Transfer.owner == body.owner, Transfer.external_ref == body.external_ref)).scalar_one_or_none()
+    if existing is not None:
+        raise FieldError("external_ref", f"transfer {body.external_ref} already exists (status {existing.status})")
+    seen = set()
+    transfer = Transfer(owner=body.owner, external_ref=body.external_ref, message_id=body.message_id,
+                        from_warehouse_id=sender.id, to_warehouse_id=receiver.id,
+                        required_by=body.required_by, priority=body.priority,
+                        carrier_hint=body.carrier_hint, note=body.note)
+    for i, l in enumerate(body.lines):
+        if l.line in seen:
+            raise FieldError(f"lines.{i}.line", f"line {l.line} repeats")
+        seen.add(l.line)
+        product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
+        transfer.lines.append(TransferLine(
+            line_no=l.line, product_id=product.id, batch=l.batch, qty_requested=l.qty,
+            qty_allocated=Decimal(0), qty_picked=Decimal(0), qty_shipped=Decimal(0),
+            qty_received=Decimal(0), uom=l.uom))
+    db.add(transfer)
+    db.flush()
+    summary = _rules(lambda: transfers.allocate(db, transfer, sender, receiver, created_by))
+    return transfer, summary
+
+
 @router.post("/transfers", status_code=202, response_model=TransferAccepted)
 def create_transfer(body: TransferIn, request: Request, db: DB, who: Principal = require("tasks:write")):
     """Reserves at the sender and raises the first leg. The second leg opens
@@ -162,31 +193,7 @@ def create_transfer(body: TransferIn, request: Request, db: DB, who: Principal =
     authorise(who, warehouse=body.from_warehouse, owner=body.owner)
 
     def work():
-        if body.from_warehouse == body.to_warehouse:
-            raise FieldError("to_warehouse", "a transfer needs two different warehouses; use /v1/moves")
-        sender = get_warehouse(db, body.from_warehouse, "from_warehouse")
-        receiver = get_warehouse(db, body.to_warehouse, "to_warehouse")
-        existing = db.execute(select(Transfer).where(
-            Transfer.owner == body.owner, Transfer.external_ref == body.external_ref)).scalar_one_or_none()
-        if existing is not None:
-            raise FieldError("external_ref", f"transfer {body.external_ref} already exists (status {existing.status})")
-        seen = set()
-        transfer = Transfer(owner=body.owner, external_ref=body.external_ref, message_id=body.message_id,
-                            from_warehouse_id=sender.id, to_warehouse_id=receiver.id,
-                            required_by=body.required_by, priority=body.priority,
-                            carrier_hint=body.carrier_hint, note=body.note)
-        for i, l in enumerate(body.lines):
-            if l.line in seen:
-                raise FieldError(f"lines.{i}.line", f"line {l.line} repeats")
-            seen.add(l.line)
-            product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
-            transfer.lines.append(TransferLine(
-                line_no=l.line, product_id=product.id, batch=l.batch, qty_requested=l.qty,
-                qty_allocated=Decimal(0), qty_picked=Decimal(0), qty_shipped=Decimal(0),
-                qty_received=Decimal(0), uom=l.uom))
-        db.add(transfer)
-        db.flush()
-        summary = _rules(lambda: transfers.allocate(db, transfer, sender, receiver, who.name))
+        transfer, summary = apply_transfer(db, body, who.name)
         return TransferAccepted(message_id=body.message_id, wms_id=str(transfer.id), status="accepted",
                                 allocation=[AllocationRow(**row) for row in summary])
 

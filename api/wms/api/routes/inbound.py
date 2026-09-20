@@ -34,8 +34,22 @@ def get_warehouse(db, code: str | None, field: str = "warehouse") -> Warehouse:
 def get_product(db, sku: str, owner: str, field: str) -> Product:
     p = db.execute(select(Product).where(Product.owner == owner, Product.sku == sku)).scalar_one_or_none()
     if p is None:
-        raise FieldError(field, f"unknown sku {sku}")
+        raise FieldError(field, f"unknown sku {sku}{_did_you_mean(db, sku, owner)}")
     return p
+
+
+def _did_you_mean(db, sku: str, owner: str) -> str:
+    """A typo is the usual reason a SKU is not found, so say the near miss."""
+    from difflib import get_close_matches
+
+    known = db.execute(
+        select(Product.sku).where(Product.owner == owner, Product.active.is_(True)).limit(5000)
+    ).scalars().all()
+    close = get_close_matches(sku.upper(), [s.upper() for s in known], n=1, cutoff=0.7)
+    if not close:
+        return ""
+    match = next(s for s in known if s.upper() == close[0])
+    return f"; did you mean {match}?"
 
 
 def get_location(db, wh: Warehouse, code: str | None, field: str) -> Location | None:
@@ -408,25 +422,33 @@ def fifo_source(db, wh: Warehouse, product: Product, batch: str | None, owner: s
     return db.get(Location, rows[0].location_id) if rows else None
 
 
+def apply_replenishment(db, body: ReplenIn, created_by: str):
+    """Create the replenish task, choosing a FIFO source where none is given.
+    Shared by the endpoint and CSV import."""
+    wh = get_warehouse(db, body.warehouse)
+    specs = []
+    for i, l in enumerate(body.lines):
+        product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
+        dst = get_location(db, wh, l.to_location, f"lines.{i}.to_location")
+        src = get_location(db, wh, l.from_location, f"lines.{i}.from_location") if l.from_location else \
+            fifo_source(db, wh, product, l.batch, body.owner, dst)
+        specs.append(engine.LineSpec(product=product, expected_qty=l.qty, uom=l.uom, batch=l.batch,
+                                     from_location=src, to_location=dst, source_line=l.line))
+    task = engine.create(db, type="replenish", warehouse=wh, owner=body.owner, lines=specs,
+                         source_type=body.source, source_ref=body.external_ref,
+                         priority=body.priority, created_by=created_by)
+    if not task.source_ref:
+        task.source_ref = f"REP-{task.id:04d}"
+    db.flush()
+    return task
+
+
 @router.post("/replenishments", status_code=202, response_model=envelope.Accepted)
 def create_replenishment(body: ReplenIn, request: Request, db: DB, who: Principal = require("tasks:write")):
     authorise(who, warehouse=body.warehouse, owner=body.owner)
 
     def work():
-        wh = get_warehouse(db, body.warehouse)
-        specs = []
-        for i, l in enumerate(body.lines):
-            product = get_product(db, l.sku, body.owner, f"lines.{i}.sku")
-            dst = get_location(db, wh, l.to_location, f"lines.{i}.to_location")
-            src = get_location(db, wh, l.from_location, f"lines.{i}.from_location") if l.from_location else \
-                fifo_source(db, wh, product, l.batch, body.owner, dst)
-            specs.append(engine.LineSpec(product=product, expected_qty=l.qty, uom=l.uom, batch=l.batch,
-                                         from_location=src, to_location=dst, source_line=l.line))
-        task = engine.create(db, type="replenish", warehouse=wh, owner=body.owner, lines=specs, source_type=body.source,
-                             source_ref=body.external_ref, priority=body.priority, created_by=who.name)
-        if not task.source_ref:
-            task.source_ref = f"REP-{task.id:04d}"
-        db.flush()
+        task = apply_replenishment(db, body, who.name)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(task.id), status="accepted")
 
     return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
