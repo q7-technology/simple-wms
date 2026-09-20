@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Q7 Technology design system, scanner scale: 56 px touch targets. */
+@theme {
+  --color-ground: #0d1117;
+  --color-ink: #ccd6f6;
+  --color-muted: #8892b0;
+  --color-brand: #29abe2;
+  --color-gold: #f7941d;
+  --color-ok: #4ade80;
+  --color-line: rgba(41, 171, 226, 0.2);
+  --color-line-soft: rgba(41, 171, 226, 0.1);
+  --color-line-strong: rgba(41, 171, 226, 0.3);
+  --color-brand-tint: rgba(41, 171, 226, 0.1);
+  --color-card: rgba(13, 17, 23, 0.6);
+  --color-gold-line: rgba(247, 148, 29, 0.3);
+  --color-gold-tint: rgba(247, 148, 29, 0.1);
+  --color-ok-line: rgba(74, 222, 128, 0.3);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html, body, #root { min-height: 100%; height: 100%; }
+body {
+  margin: 0; background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+input, select, textarea, button { font: inherit; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+@layer components {
+.input {
+  height: 56px; box-sizing: border-box; padding: 0 16px; border-radius: 6px; width: 100%;
+  background: var(--color-ground); border: 1px solid var(--color-line); color: var(--color-ink); font-size: 18px;
+}
+.input:focus { outline: none; border-color: var(--color-brand); }
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.card { border-radius: 12px; border: 1px solid var(--color-line); background: var(--color-card); }
+.mono { font-family: var(--font-mono); }
+}

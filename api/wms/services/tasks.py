@@ -227,7 +227,8 @@ def _confirm_receive(db, task, line, product, qty, batch, to_code, container_id,
     allowed = line.expected_qty * (1 + tolerance)
     if total > allowed and not actor.supervisor:
         raise NeedsSupervisor(
-            f"{total} {line.uom} is over the {settings['receipt_tolerance_pct']} % tolerance on {line.expected_qty}; a supervisor badge is needed")
+            f"{qstr(total)} {line.uom} is over the {settings['receipt_tolerance_pct']:g} % tolerance on "
+            f"{qstr(line.expected_qty)}; a supervisor badge is needed")
     rows = post(db, [LedgerLine(
         product_id=product.id, location_id=to.id, qty_change=qty, uom=line.uom, batch=batch,
         owner=task.owner, container_id=container_id, movement_type="receipt", task_id=task.id,
@@ -273,7 +274,7 @@ def _confirm_move(db, task, line, product, qty, batch, from_code, to_code, conta
         batch = bal.batch if bal else None
     available = (bal.on_hand - bal.reserved) if bal else Decimal(0)
     if qty > available:
-        raise stock.RuleError("qty", f"only {available} {line.uom} of {product.sku} available at {src.code}")
+        raise stock.RuleError("qty", f"only {qstr(available)} {line.uom} of {product.sku} available at {src.code}")
     stock.check_mixing(db, dst, product, batch)
     received_at = bal.received_at or date.today()
     common = dict(product_id=product.id, uom=line.uom, batch=batch, owner=task.owner, container_id=container_id,
