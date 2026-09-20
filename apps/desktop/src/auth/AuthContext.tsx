@@ -9,11 +9,19 @@ interface AuthState {
   warehouses: Warehouse[];
   warehouse: Warehouse | null;
   setWarehouse: (code: string) => void;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<SignInResult>;
+  signInWithCode: (challenge: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   reloadWarehouses: () => Promise<void>;
   can: (scope: string) => boolean;
 }
+
+/** Either we are in, or the phone still has to say so. */
+export type SignInResult = { needsCode: false } | { needsCode: true; challenge: string };
+
+type LoginReply =
+  | (Session & { status?: "signed_in"; user: SessionUser })
+  | { status: "totp_required"; challenge: string; expires_in: number };
 
 const Ctx = createContext<AuthState | null>(null);
 const WAREHOUSE_KEY = "wms.warehouse";
@@ -50,8 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [loadMe]);
 
-  const signIn = useCallback(async (username: string, password: string) => {
-    const body = await api.post<Session & { user: SessionUser }>("/v1/auth/login", { username, password });
+  /** The password is only half of it when someone has a second factor. */
+  const signIn = useCallback(async (username: string, password: string): Promise<SignInResult> => {
+    const body = await api.post<LoginReply>("/v1/auth/login", { username, password });
+    if (body.status === "totp_required") {
+      return { needsCode: true, challenge: body.challenge };
+    }
+    api.setSession(body);
+    await loadMe();
+    return { needsCode: false };
+  }, [loadMe]);
+
+  const signInWithCode = useCallback(async (challenge: string, code: string) => {
+    const body = await api.post<Session & { user: SessionUser }>("/v1/auth/login/totp",
+                                                                 { challenge, code });
     api.setSession(body);
     await loadMe();
   }, [loadMe]);
@@ -84,9 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const value = useMemo<AuthState>(() => ({
-    ready, user, warehouses, warehouse, setWarehouse, signIn, signOut,
+    ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signOut,
     reloadWarehouses: loadWarehouses, can,
-  }), [ready, user, warehouses, warehouse, setWarehouse, signIn, signOut, loadWarehouses, can]);
+  }), [ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signOut,
+       loadWarehouses, can]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

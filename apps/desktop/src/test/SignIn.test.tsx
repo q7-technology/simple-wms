@@ -58,3 +58,83 @@ describe("SignIn", () => {
     await waitFor(() => expect(screen.getByText("Wrong username or password")).toBeInTheDocument());
   });
 });
+
+describe("SignIn with a second factor", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    api.setSession(null);
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  function meAndWarehouses(url: string) {
+    if (url === "/v1/auth/me") {
+      return jsonResponse(200, { wms_id: "1", username: "leighton", display_name: "Leighton L.",
+        role: "admin", warehouses: ["*"], owner: "*", scopes: ["*"], kind: "user", two_factor: true });
+    }
+    if (url === "/v1/warehouses") return jsonResponse(200, { items: [], total: 0 });
+    return null;
+  }
+
+  it("asks for the code, then signs in", async () => {
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url === "/v1/auth/login") {
+        return jsonResponse(200, { status: "totp_required", challenge: "ch-1", expires_in: 180 });
+      }
+      if (url === "/v1/auth/login/totp") {
+        expect(JSON.parse(init.body as string)).toEqual({ challenge: "ch-1", code: "123456" });
+        return jsonResponse(200, { status: "signed_in", token: "t", refresh_token: "r",
+                                   expires_in: 900, user: {} });
+      }
+      return meAndWarehouses(url) ?? jsonResponse(404, {});
+    });
+    renderSignIn();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Username"), "leighton");
+    await user.type(screen.getByLabelText("Password"), "correct horse");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    const code = await screen.findByLabelText(/Code from your authenticator/);
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    await user.type(code, "123456");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(await screen.findByText("Stock page")).toBeInTheDocument();
+  });
+
+  it("says plainly when the code is wrong, and keeps the step open", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/v1/auth/login") {
+        return jsonResponse(200, { status: "totp_required", challenge: "ch-1", expires_in: 180 });
+      }
+      if (url === "/v1/auth/login/totp") {
+        return jsonResponse(401, { detail: "that code is not right", code: "wrong_code" });
+      }
+      return meAndWarehouses(url) ?? jsonResponse(404, {});
+    });
+    renderSignIn();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Username"), "leighton");
+    await user.type(screen.getByLabelText("Password"), "correct horse");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await user.type(await screen.findByLabelText(/Code from your authenticator/), "000000");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(await screen.findByText("That code is not right. Try the next one.")).toBeInTheDocument();
+  });
+
+  it("counts down the tries left on a wrong password", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/v1/auth/login") {
+        return jsonResponse(401, { detail: "wrong username or password",
+                                   code: "wrong_password", tries_left: 3 });
+      }
+      return meAndWarehouses(url) ?? jsonResponse(404, {});
+    });
+    renderSignIn();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Username"), "leighton");
+    await user.type(screen.getByLabelText("Password"), "nope");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByText("Wrong username or password · 3 tries left")).toBeInTheDocument();
+  });
+});

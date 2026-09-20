@@ -2,7 +2,7 @@
 Deactivate, never delete. Plain REST from a signed-in admin."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Query
@@ -45,6 +45,7 @@ class UserOut(BaseModel):
     owner: str
     active: bool
     two_factor: bool
+    locked: bool
     created_at: datetime
     last_login_at: datetime | None
 
@@ -58,7 +59,9 @@ def user_out(u: User) -> UserOut:
     return UserOut(
         wms_id=str(u.id), username=u.username, display_name=u.display_name, email=u.email,
         role=u.role, warehouses=list(u.warehouses or []), owner=u.owner or "*", active=u.active,
-        two_factor=bool(u.totp_secret), created_at=u.created_at, last_login_at=u.last_login_at,
+        two_factor=bool(u.totp_secret),
+        locked=bool(u.locked_until and u.locked_until > datetime.now(UTC)),
+        created_at=u.created_at, last_login_at=u.last_login_at,
     )
 
 
@@ -130,6 +133,31 @@ def reactivate_user(id: int, db: DB, who: Principal = require("access:admin")):
     u = _get_user(db, id)
     u.active = True
     audit.record(db, actor_type=who.kind, actor=who.name, action="user.reactivated",
+                 target_type="user", target=u.username, ip=who.ip)
+    db.commit()
+    return user_out(u)
+
+
+@router.post("/users/{id}/unlock", response_model=UserOut)
+def unlock_user(id: int, db: DB, who: Principal = require("access:admin")):
+    """Let someone back in after too many wrong passwords."""
+    u = _get_user(db, id)
+    u.failed_attempts = 0
+    u.locked_until = None
+    audit.record(db, actor_type=who.kind, actor=who.name, action="user.unlocked",
+                 target_type="user", target=u.username, ip=who.ip)
+    db.commit()
+    return user_out(u)
+
+
+@router.post("/users/{id}/clear-2fa", response_model=UserOut)
+def clear_two_factor(id: int, db: DB, who: Principal = require("access:admin")):
+    """For a lost phone. They set it up again next time they sign in."""
+    u = _get_user(db, id)
+    u.totp_secret = None
+    u.totp_pending = None
+    u.totp_last_step = None
+    audit.record(db, actor_type=who.kind, actor=who.name, action="user.2fa_cleared",
                  target_type="user", target=u.username, ip=who.ip)
     db.commit()
     return user_out(u)

@@ -5,26 +5,67 @@ import { useAuth } from "../auth/AuthContext";
 import { Button, Field, Input } from "../ui";
 import { Logo } from "../ui/Logo";
 
+function sentence(text: string): string {
+  return text ? text[0].toUpperCase() + text.slice(1) : text;
+}
+
 export function SignIn() {
-  const { user, signIn } = useAuth();
+  const { user, signIn, signInWithCode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // set once the password is accepted and the phone still has to answer
+  const [challenge, setChallenge] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   if (user) return <Navigate to="/stock" replace />;
+
+  function land() {
+    navigate((location.state as { from?: string } | null)?.from ?? "/stock", { replace: true });
+  }
+
+  /** What to tell someone when the API says no. It already words it well,
+   * so mostly this just starts the sentence with a capital. */
+  function refusal(err: unknown): string {
+    if (!(err instanceof ApiError)) return "Could not reach the WMS. Try again.";
+    if (err.status !== 401) return sentence(err.message);
+    const left = (err.body as { tries_left?: number } | null)?.tries_left;
+    if (err.code === "wrong_password" && typeof left === "number") {
+      return `Wrong username or password · ${left} ${left === 1 ? "try" : "tries"} left`;
+    }
+    if (err.code === "locked") return sentence(err.message);
+    if (err.code === "wrong_code") return "That code is not right. Try the next one.";
+    if (err.code === "code_used") return "That code has been used. Wait for the next one.";
+    if (err.code === "unknown_challenge") return "That took too long. Start again.";
+    return sentence(err.message) || "Wrong username or password";
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      await signIn(username.trim(), password);
-      navigate((location.state as { from?: string } | null)?.from ?? "/stock", { replace: true });
+      if (challenge) {
+        await signInWithCode(challenge, code.trim());
+        land();
+        return;
+      }
+      const result = await signIn(username.trim(), password);
+      if (result.needsCode) {
+        setChallenge(result.challenge);
+        setPassword("");
+        return;
+      }
+      land();
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 401 ? "Wrong username or password" : "Could not reach the WMS. Try again.");
+      setError(refusal(err));
+      if (err instanceof ApiError && err.code === "unknown_challenge") {
+        setChallenge(null);
+        setCode("");
+      }
     } finally {
       setBusy(false);
     }
@@ -40,15 +81,43 @@ export function SignIn() {
             <span className="text-xs leading-4 text-muted">Desktop · control</span>
           </div>
         </div>
-        <Field label="Username">
-          <Input name="username" autoComplete="username" autoFocus value={username} onChange={(e) => setUsername(e.target.value)} />
-        </Field>
-        <Field label="Password" error={error ?? undefined}>
-          <Input name="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </Field>
-        <Button type="submit" variant="primary" className="h-11" disabled={busy || !username || !password}>
-          {busy ? "Signing in…" : "Sign in"}
-        </Button>
+        {challenge ? (
+          <>
+            <Field
+              label="Code from your authenticator"
+              hint="Six digits, from the app on your phone."
+              error={error ?? undefined}
+            >
+              <Input
+                name="one-time-code" inputMode="numeric" autoComplete="one-time-code" autoFocus
+                maxLength={8} className="tracking-[0.4em] text-center text-lg"
+                value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              />
+            </Field>
+            <Button type="submit" variant="primary" className="h-11" disabled={busy || code.length < 6}>
+              {busy ? "Checking…" : "Confirm"}
+            </Button>
+            <button
+              type="button"
+              className="text-xs text-muted hover:text-ink bg-transparent border-0 cursor-pointer"
+              onClick={() => { setChallenge(null); setCode(""); setError(null); }}
+            >
+              Sign in as someone else
+            </button>
+          </>
+        ) : (
+          <>
+            <Field label="Username">
+              <Input name="username" autoComplete="username" autoFocus value={username} onChange={(e) => setUsername(e.target.value)} />
+            </Field>
+            <Field label="Password" error={error ?? undefined}>
+              <Input name="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </Field>
+            <Button type="submit" variant="primary" className="h-11" disabled={busy || !username || !password}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Button>
+          </>
+        )}
         <div className="flex items-center gap-3">
           <div className="grow h-px bg-line-soft" /><span className="text-xs text-muted">or</span><div className="grow h-px bg-line-soft" />
         </div>

@@ -1,18 +1,44 @@
 """Desktop sign in. Scanner login (device + operator + PIN) comes with step 2."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import secrets as _secrets
+import time as _time
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
 from wms.api.deps import DB, Who, client_ip
-from wms.api.errors import Unauthorised
+from wms.api.errors import Conflict, FieldError, Forbidden, Unauthorised
 from wms.models import User
-from wms.services import access, audit, sessions
+from wms.services import access, audit, sessions, totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Half-finished sign ins, held in memory for a couple of minutes. They are
+# worthless on their own: the code from the phone is still needed.
+CHALLENGE_TTL_SECONDS = 180
+_CHALLENGES: dict[str, tuple[int, float]] = {}
+
+
+def _new_challenge(user: User) -> str:
+    now = _time.time()
+    for key, (_, expires) in list(_CHALLENGES.items()):
+        if expires <= now:
+            _CHALLENGES.pop(key, None)
+    token = _secrets.token_urlsafe(24)
+    _CHALLENGES[token] = (user.id, now + CHALLENGE_TTL_SECONDS)
+    return token
+
+
+def _spend_challenge(token: str) -> int | None:
+    """Good once. A replayed challenge is as useless as a spent ticket."""
+    found = _CHALLENGES.pop(token, None)
+    if found is None:
+        return None
+    user_id, expires = found
+    return user_id if expires > _time.time() else None
 
 
 class LoginIn(BaseModel):
@@ -31,10 +57,18 @@ class UserOut(BaseModel):
 
 
 class SessionOut(BaseModel):
+    status: str = "signed_in"
     token: str
     expires_in: int
     refresh_token: str
     user: UserOut
+
+
+class SecondFactorRequired(BaseModel):
+    """Signed in as far as the password goes; the phone has the rest."""
+    status: str = "totp_required"
+    challenge: str
+    expires_in: int
 
 
 class RefreshIn(BaseModel):
@@ -45,6 +79,7 @@ class RefreshIn(BaseModel):
 class MeOut(UserOut):
     scopes: list[str]
     kind: str
+    two_factor: bool = False
 
 
 def user_out(u: User) -> UserOut:
@@ -56,25 +91,113 @@ def _ip(request: Request) -> str | None:
     return client_ip(request)
 
 
-@router.post("/login", response_model=SessionOut)
-def login(body: LoginIn, request: Request, db: DB):
-    user = db.execute(select(User).where(User.username == body.username)).scalar_one_or_none()
-    ok = user is not None and user.active and access.verify_password(body.password, user.password_hash)
-    if not ok:
-        audit.record(db, actor_type="user", actor=body.username, action="login_failed",
-                     ip=_ip(request), detail={"reason": "bad credentials or inactive"})
-        db.commit()
-        raise Unauthorised("wrong username or password")
+def _refused(detail: str, code: str, **extra):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=401, content={"detail": detail, "code": code, **extra},
+                        headers={"WWW-Authenticate": "Bearer"})
+
+
+def _signed_in(db, user: User, request: Request) -> SessionOut:
     row, refresh = sessions.start_session(
         db, user, ip=_ip(request), user_agent=request.headers.get("user-agent"))
     user.last_login_at = datetime.now(UTC)
+    user.failed_attempts = 0
+    user.locked_until = None
     audit.record(db, actor_type="user", actor=user.username, action="login", ip=_ip(request),
-                 detail={"session": row.id})
+                 detail={"session": row.id, "two_factor": bool(user.totp_secret)})
     db.commit()
     return SessionOut(
         token=sessions.issue_access_token(user, session_id=row.id),
         expires_in=sessions.ACCESS_TTL_SECONDS, refresh_token=refresh, user=user_out(user),
     )
+
+
+def _lockout(db, user: User, request: Request):
+    """Count a wrong password, and lock the account once there have been too
+    many. The settings come from the user's first warehouse, or the defaults."""
+    from wms.models import Warehouse
+    from wms.services.settings import effective
+
+    codes = [w for w in (user.warehouses or []) if w != "*"]
+    wh = db.execute(select(Warehouse).where(Warehouse.code == codes[0])).scalar_one_or_none() \
+        if codes else None
+    settings = effective(wh.settings if wh else None)
+    tries = settings["password_lockout_tries"]
+    minutes = settings["password_lockout_minutes"]
+
+    user.failed_attempts = (user.failed_attempts or 0) + 1
+    left = tries - user.failed_attempts
+    audit.record(db, actor_type="user", actor=user.username, action="login_failed",
+                 ip=_ip(request), detail={"reason": "wrong password", "tries_left": max(0, left)})
+    if left <= 0:
+        user.locked_until = datetime.now(UTC) + timedelta(minutes=minutes)
+        audit.record(db, actor_type="user", actor=user.username, action="user.locked",
+                     ip=_ip(request), detail={"minutes": minutes})
+        db.commit()
+        return _refused(f"too many wrong passwords; locked for {minutes} minutes", "locked")
+    db.commit()
+    return _refused("wrong username or password", "wrong_password", tries_left=left)
+
+
+def _is_locked(user: User) -> bool:
+    return bool(user.locked_until and user.locked_until > datetime.now(UTC))
+
+
+@router.post("/login", response_model=SessionOut | SecondFactorRequired)
+def login(body: LoginIn, request: Request, db: DB):
+    """Password first. An account with a second factor gets a challenge
+    instead of a session."""
+    user = db.execute(select(User).where(User.username == body.username)).scalar_one_or_none()
+    if user is None or not user.active:
+        audit.record(db, actor_type="user", actor=body.username, action="login_failed",
+                     ip=_ip(request), detail={"reason": "no such user, or inactive"})
+        db.commit()
+        # say no more than that: an unknown name and a wrong password look alike
+        return _refused("wrong username or password", "wrong_password")
+    if _is_locked(user):
+        audit.record(db, actor_type="user", actor=user.username, action="login_failed",
+                     ip=_ip(request), detail={"reason": "locked"})
+        db.commit()
+        return _refused("this account is locked; a supervisor can unlock it", "locked")
+    if not access.verify_password(body.password, user.password_hash):
+        return _lockout(db, user, request)
+
+    if user.totp_secret:
+        challenge = _new_challenge(user)
+        return SecondFactorRequired(challenge=challenge, expires_in=CHALLENGE_TTL_SECONDS)
+    return _signed_in(db, user, request)
+
+
+class TotpLoginIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    challenge: str = Field(max_length=200)
+    code: str = Field(min_length=6, max_length=8)
+
+
+@router.post("/login/totp", response_model=SessionOut)
+def login_totp(body: TotpLoginIn, request: Request, db: DB):
+    """The second half of a sign in: the code from the phone."""
+    user_id = _spend_challenge(body.challenge)
+    user = db.get(User, user_id) if user_id else None
+    if user is None or not user.active or not user.totp_secret:
+        return _refused("that sign in has expired; start again", "unknown_challenge")
+    if _is_locked(user):
+        return _refused("this account is locked; a supervisor can unlock it", "locked")
+
+    step = totp.verify(user.totp_secret, body.code)
+    if step is None:
+        audit.record(db, actor_type="user", actor=user.username, action="login_2fa_failed",
+                     ip=_ip(request), detail={"reason": "wrong code"})
+        db.commit()
+        return _refused("that code is not right", "wrong_code")
+    if user.totp_last_step is not None and step <= user.totp_last_step:
+        audit.record(db, actor_type="user", actor=user.username, action="login_2fa_failed",
+                     ip=_ip(request), detail={"reason": "code already used"})
+        db.commit()
+        return _refused("that code has been used; wait for the next one", "code_used")
+    user.totp_last_step = step
+    return _signed_in(db, user, request)
 
 
 @router.post("/refresh", response_model=SessionOut)
@@ -110,7 +233,66 @@ def me(who: Who):
         wms_id=str(who.id), username=who.name, display_name=display,
         role=who.role or "integration", warehouses=who.warehouses, owner=who.owner,
         scopes=who.scopes, kind=who.kind,
+        two_factor=bool(who.user.totp_secret) if who.user else False,
     )
+
+
+class TotpSetupOut(BaseModel):
+    secret: str
+    otpauth_url: str
+
+
+class TotpCodeIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    code: str = Field(min_length=6, max_length=8)
+
+
+class PasswordIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    password: str = Field(max_length=200)
+
+
+@router.post("/2fa/setup", response_model=TotpSetupOut)
+def setup_two_factor(who: Who, db: DB):
+    """Hand back a secret to scan. Nothing changes until a code proves the
+    phone has it."""
+    if who.user is None:
+        raise Forbidden("only a signed-in person can set up a second factor")
+    who.user.totp_pending = totp.new_secret()
+    db.commit()
+    return TotpSetupOut(secret=who.user.totp_pending,
+                        otpauth_url=totp.otpauth_url(who.user.totp_pending, who.user.username))
+
+
+@router.post("/2fa/enable", response_model=MeOut)
+def enable_two_factor(body: TotpCodeIn, request: Request, who: Who, db: DB):
+    if who.user is None:
+        raise Forbidden("only a signed-in person can set up a second factor")
+    if not who.user.totp_pending:
+        raise Conflict("no_setup", "ask for a secret first")
+    if totp.verify(who.user.totp_pending, body.code) is None:
+        raise FieldError("code", "that code is not right; check the phone's clock")
+    who.user.totp_secret = who.user.totp_pending
+    who.user.totp_pending = None
+    who.user.totp_last_step = None
+    audit.record(db, actor_type="user", actor=who.name, action="user.2fa_enabled", ip=_ip(request))
+    db.commit()
+    return me(who)
+
+
+@router.post("/2fa/disable", response_model=MeOut)
+def disable_two_factor(body: PasswordIn, request: Request, who: Who, db: DB):
+    """Turning it off needs the password, so a borrowed screen cannot do it."""
+    if who.user is None:
+        raise Forbidden("only a signed-in person can turn off their second factor")
+    if not access.verify_password(body.password, who.user.password_hash):
+        raise Unauthorised("wrong password")
+    who.user.totp_secret = None
+    who.user.totp_pending = None
+    who.user.totp_last_step = None
+    audit.record(db, actor_type="user", actor=who.name, action="user.2fa_disabled", ip=_ip(request))
+    db.commit()
+    return me(who)
 
 
 # --- scanner ---------------------------------------------------------------

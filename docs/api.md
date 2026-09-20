@@ -746,10 +746,25 @@ envelope. Everything they change is written to the audit log.
 { "username": "leighton", "password": "..." }
 ```
 ```json
-{ "token": "wms_s....", "expires_in": 900, "refresh_token": "wms_r....",
+{ "status": "signed_in", "token": "wms_s....", "expires_in": 900,
+  "refresh_token": "wms_r....",
   "user": { "wms_id": "1", "username": "leighton", "display_name": "Leighton L.",
-            "role": "admin", "warehouses": ["*"] } }
+            "role": "admin", "warehouses": ["*"], "owner": "*" } }
 ```
+An account with a second factor gets a challenge instead, and no tokens:
+```json
+{ "status": "totp_required", "challenge": "…", "expires_in": 180 }
+```
+Then `POST /v1/auth/login/totp` with `{ challenge, code }` returns the
+session. A challenge is good once and for three minutes.
+
+A wrong password is `401` with `code: "wrong_password"` and `tries_left`.
+After the warehouse's `password_lockout_tries` the account is locked for
+`password_lockout_minutes` and every attempt is `code: "locked"`, right
+password included. A good sign in clears the count. An unknown username
+answers exactly like a wrong password, with no `tries_left`, so the endpoint
+gives nothing away about who exists. Every attempt, good or bad, is in the
+audit log.
 The token goes in `Authorization: Bearer` like an API key and lasts 15
 minutes. `POST /v1/auth/refresh` with `{ "refresh_token" }` returns a new pair
 and spends the old refresh token (14 day life, rotates on every use).
@@ -762,6 +777,26 @@ stock, tasks, read integrations and users; `inventory_controller` master
 data, stock, tasks; `receiver` and `picker` read master data and stock, work
 tasks.
 
+### Second factor
+Time-based one-time passwords, the ordinary kind any authenticator app
+speaks. Optional, and worth it for an admin.
+
+- `POST /v1/auth/2fa/setup` → `{ secret, otpauth_url }`. The URL is what goes
+  in a QR code. Nothing changes yet.
+- `POST /v1/auth/2fa/enable` — `{ code }` proves the phone has the secret and
+  switches it on. A wrong code is a `422`; asking without a setup is a
+  `409 no_setup`.
+- `POST /v1/auth/2fa/disable` — `{ password }`. Turning it off needs the
+  password, so a borrowed screen cannot do it.
+- `POST /v1/users/{id}/clear-2fa` — for a lost phone, by an admin. They set
+  it up again next time they sign in.
+- `POST /v1/users/{id}/unlock` — let someone back in after too many wrong
+  passwords.
+
+A code is accepted one step either side of now, because phones drift, and
+never twice: the step it came from is remembered, so a code seen over a
+shoulder is already spent.
+
 ### Warehouse settings
 `GET /v1/warehouses/{code}` returns the warehouse with every switch filled in
 from defaults. `PATCH /v1/warehouses/{code}/settings` merges the keys sent:
@@ -771,7 +806,8 @@ from defaults. `PATCH /v1/warehouses/{code}/settings` merges the keys sent:
 Keys: `erp_counts_gr`, `batch_from_production_order`, `receipt_tolerance_pct`,
 `supplier_tolerance_pct`, `allow_ship_short`, `supervisor_for_short_pick`,
 `auto_pick_mode` (`single`/`batch`/`auto`), `batch_pick_max_orders`,
-`idle_logout_minutes`, `pin_lockout_tries`, `known_devices_only`,
+`idle_logout_minutes`, `pin_lockout_tries`, `password_lockout_tries`,
+`password_lockout_minutes`, `known_devices_only`,
 `queue_offline_confirmations`, `fifo_by_received_date`, `blind_counts`,
 `decimals_allowed`, `platen_url`, `retry_failed_print_jobs`, `default_copies`,
 `ledger_retention_years`, `duplicate_window_hours`, `allow_hard_deletes`

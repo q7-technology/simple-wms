@@ -78,7 +78,8 @@ export interface OutboundEvent {
 
 export interface User {
   wms_id: string; username: string; display_name: string; email: string | null; role: string;
-  warehouses: string[]; active: boolean; two_factor: boolean; created_at: string; last_login_at: string | null;
+  warehouses: string[]; owner: string; active: boolean; two_factor: boolean; locked: boolean;
+  created_at: string; last_login_at: string | null;
 }
 export interface Operator {
   wms_id: string; code: string; name: string; badge: string | null; roles: string[]; warehouses: string[];

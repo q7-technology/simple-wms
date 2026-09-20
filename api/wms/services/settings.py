@@ -20,6 +20,9 @@ class WarehouseSettings(BaseModel):
     # Scanners and security
     idle_logout_minutes: int = Field(default=15, ge=1, le=480)
     pin_lockout_tries: int = Field(default=5, ge=1, le=20)
+    # desktop sign in: how many wrong passwords, and for how long after
+    password_lockout_tries: int = Field(default=5, ge=1, le=20)
+    password_lockout_minutes: int = Field(default=15, ge=1, le=1440)
     known_devices_only: bool = True
     queue_offline_confirmations: bool = True
     # Stock rules

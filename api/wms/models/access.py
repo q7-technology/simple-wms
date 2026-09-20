@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,13 @@ class User(Base):
     warehouses: Mapped[list] = mapped_column(JSONB, default=list)  # ["*"] or codes
     # "*" for our own people; an owner code for a third-party portal user
     owner: Mapped[str] = mapped_column(String(32), default="*")
+    # set once 2FA is on; a secret waiting to be proved lives in totp_pending
     totp_secret: Mapped[str | None] = mapped_column(String(64))
+    totp_pending: Mapped[str | None] = mapped_column(String(64))
+    # the last one-time code's step, so the same code is never taken twice
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger)
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = created_at_column()
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

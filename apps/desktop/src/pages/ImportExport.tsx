@@ -11,13 +11,11 @@ import { Main } from "../ui/Shell";
 
 type ImportType = "receipts" | "products" | "locations";
 
-const IMPORT_AS: { value: string; label: string; step?: number }[] = [
-  { value: "deliveries", label: "Deliveries (pick orders)", step: 3 },
+/* The API imports three things: products, locations and expected receipts. */
+const IMPORT_AS: { value: ImportType; label: string }[] = [
   { value: "receipts", label: "Expected receipts" },
   { value: "products", label: "Products" },
   { value: "locations", label: "Locations" },
-  { value: "replenishments", label: "Replenishments", step: 3 },
-  { value: "transfers", label: "Transfers", step: 5 },
 ];
 const TEMPLATES: ImportType[] = ["receipts", "products", "locations"];
 const HEADERS: Record<string, string> = { sku: "SKU", uom: "UOM", qty: "Qty", gtin: "GTIN" };
@@ -68,6 +66,32 @@ async function downloadTemplate(type: ImportType) {
   saveText(`${type}.csv`, await res.text());
 }
 
+function isoDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return isoDay(d);
+}
+
+/** A report as CSV: the same call, behind the same bearer token. */
+async function downloadReport(report: string, params: Record<string, string | undefined>) {
+  const qs = Object.entries({ ...params, format: "csv" })
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  const res = await fetch(`/v1/reports/${report}?${qs}`, {
+    headers: { Accept: "text/csv", Authorization: `Bearer ${api.session?.token ?? ""}` },
+  });
+  if (!res.ok) throw new Error(`Could not download the ${report.replace(/-/g, " ")} report (HTTP ${res.status})`);
+  saveText(`${report}.csv`, await res.text());
+}
+
+/** Movements are asked for over a window; a month is the one people want. */
+const MOVEMENT_DAYS = 30;
+
 export function ImportExport() {
   const { warehouse, warehouses } = useAuth();
   const [csv, setCsv] = useState("");
@@ -78,6 +102,7 @@ export function ImportExport() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [imported, setImported] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const preview = useAction();
   const commit = useAction();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -146,6 +171,11 @@ export function ImportExport() {
 
   const canPreview = Boolean(type && csv.trim() && warehouseCode) && !preview.busy;
 
+  const exportReport = (report: string, params: Record<string, string | undefined>) => {
+    setExportError(null);
+    downloadReport(report, params).catch((e: Error) => setExportError(e.message));
+  };
+
   return (
     <Main>
       <PageHeader
@@ -153,10 +183,18 @@ export function ImportExport() {
         accent="Import"
         title="and export"
         actions={<>
-          <Button variant="gold" disabled title="Reports come with step 6">Export stock on hand</Button>
-          <Button variant="gold" disabled title="Reports come with step 6">Export movements</Button>
+          <Button variant="gold" onClick={() => exportReport("stock-on-hand", { warehouse: warehouseCode })}>
+            Export stock on hand
+          </Button>
+          <Button
+            variant="gold"
+            onClick={() => exportReport("movements", { warehouse: warehouseCode, from: daysAgo(MOVEMENT_DAYS), to: isoDay(new Date()) })}
+          >
+            Export movements
+          </Button>
         </>}
       />
+      {exportError && <Notice tone="gold">{exportError}</Notice>}
 
       <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-6 grow min-h-0 items-start">
         {/* --- left: upload and templates --- */}
@@ -198,12 +236,8 @@ export function ImportExport() {
             </Field>
             <Field label="Import as">
               <div className="flex gap-1 flex-wrap">
-                {IMPORT_AS.map((t) => t.step ? (
-                  <span key={t.value} title={`Step ${t.step}`} className="opacity-50 cursor-not-allowed inline-flex">
-                    <Chip>{t.label}</Chip>
-                  </span>
-                ) : (
-                  <Chip key={t.value} active={type === t.value} onClick={() => { setType(t.value as ImportType); setResult(null); }}>{t.label}</Chip>
+                {IMPORT_AS.map((t) => (
+                  <Chip key={t.value} active={type === t.value} onClick={() => { setType(t.value); setResult(null); }}>{t.label}</Chip>
                 ))}
               </div>
             </Field>

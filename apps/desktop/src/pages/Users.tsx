@@ -356,6 +356,9 @@ function UserPanel({ user, isMe, admin, onChanged }: { user: User; isMe: boolean
   const [warehousesText, setWarehousesText] = useState(user.warehouses.join(", "));
   const [pwOpen, setPwOpen] = useState(false);
   const [password, setPassword] = useState("");
+  // turning on a second factor: a secret to scan, then a code to prove it
+  const [setup, setSetup] = useState<{ secret: string; otpauth_url: string } | null>(null);
+  const [code, setCode] = useState("");
   const action = useAction();
   useEffect(() => {
     setDisplayName(user.display_name);
@@ -383,6 +386,16 @@ function UserPanel({ user, isMe, admin, onChanged }: { user: User; isMe: boolean
     e.preventDefault();
     if (password.length < 12) return;
     if (await post("/password", { password })) { setPwOpen(false); setPassword(""); }
+  };
+  const startSetup = async () => {
+    const got = await action.run(() =>
+      api.post<{ secret: string; otpauth_url: string }>("/v1/auth/2fa/setup"));
+    if (got) { setSetup(got); setCode(""); }
+  };
+  const finishSetup = async (e: FormEvent) => {
+    e.preventDefault();
+    const ok = await action.run(() => api.post("/v1/auth/2fa/enable", { code: code.trim() }));
+    if (ok !== undefined) { setSetup(null); setCode(""); await onChanged(); }
   };
 
   return (
@@ -424,6 +437,53 @@ function UserPanel({ user, isMe, admin, onChanged }: { user: User; isMe: boolean
         { label: "Last sign in", value: user.last_login_at ? fmtWhen(user.last_login_at) : "never" },
         { label: "Created", value: fmtWhen(user.created_at) },
       ]} />
+      <Section title="Second factor">
+        {user.locked && (
+          <Notice tone="gold">
+            Locked after too many wrong passwords.
+            {admin && <> <button type="button" className="underline bg-transparent border-0 text-gold cursor-pointer p-0"
+              onClick={() => void post("/unlock")}>Unlock them</button></>}
+          </Notice>
+        )}
+        {user.two_factor ? (
+          <div className="flex items-center justify-between gap-3">
+            <Muted className="text-sm">An authenticator app is asked for after the password.</Muted>
+            {admin && (
+              <Button small variant="gold" disabled={action.busy}
+                onClick={() => { if (confirmed(`Clear the second factor for ${user.display_name}? They set it up again next time they sign in.`)) void post("/clear-2fa"); }}>
+                Lost phone
+              </Button>
+            )}
+          </div>
+        ) : isMe ? (
+          setup ? (
+            <form className="flex flex-col gap-3 rounded-lg border border-line p-3" onSubmit={finishSetup}>
+              <Muted className="text-xs leading-4">
+                Add this to your authenticator app, then type the code it shows.
+              </Muted>
+              <div className="mono text-xs break-all text-ink">{setup.secret}</div>
+              <a className="text-xs break-all" href={setup.otpauth_url}>Open in an app</a>
+              <Field label="Code" error={action.fieldErrors.code}>
+                <Input aria-label="Code" inputMode="numeric" maxLength={8} value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} autoFocus />
+              </Field>
+              <div className="flex gap-2">
+                <Button type="submit" variant="primary" small disabled={action.busy || code.length < 6}>
+                  Turn it on
+                </Button>
+                <Button small onClick={() => { setSetup(null); setCode(""); action.clear(); }}>Cancel</Button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <Muted className="text-sm">Not set up. Recommended for an admin.</Muted>
+              <Button small disabled={action.busy} onClick={() => void startSetup()}>Set up</Button>
+            </div>
+          )
+        ) : (
+          <Muted className="text-sm">Not set up. Only they can turn it on, from their own account.</Muted>
+        )}
+      </Section>
       {isMe && admin && <Muted className="text-xs leading-4">This is you. You cannot deactivate your own account.</Muted>}
       {pwOpen && (
         <form className="flex flex-col gap-3 rounded-lg border border-line p-3" onSubmit={savePassword}>

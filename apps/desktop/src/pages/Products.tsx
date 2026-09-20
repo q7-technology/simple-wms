@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import type { Barcode, Page, Product, StockBySku } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -25,7 +26,14 @@ const ZONES = ["PICKFACE", "BULK", "LINE-SIDE"];
 type Kind = Barcode["kind"];
 const KIND_LABEL: Record<Kind, string> = { gtin: "GTIN · GS1", carton: "Carton", supplier: "Supplier label", other: "Other" };
 const KINDS: Kind[] = ["gtin", "carton", "supplier", "other"];
-type Filter = "all" | "batch" | "nobarcode";
+type Filter = "all" | "batch" | "nobarcode" | "belowmin";
+
+/** How many products with a min we check the pick face for. Enough for the chip, not a full scan. */
+const BELOW_MIN_SAMPLE = 25;
+
+function pickfaceOnHand(stock: StockBySku): number {
+  return stock.locations.filter((l) => l.zone === "PICKFACE").reduce((n, l) => n + Number(l.on_hand), 0);
+}
 
 function barcodesLabel(p: Product): string {
   if (p.barcodes.length === 0) return "None";
@@ -71,6 +79,7 @@ function draftOf(p: Product): Draft {
 
 export function Products() {
   const { warehouse, can } = useAuth();
+  const navigate = useNavigate();
   const writable = can("master:write");
 
   const [q, setQ] = useState("");
@@ -98,12 +107,46 @@ export function Products() {
 
   useEffect(() => { setSaved(null); setPrintOpen(false); setPrinted(null); }, [selected?.sku, adding]);
 
+  /* Below min needs a stock lookup per product, so it is only done when asked for. */
+  const [belowMin, setBelowMin] = useState<Set<string> | null>(null);
+  const [belowMinBusy, setBelowMinBusy] = useState(false);
+  const withMin = useMemo(
+    () => (products.data?.items ?? []).filter((p) => p.pickface_min),
+    [products.data],
+  );
+  const code = warehouse?.code;
+
+  useEffect(() => { setBelowMin(null); }, [q]);
+
+  const loadBelowMin = useCallback(async () => {
+    const sample = withMin.slice(0, BELOW_MIN_SAMPLE);
+    setBelowMinBusy(true);
+    try {
+      const stock = await Promise.all(
+        sample.map((p) => api.get<StockBySku>("/v1/stock", { sku: p.sku, warehouse: code }).catch(() => null)),
+      );
+      const below = new Set<string>();
+      stock.forEach((s, i) => {
+        if (s && pickfaceOnHand(s) < Number(sample[i].pickface_min)) below.add(sample[i].sku);
+      });
+      setBelowMin(below);
+    } finally {
+      setBelowMinBusy(false);
+    }
+  }, [withMin, code]);
+
+  useEffect(() => {
+    if (filter !== "belowmin" || belowMin !== null || belowMinBusy || products.loading) return;
+    void loadBelowMin();
+  }, [filter, belowMin, belowMinBusy, products.loading, loadBelowMin]);
+
   const rows = useMemo(() => {
     const all = products.data?.items ?? [];
     if (filter === "batch") return all.filter((p) => p.batch_tracked);
     if (filter === "nobarcode") return all.filter((p) => p.barcodes.length === 0);
+    if (filter === "belowmin") return belowMin === null ? [] : all.filter((p) => belowMin.has(p.sku));
     return all;
-  }, [products.data, filter]);
+  }, [products.data, filter, belowMin]);
 
   function open(p: Product) {
     setSelected(p); setAdding(false); setDraft(draftOf(p)); setNewBarcode(null); save.clear();
@@ -201,7 +244,7 @@ export function Products() {
           accent="Products"
           title=""
           actions={<>
-            <Button variant="gold" disabled title="Comes with step 2">Import CSV</Button>
+            <Button variant="gold" onClick={() => navigate("/import")}>Import CSV</Button>
             {writable && <Button variant="primary" onClick={startAdd}>Add product</Button>}
           </>}
         />
@@ -217,33 +260,46 @@ export function Products() {
           <div className="flex items-center gap-1 flex-wrap">
             <Chip active={filter === "all"} onClick={() => setFilter("all")}>All</Chip>
             <Chip active={filter === "batch"} onClick={() => setFilter("batch")}>Batch tracked</Chip>
-            <span title="Needs a stock lookup per product; comes with replenishment (step 2)" className="opacity-50 cursor-not-allowed">
-              <Chip>Below min</Chip>
-            </span>
+            <Chip active={filter === "belowmin"} onClick={() => setFilter("belowmin")}>
+              Below min{belowMinBusy && filter === "belowmin" ? <Muted> …</Muted> : null}
+            </Chip>
             <Chip active={filter === "nobarcode"} onClick={() => setFilter("nobarcode")}>No barcode</Chip>
-            <span title="One owner for now; switched on in step 6"><Chip active>Owner: {OWNER}</Chip></span>
+            <Chip active>Owner: {OWNER}</Chip>
           </div>
         </div>
 
         {products.error && <Notice tone="gold">{products.error}</Notice>}
         {products.loading && !products.data && <Muted className="text-sm">Loading…</Muted>}
         {(products.data || !products.loading) && (
-          <Table
-            columns={columns}
-            rows={rows}
-            rowKey={(p) => p.sku}
-            onRowClick={open}
-            selectedKey={selected?.sku ?? null}
-            empty={
-              q.trim()
-                ? `No product matches "${q.trim()}".`
-                : filter === "batch"
-                  ? "No batch tracked products. Switch batch tracking on in a product to see it here."
-                  : filter === "nobarcode"
-                    ? "Every product has at least one barcode."
-                    : "No products yet. Add one, or import a CSV once step 2 lands."
-            }
-          />
+          <>
+            <Table
+              columns={columns}
+              rows={rows}
+              rowKey={(p) => p.sku}
+              onRowClick={open}
+              selectedKey={selected?.sku ?? null}
+              empty={
+                filter === "belowmin"
+                  ? belowMin === null
+                    ? "Checking the pick face…"
+                    : withMin.length === 0
+                      ? "No product has a minimum at the pick face. Set one on a product to see it here."
+                      : "Every pick face is at or above its minimum."
+                  : q.trim()
+                    ? `No product matches "${q.trim()}".`
+                    : filter === "batch"
+                      ? "No batch tracked products. Switch batch tracking on in a product to see it here."
+                      : filter === "nobarcode"
+                        ? "Every product has at least one barcode."
+                        : "No products yet. Add one, or import a CSV."
+              }
+            />
+            {filter === "belowmin" && withMin.length > BELOW_MIN_SAMPLE && (
+              <Muted className="text-xs leading-4">
+                Only the first {BELOW_MIN_SAMPLE} of {withMin.length} products with a minimum were checked.
+              </Muted>
+            )}
+          </>
         )}
       </Main>
 

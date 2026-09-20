@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { LedgerRow, Page, Product, StockBySku } from "../api/types";
+import type {
+  Accepted, LedgerRow, Owner, Page, Product, StockAtLocation, StockBySku, Task, TaskReply, Warehouse,
+} from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtDate, fmtQty, fmtWhen, plural } from "../lib/format";
-import { useApi } from "../lib/useApi";
+import { useAction, useApi } from "../lib/useApi";
 import {
-  Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, SearchInput,
-  Section, StatTile, Table, type Column,
+  Button, Chip, DetailHeader, DetailPanel, Eyebrow, Field, Input, KeyValue, Muted, Notice, PageHeader,
+  SearchInput, Section, Select, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -16,6 +18,61 @@ const MOVEMENT: Record<string, string> = {
   adjustment: "Adjust", count: "Count", replenish: "Replenish", transfer_out: "Transfer out",
   transfer_in: "Transfer in", production_issue: "Issue to production", production_receipt: "Production receipt",
 };
+
+/** An adjustment is a counted quantity a supervisor accepts, with a reason. */
+const ADJUST_REASONS: { value: string; label: string }[] = [
+  { value: "count_variance", label: "Count variance" },
+  { value: "damaged", label: "Damaged" },
+  { value: "found", label: "Found" },
+  { value: "data_entry_error", label: "Data entry error" },
+];
+const MOVE_REASONS: { value: string; label: string }[] = [
+  { value: "tidy", label: "Tidy" },
+  { value: "consolidate", label: "Consolidate" },
+  { value: "damaged", label: "Damaged" },
+  { value: "quality_hold", label: "Quality hold" },
+];
+
+/** Owners are only asked for where a warehouse holds stock for more than one. */
+function multiOwner(w: Warehouse | null): boolean {
+  const settings = w?.settings as unknown as Record<string, unknown> | undefined;
+  return settings?.multi_owner === true;
+}
+
+/** Hand the browser a file to save. */
+function saveText(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** The report as CSV, behind the bearer token, so fetch it by hand. */
+async function downloadStockCsv(sku: string, warehouse: string | undefined) {
+  const qs = Object.entries({ warehouse, sku, format: "csv" })
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  const res = await fetch(`/v1/reports/stock-on-hand?${qs}`, {
+    headers: { Accept: "text/csv", Authorization: `Bearer ${api.session?.token ?? ""}` },
+  });
+  if (!res.ok) throw new Error(`Could not download the stock on hand report (HTTP ${res.status})`);
+  saveText(`stock-on-hand-${sku}.csv`, await res.text());
+}
+
+/** The shelf a form is working on: the rows are the only stock there is. */
+function rowAt(rows: StockAtLocation[], index: string): StockAtLocation | undefined {
+  return rows[Number(index)] ?? rows[0];
+}
+
+function shelfLabel(r: StockAtLocation): string {
+  return r.batch ? `${r.location} · ${r.batch}` : r.location;
+}
 
 /* The printer is asked for once and remembered, not stored per screen. */
 const PRINTER_KEY = "wms.printer";
@@ -38,14 +95,26 @@ export function Stock() {
 
   const scope = allWarehouses ? undefined : warehouse?.code;
 
-  const stock = useApi<StockBySku>(
-    sku ? () => api.get<StockBySku>("/v1/stock", { sku, warehouse: scope, batch }) : null,
-    [sku, scope, batch],
+  /* Owners: one warehouse runs happily on DEFAULT, so only ask where there are more. */
+  const asksOwner = multiOwner(warehouse);
+  const [owner, setOwner] = useState("DEFAULT");
+  const owners = useApi<Page<Owner>>(
+    asksOwner ? () => api.get<Page<Owner>>("/v1/owners", { active: true }) : null,
+    [asksOwner],
   );
-  const product = useApi<Product>(sku ? () => api.get<Product>(`/v1/products/${encodeURIComponent(sku)}`) : null, [sku]);
+  const ownerCodes = (owners.data?.items ?? []).map((o) => o.code);
+
+  const stock = useApi<StockBySku>(
+    sku ? () => api.get<StockBySku>("/v1/stock", { sku, warehouse: scope, batch, owner }) : null,
+    [sku, scope, batch, owner],
+  );
+  const product = useApi<Product>(
+    sku ? () => api.get<Product>(`/v1/products/${encodeURIComponent(sku)}`, { owner }) : null,
+    [sku, owner],
+  );
   const ledger = useApi<Page<LedgerRow>>(
-    sku ? () => api.get<Page<LedgerRow>>("/v1/stock/ledger", { sku, warehouse: scope, batch, limit: 12 }) : null,
-    [sku, scope, batch],
+    sku ? () => api.get<Page<LedgerRow>>("/v1/stock/ledger", { sku, warehouse: scope, batch, owner, limit: 12 }) : null,
+    [sku, scope, batch, owner],
   );
 
   const canPrint = can("printing:write");
@@ -92,6 +161,114 @@ export function Stock() {
     return rows.find((r) => r.zone === "PICKFACE" && Number(r.on_hand) < min) ?? null;
   }, [rows, product.data]);
 
+  /* --- export, adjust and move ------------------------------------------ */
+
+  const uom = stock.data?.uom ?? product.data?.uom ?? "EA";
+  const canAdjust = can("tasks:approve");
+  const canMove = can("tasks:write");
+
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [adjustShelf, setAdjustShelf] = useState("0");
+  const [adjustQty, setAdjustQty] = useState("");
+  const [adjustReason, setAdjustReason] = useState<string | null>(null);
+  const [adjustNote, setAdjustNote] = useState("");
+  const [moveShelf, setMoveShelf] = useState("0");
+  const [moveTo, setMoveTo] = useState("");
+  const [moveQty, setMoveQty] = useState("");
+  const [moveReason, setMoveReason] = useState("tidy");
+  const adjust = useAction();
+  const move = useAction();
+
+  /* A new lookup is a new question: close the forms and clear what was said. */
+  useEffect(() => {
+    setCsvError(null); setDone(null);
+    setAdjustOpen(false); setMoveOpen(false);
+    setAdjustShelf("0"); setAdjustQty(""); setAdjustReason(null); setAdjustNote("");
+    setMoveShelf("0"); setMoveTo(""); setMoveQty(""); setMoveReason("tidy");
+  }, [sku]);
+
+  function openAdjust() {
+    setDone(null); adjust.clear();
+    setMoveOpen(false);
+    setAdjustOpen((v) => !v);
+  }
+  function openMove() {
+    setDone(null); move.clear();
+    setAdjustOpen(false);
+    setMoveOpen((v) => !v);
+  }
+
+  async function exportCsv() {
+    setCsvError(null);
+    try {
+      await downloadStockCsv(sku, scope);
+    } catch (e) {
+      setCsvError(e instanceof Error ? e.message : "Could not download the report");
+    }
+  }
+
+  /**
+   * An adjustment is a counted quantity a supervisor approves: count the shelf,
+   * confirm what is really there, and approve the variance with a reason.
+   */
+  async function submitAdjust() {
+    const shelf = rowAt(rows, adjustShelf);
+    const qty = adjustQty.trim();
+    if (!shelf || !qty || !adjustReason) return;
+    setDone(null);
+    const out = await adjust.run(async () => {
+      const count = await api.message<Accepted>("/v1/counts", {
+        warehouse: shelf.warehouse, owner, locations: [shelf.location], sku,
+      });
+      const task = await api.get<Task>(`/v1/tasks/${encodeURIComponent(count.wms_id)}`);
+      const line = task.lines.find((l) => l.sku === sku);
+      if (!line) throw new ApiError(404, { detail: `Nothing of ${sku} at ${shelf.location} to count.` });
+      const confirmed = await api.message<TaskReply>(
+        `/v1/tasks/${encodeURIComponent(count.wms_id)}/lines/${line.line_no}/confirm`, { qty, uom },
+      );
+      if (confirmed.line?.status !== "variance") return { matched: true };
+      await api.message<TaskReply>(
+        `/v1/tasks/${encodeURIComponent(count.wms_id)}/lines/${line.line_no}/approve`,
+        { reason: adjustReason, note: adjustNote.trim() || null },
+      );
+      return { matched: false };
+    });
+    if (!out) return;
+    setAdjustOpen(false);
+    setAdjustQty(""); setAdjustNote("");
+    await Promise.all([stock.reload(), ledger.reload()]);
+    setDone({
+      tone: "ok",
+      text: out.matched
+        ? `Counted ${fmtQty(qty)} at ${shelf.location}. It already matched.`
+        : `Adjusted to ${fmtQty(qty, uom)} at ${shelf.location}.`,
+    });
+  }
+
+  /** A move within one warehouse: done on the spot, two ledger lines. */
+  async function submitMove() {
+    const shelf = rowAt(rows, moveShelf);
+    const qty = moveQty.trim();
+    const to = moveTo.trim();
+    if (!shelf || !qty || !to) return;
+    setDone(null);
+    const out = await move.run(() => api.message<Accepted>("/v1/moves", {
+      warehouse: shelf.warehouse, owner, sku, batch: shelf.batch, qty, uom,
+      from_location: shelf.location, to_location: to, reason: moveReason,
+    }));
+    if (!out) return;
+    setMoveOpen(false);
+    setMoveQty(""); setMoveTo("");
+    await Promise.all([stock.reload(), ledger.reload()]);
+    setDone({ tone: "ok", text: `Moved ${fmtQty(qty, uom)} to ${to}.` });
+  }
+
+  const adjustGeneralError = adjust.error && Object.keys(adjust.fieldErrors).length === 0 ? adjust.error : null;
+  const moveGeneralError = move.error && Object.keys(move.fieldErrors).length === 0 ? move.error : null;
+
   const columns: Column<StockBySku["locations"][number]>[] = [
     { key: "warehouse", header: "Warehouse", width: "130px", render: (r) => r.warehouse },
     { key: "location", header: "Location", width: "150px", render: (r) => <b>{r.location}</b> },
@@ -115,8 +292,23 @@ export function Stock() {
           title="lookup"
           actions={<>
             <Button onClick={() => navigate("/containers")}>Containers</Button>
-            <Button variant="gold" disabled title="Comes with reports (step 6)">Export CSV</Button>
-            <Button disabled title="Adjustments come with counts (step 2)">Adjust stock</Button>
+            <Button
+              variant="gold"
+              onClick={() => void exportCsv()}
+              disabled={!sku}
+              title={!sku ? "Look up a SKU first" : undefined}
+            >
+              Export CSV
+            </Button>
+            {canAdjust && (
+              <Button
+                onClick={openAdjust}
+                disabled={rows.length === 0}
+                title={rows.length === 0 ? "Look up a SKU first" : undefined}
+              >
+                Adjust stock
+              </Button>
+            )}
           </>}
         />
         <form
@@ -141,10 +333,22 @@ export function Stock() {
               {batches.map((b) => <Chip key={b} active={batch === b} onClick={() => setBatch(b)}>{b}</Chip>)}
             </div>
           )}
-          <Button type="button" disabled title="One owner for now; switched on in step 6">Owner: DEFAULT</Button>
+          <div className="flex items-center gap-1 h-10">
+            {asksOwner && ownerCodes.length > 0 ? (
+              <>
+                <Muted className="text-xs leading-4">Owner</Muted>
+                {ownerCodes.map((code) => (
+                  <Chip key={code} active={owner === code} onClick={() => setOwner(code)}>{code}</Chip>
+                ))}
+              </>
+            ) : (
+              <Chip>Owner: DEFAULT</Chip>
+            )}
+          </div>
         </form>
 
-        {stock.error && <Notice tone="gold">{stock.error === "no product " + sku + " for owner DEFAULT" ? `No product ${sku}` : stock.error}</Notice>}
+        {stock.error && <Notice tone="gold">{stock.error === `no product ${sku} for owner ${owner}` ? `No product ${sku}` : stock.error}</Notice>}
+        {csvError && <Notice tone="gold">{csvError}</Notice>}
 
         {stock.data && (
           <>
@@ -175,10 +379,82 @@ export function Stock() {
           {canPrint && (
             <Button onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}>Print product label</Button>
           )}
-          <Button variant="primary" disabled title="Moves come with step 2">Move stock</Button>
+          {canMove && (
+            <Button variant="primary" onClick={openMove} disabled={rows.length === 0}>Move stock</Button>
+          )}
         </> : undefined}
       >
         {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
+        {done && <Notice tone={done.tone}>{done.text}</Notice>}
+        {canAdjust && adjustOpen && rows.length > 0 && (
+          <form
+            className="flex flex-col gap-3 rounded-md border border-line p-3"
+            onSubmit={(e) => { e.preventDefault(); void submitAdjust(); }}
+          >
+            <Eyebrow tone="muted">Adjust stock</Eyebrow>
+            <Field label="Location">
+              <Select value={adjustShelf} onChange={(e) => setAdjustShelf(e.target.value)} autoFocus>
+                {rows.map((r, i) => <option key={`${r.location}/${r.batch ?? ""}`} value={String(i)}>{shelfLabel(r)}</option>)}
+              </Select>
+            </Field>
+            <Field label="Counted quantity" hint={`in ${uom}`} error={adjust.fieldErrors.qty}>
+              <Input inputMode="decimal" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} placeholder="0" />
+            </Field>
+            <Field label="Reason" error={adjust.fieldErrors.reason}>
+              <div className="flex gap-1 flex-wrap">
+                {ADJUST_REASONS.map((r) => (
+                  <Chip key={r.value} active={adjustReason === r.value} onClick={() => setAdjustReason(r.value)}>{r.label}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="Note" error={adjust.fieldErrors.note}>
+              <Input value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} placeholder="Optional" />
+            </Field>
+            <Muted className="text-xs leading-4">
+              Counting writes nothing when it matches. A difference is approved here and lands as one adjustment in the ledger.
+            </Muted>
+            {adjustGeneralError && <Notice tone="gold">{adjustGeneralError}</Notice>}
+            <div className="flex gap-2 [&>*]:grow">
+              <Button small type="button" onClick={() => setAdjustOpen(false)}>Cancel</Button>
+              <Button small type="submit" variant="primary" disabled={adjust.busy || !adjustQty.trim() || !adjustReason}>
+                {adjust.busy ? "Adjusting…" : "Adjust"}
+              </Button>
+            </div>
+          </form>
+        )}
+        {canMove && moveOpen && rows.length > 0 && (
+          <form
+            className="flex flex-col gap-3 rounded-md border border-line p-3"
+            onSubmit={(e) => { e.preventDefault(); void submitMove(); }}
+          >
+            <Eyebrow tone="muted">Move stock</Eyebrow>
+            <Field label="From" error={move.fieldErrors.from_location}>
+              <Select value={moveShelf} onChange={(e) => setMoveShelf(e.target.value)} autoFocus>
+                {rows.map((r, i) => <option key={`${r.location}/${r.batch ?? ""}`} value={String(i)}>{shelfLabel(r)}</option>)}
+              </Select>
+            </Field>
+            <Field label="To" error={move.fieldErrors.to_location}>
+              <Input value={moveTo} onChange={(e) => setMoveTo(e.target.value)} placeholder="PF-01-02-A" />
+            </Field>
+            <Field label="Quantity" hint={`in ${uom}`} error={move.fieldErrors.qty}>
+              <Input inputMode="decimal" value={moveQty} onChange={(e) => setMoveQty(e.target.value)} placeholder="0" />
+            </Field>
+            <Field label="Reason" error={move.fieldErrors.reason}>
+              <div className="flex gap-1 flex-wrap">
+                {MOVE_REASONS.map((r) => (
+                  <Chip key={r.value} active={moveReason === r.value} onClick={() => setMoveReason(r.value)}>{r.label}</Chip>
+                ))}
+              </div>
+            </Field>
+            {moveGeneralError && <Notice tone="gold">{moveGeneralError}</Notice>}
+            <div className="flex gap-2 [&>*]:grow">
+              <Button small type="button" onClick={() => setMoveOpen(false)}>Cancel</Button>
+              <Button small type="submit" variant="primary" disabled={move.busy || !moveQty.trim() || !moveTo.trim()}>
+                {move.busy ? "Moving…" : "Move"}
+              </Button>
+            </div>
+          </form>
+        )}
         {canPrint && printOpen && sku && (
           <form
             className="flex flex-col gap-3 rounded-md border border-line p-3"

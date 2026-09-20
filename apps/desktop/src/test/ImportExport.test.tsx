@@ -10,6 +10,10 @@ function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+function csvResponse(text: string) {
+  return new Response(text, { status: 200, headers: { "Content-Type": "text/csv" } });
+}
+
 const ME = { wms_id: "1", username: "leighton", display_name: "Leighton L.", role: "admin", warehouses: ["*"], scopes: ["*"], kind: "user" };
 const WAREHOUSES = [
   { wms_id: "1", code: "BAL-WH01", site: "BAL", name: "Ballarat", settings: {}, active: true },
@@ -52,9 +56,11 @@ describe("Import and export", () => {
         const body = JSON.parse(init.body as string);
         return json(202, body.dry_run ? PREVIEW : COMMITTED);
       }
+      if (url.startsWith("/v1/reports/")) return csvResponse("sku,on_hand\nABC123,48\n");
       return json(404, { detail: `no route ${url}` });
     });
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:export"), revokeObjectURL: vi.fn() }));
   });
   afterEach(() => { vi.unstubAllGlobals(); api.setSession(null); });
 
@@ -63,7 +69,7 @@ describe("Import and export", () => {
     const user = userEvent.setup();
     expect(await screen.findByText("CSV fallback")).toBeInTheDocument();
     expect(screen.getByText(/nothing is written until Import is pressed/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Export stock on hand" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export stock on hand" })).toBeEnabled();
 
     const previewButton = screen.getByRole("button", { name: "Preview" });
     expect(previewButton).toBeDisabled();
@@ -137,5 +143,49 @@ describe("Import and export", () => {
     expect(await screen.findByText("csv: 1 row has problems and skip_problems is off")).toBeInTheDocument();
     // the preview stays so the rows can be fixed
     expect(screen.getByText("Preview · problems first")).toBeInTheDocument();
+  });
+
+  it("exports stock on hand and a month of movements as CSV, with the bearer token", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Export stock on hand" }));
+
+    const onHand = await waitFor(() => {
+      const found = fetchMock.mock.calls.find((c) => String(c[0]).startsWith("/v1/reports/stock-on-hand"));
+      expect(found).toBeDefined();
+      return found!;
+    });
+    expect(String(onHand[0])).toContain("warehouse=BAL-WH01");
+    expect(String(onHand[0])).toContain("format=csv");
+    expect((onHand[1] as RequestInit).headers).toMatchObject({ Authorization: `Bearer ${api.session?.token}` });
+
+    await user.click(screen.getByRole("button", { name: "Export movements" }));
+    const movements = await waitFor(() => {
+      const found = fetchMock.mock.calls.find((c) => String(c[0]).startsWith("/v1/reports/movements"));
+      expect(found).toBeDefined();
+      return found!;
+    });
+    const url = new URL(String(movements[0]), "http://x");
+    expect(url.searchParams.get("warehouse")).toBe("BAL-WH01");
+    expect(url.searchParams.get("format")).toBe("csv");
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    expect(url.searchParams.get("from")).toMatch(day);
+    expect(url.searchParams.get("to")).toMatch(day);
+    const days = (Date.parse(url.searchParams.get("to")!) - Date.parse(url.searchParams.get("from")!)) / 86_400_000;
+    expect(Math.round(days)).toBe(30);
+    expect(URL.createObjectURL).toHaveBeenCalled();
+  });
+
+  it("only offers the three imports the API takes, with no step titles left", async () => {
+    renderPage();
+    await screen.findByText("CSV fallback");
+    for (const label of ["Expected receipts", "Products", "Locations"]) {
+      expect(screen.getByRole("button", { name: label })).toBeEnabled();
+    }
+    expect(screen.queryByRole("button", { name: /Deliveries/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Transfers" })).not.toBeInTheDocument();
+    for (const button of screen.getAllByRole("button")) {
+      expect(button.getAttribute("title") ?? "").not.toMatch(/step/i);
+    }
   });
 });
