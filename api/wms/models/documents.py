@@ -329,3 +329,31 @@ class PickBatchMember(Base):
     tote: Mapped[str] = mapped_column(String(16))
 
     batch: Mapped[PickBatch] = relationship(back_populates="members")
+
+
+class Container(Base):
+    """A pallet, carton or tote. Cartons nest on pallets; stock is attributed
+    to a container when a movement names one."""
+
+    __tablename__ = "container"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # the code on the label, and what the scanner reads
+    container_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    sscc: Mapped[str | None] = mapped_column(String(18), unique=True, index=True)
+    owner: Mapped[str] = mapped_column(String(32), default="DEFAULT")
+    # pallet, carton, tote, cage
+    type: Mapped[str] = mapped_column(String(16), default="pallet", index=True)
+    warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    location_id: Mapped[int | None] = mapped_column(ForeignKey("location.id"), index=True)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("container.id"), index=True)
+    # open (being built), closed (sealed), shipped, retired
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    weight_kg: Mapped[QtyOpt]
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = created_at_column()
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    parent: Mapped[Container | None] = relationship(remote_side=[id], back_populates="children")
+    children: Mapped[list[Container]] = relationship(
+        back_populates="parent", order_by="Container.container_id")

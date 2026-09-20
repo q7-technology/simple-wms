@@ -186,15 +186,37 @@ register(Template(
 
 # --- pallet-label -----------------------------------------------------------
 
+def _pallet_from_reference(db, wh, ref, owner):
+    """A pallet label for a real container: its SSCC and what is on it."""
+    from wms.services.containers import contents, find
+
+    container = find(db, ref.get("ref", ""), owner)
+    if container is None:
+        raise TemplateError("reference", f"no container {ref.get('ref')}")
+    from wms.models import Location
+    loc = db.get(Location, container.location_id) if container.location_id else None
+    items = contents(db, container, include_nested=True)
+    return ({
+        "container_id": container.container_id, "sscc": container.sscc, "type": container.type,
+        "location": loc.code if loc else None, "warehouse": wh.code if wh else None,
+        "reference": container.container_id,
+        "lines": [{"sku": i["sku"], "batch": i["batch"], "qty": i["qty"], "uom": i["uom"]}
+                  for i in items],
+    }, {"type": "container", "ref": container.container_id})
+
+
 register(Template(
     name="pallet-label", version="v1",
-    fields=["sku", "name", "batch", "qty", "uom", "location", "reference", "sscc"],
+    fields=["container_id", "sscc", "type", "location", "warehouse", "reference", "lines"],
     fires_on=["production.received"],
-    describe="A pallet label for finished goods. Production arrives with build step 5.",
+    describe="A pallet label: the SSCC and what is on the pallet.",
+    from_reference=_pallet_from_reference,
     from_event=lambda db, wh, owner, external_ref, data: [({
-        "sku": data.get("sku"), "name": (_product(db, data["sku"], owner).name if data.get("sku") else None),
-        "batch": data.get("batch"), "qty": data.get("qty"), "uom": data.get("uom"),
-        "location": data.get("location"), "reference": external_ref, "sscc": None,
+        "container_id": data.get("container_id"), "sscc": None, "type": "pallet",
+        "location": data.get("location"), "warehouse": wh.code if wh else None,
+        "reference": external_ref,
+        "lines": [{"sku": data.get("sku"), "batch": data.get("batch"), "qty": data.get("qty"),
+                   "uom": data.get("uom")}],
     }, {"type": "production_order", "ref": external_ref})] if data.get("sku") else [],
 ))
 

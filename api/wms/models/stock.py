@@ -16,6 +16,7 @@ class StockLedger(Base):
     __table_args__ = (
         Index("ix_stock_ledger_key", "location_id", "product_id", "batch", "owner"),
         Index("ix_stock_ledger_product_at", "product_id", "at"),
+        Index("ix_stock_ledger_container", "container_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

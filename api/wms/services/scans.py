@@ -110,6 +110,19 @@ def _product_out(p: Product, qty: Decimal | None, kind: str | None) -> dict:
             "qty": qstr(qty) if qty is not None else None, "barcode_kind": kind}
 
 
+def _container(db: Session, code: str, owner: str) -> dict | None:
+    from wms.services.containers import find
+
+    c = find(db, code, owner)
+    if c is None:
+        return None
+    from wms.models import Location
+    loc = db.get(Location, c.location_id) if c.location_id else None
+    return {"container_id": c.container_id, "sscc": c.sscc, "type": c.type, "status": c.status,
+            "location": loc.code if loc else None,
+            "parent": c.parent.container_id if c.parent else None}
+
+
 def _by_barcode(db: Session, code: str, owner: str) -> tuple[Product, ProductBarcode] | None:
     candidates = {code}
     if code.isdigit():
@@ -132,7 +145,7 @@ def parse(db: Session, raw: str, *, warehouse: str | None, owner: str = "DEFAULT
         result["fields"] = fields
         if "sscc" in fields:
             result["type"] = "container"
-            result["resolved"] = {"sscc": fields["sscc"]}
+            result["resolved"] = _container(db, fields["sscc"], owner) or {"sscc": fields["sscc"]}
         elif "gtin" in fields or "content_gtin" in fields:
             gtin = fields.get("gtin") or fields["content_gtin"]
             found = _by_barcode(db, gtin, owner)
@@ -198,6 +211,11 @@ def parse(db: Session, raw: str, *, warehouse: str | None, owner: str = "DEFAULT
         p, bc = found
         result["type"] = "product"
         result["resolved"] = _product_out(p, bc.qty_per, bc.kind)
+        return _finish(db, result, expecting, warehouse, device)
+    found_container = _container(db, raw, owner)
+    if found_container:
+        result["type"] = "container"
+        result["resolved"] = found_container
         return _finish(db, result, expecting, warehouse, device)
     op = db.execute(select(Operator).where(Operator.badge == raw, Operator.active.is_(True))).scalar_one_or_none()
     if op:

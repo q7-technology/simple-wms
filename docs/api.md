@@ -375,6 +375,45 @@ audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
 Custom per-site patterns come later.
 
+## Containers
+
+A container is a labelled physical thing: a pallet, a carton, a tote or a
+cage. Stock is attributed to one when a movement names it, so a pallet knows
+what is on it by asking the ledger, which is the only place that ever knew.
+
+```json
+{ "message_id": "uuid", "warehouse": "BAL-WH01", "owner": "DEFAULT",
+  "container_id": "PAL-000123", "type": "pallet", "location": "BK-04-01-C",
+  "parent": null, "assign_sscc": true, "weight_kg": 412.5 }
+```
+- `POST /v1/containers` creates or updates by `container_id`. Leave it out
+  and the WMS gives one (`PAL-000123`, `CTN-000456`, `TOTE-000007`).
+- `assign_sscc: true` mints an SSCC from the warehouse's
+  `gs1_company_prefix` setting: extension digit, company prefix, serial and
+  the GS1 mod-10 check digit, eighteen digits. Without a prefix it is a
+  `422` naming what to set.
+- `GET /v1/containers?warehouse=&type=&status=&location=&nested=false`.
+  `nested=false` shows only the ones not inside something else.
+  `GET /v1/containers/{ref}` takes the code or the SSCC and returns the
+  container with `children` and `contents` (sku, batch, qty, uom) and
+  `total_qty`.
+- `POST /v1/containers/{ref}/nest` `{ parent }` puts a carton on a pallet; it
+  takes the pallet's location and follows it from then on. A pallet cannot go
+  in a carton, nothing holds itself, and a closed container takes nothing
+  more (`409 container_closed`). `/unnest` takes it off.
+- `POST /v1/containers/{ref}/move` `{ to_location, reason }` moves the
+  container and everything it carries, nested cartons included: a ledger pair
+  per product and batch, each naming its container. The reply says how much
+  moved. Across warehouses it points at a transfer.
+- `POST /v1/containers/{ref}/close` seals it; `/reopen` unseals one that has
+  not shipped.
+- A scanned SSCC or container code resolves to
+  `{ "type": "container", "resolved": { container_id, sscc, type, status,
+  location, parent } }`, and `pallet-label` prints the SSCC with what is on
+  the pallet.
+
+Statuses: `open`, `closed`, `shipped`, `retired`.
+
 ## Batch picking
 
 One walk for several orders. Each order keeps its own pick task, its own

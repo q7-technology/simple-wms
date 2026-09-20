@@ -26,6 +26,9 @@ class WarehouseSettings(BaseModel):
     fifo_by_received_date: bool = True
     blind_counts: bool = True
     decimals_allowed: bool = True
+    # Containers
+    gs1_company_prefix: str | None = Field(default=None, pattern=r"^[0-9]{6,10}$")
+    sscc_extension_digit: int = Field(default=0, ge=0, le=9)
     # Printing
     platen_url: str | None = None
     retry_failed_print_jobs: bool = True
