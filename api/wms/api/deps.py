@@ -90,7 +90,8 @@ def get_principal(
             raise _unauthorised("session expired or invalid")
         return Principal(
             kind="user", id=user.id, name=user.username, scopes=sessions.scopes_for(user.role),
-            warehouses=list(user.warehouses or []), owner="*", role=user.role, user=user, ip=ip,
+            warehouses=list(user.warehouses or []), owner=user.owner or "*", role=user.role,
+            user=user, ip=ip,
         )
 
     if raw.startswith(sessions.OPERATOR_PREFIX):

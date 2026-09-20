@@ -122,7 +122,8 @@ def run_import(type: str, body: ImportIn, request: Request, db: DB, who: Princip
 
     if body.dry_run:
         return work()
-    return envelope.handle(db, who, body.message_id, request.url.path, work, status_code=200)
+    return envelope.handle(db, who, body.message_id, request.url.path, work,
+                           status_code=200, owner=body.owner)
 
 
 def _try(db, fn, row_no: int, data: dict) -> PreviewRow:

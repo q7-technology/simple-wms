@@ -27,6 +27,7 @@ class UserOut(BaseModel):
     display_name: str
     role: str
     warehouses: list[str]
+    owner: str
 
 
 class SessionOut(BaseModel):
@@ -48,7 +49,7 @@ class MeOut(UserOut):
 
 def user_out(u: User) -> UserOut:
     return UserOut(wms_id=str(u.id), username=u.username, display_name=u.display_name,
-                   role=u.role, warehouses=list(u.warehouses or []))
+                   role=u.role, warehouses=list(u.warehouses or []), owner=u.owner or "*")
 
 
 def _ip(request: Request) -> str | None:
@@ -107,7 +108,8 @@ def me(who: Who):
     display = who.user.display_name if who.user else who.operator.name if who.operator else who.name
     return MeOut(
         wms_id=str(who.id), username=who.name, display_name=display,
-        role=who.role or "integration", warehouses=who.warehouses, scopes=who.scopes, kind=who.kind,
+        role=who.role or "integration", warehouses=who.warehouses, owner=who.owner,
+        scopes=who.scopes, kind=who.kind,
     )
 
 

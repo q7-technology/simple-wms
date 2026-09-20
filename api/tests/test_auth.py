@@ -15,7 +15,7 @@ def test_login_returns_session_and_user(client, admin):
     assert body["expires_in"] == 900
     assert body["user"] == {
         "username": "leighton", "display_name": "Leighton L.", "role": "admin",
-        "warehouses": ["*"], "wms_id": str(admin.id),
+        "warehouses": ["*"], "owner": "*", "wms_id": str(admin.id),
     }
 
 

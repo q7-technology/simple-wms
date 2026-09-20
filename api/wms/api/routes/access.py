@@ -30,6 +30,8 @@ class UserIn(BaseModel):
     email: str | None = Field(default=None, max_length=200)
     role: Role = "supervisor"
     warehouses: list[str] = Field(default_factory=lambda: ["*"])
+    # "*" for our own people; an owner code pins a third-party portal user
+    owner: str = Field(default="*", max_length=32)
     password: str = Field(min_length=12, max_length=200)
 
 
@@ -40,6 +42,7 @@ class UserOut(BaseModel):
     email: str | None
     role: str
     warehouses: list[str]
+    owner: str
     active: bool
     two_factor: bool
     created_at: datetime
@@ -54,7 +57,7 @@ class PasswordIn(BaseModel):
 def user_out(u: User) -> UserOut:
     return UserOut(
         wms_id=str(u.id), username=u.username, display_name=u.display_name, email=u.email,
-        role=u.role, warehouses=list(u.warehouses or []), active=u.active,
+        role=u.role, warehouses=list(u.warehouses or []), owner=u.owner or "*", active=u.active,
         two_factor=bool(u.totp_secret), created_at=u.created_at, last_login_at=u.last_login_at,
     )
 
@@ -72,7 +75,7 @@ def create_user(body: UserIn, db: DB, who: Principal = require("access:admin")):
         raise FieldError("username", f"{body.username} is taken")
     u = User(
         username=body.username, display_name=body.display_name, email=body.email,
-        role=body.role, warehouses=body.warehouses,
+        role=body.role, warehouses=body.warehouses, owner=body.owner,
         password_hash=access.hash_password(body.password),
     )
     db.add(u)
@@ -95,6 +98,7 @@ class UserPatch(BaseModel):
     email: str | None = Field(default=None, max_length=200)
     role: Role | None = None
     warehouses: list[str] | None = None
+    owner: str | None = Field(default=None, max_length=32)
 
 
 @router.patch("/users/{id}", response_model=UserOut)

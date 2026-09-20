@@ -165,7 +165,7 @@ def create_batch(body: BatchIn, request: Request, db: DB, who: Principal = requi
         return envelope.Accepted(message_id=body.message_id, wms_id=batch.external_ref,
                                  status="created")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/pick-batches", response_model=Page[BatchOut])
@@ -269,7 +269,7 @@ def confirm_stop(ref: str, index: int, body: ConfirmStopIn, request: Request, db
             picks=[PickOut(tote=p.tote, delivery=p.delivery, qty=p.qty) for p in done],
             batch_status=b.status, stops_left=len(left))
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class CancelBatchIn(ActorFields):
@@ -286,4 +286,4 @@ def cancel_batch(ref: str, body: CancelBatchIn, request: Request, db: DB,
         _rules(lambda: batch_pick.cancel(db, b, body.reason))
         return envelope.Accepted(message_id=body.message_id, wms_id=b.external_ref, status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

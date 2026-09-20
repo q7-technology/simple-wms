@@ -375,6 +375,33 @@ audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
 Custom per-site patterns come later.
 
+## Owners
+
+Whose stock it is. Every row in the system carries an `owner`, and a single
+warehouse runs happily with just `DEFAULT`, which exists from the first
+migration and cannot be switched off. A third-party warehouse adds more.
+
+- `POST /v1/owners` — `{ code, name, contact, email, phone, settings, note,
+  active }`. Codes are upper case, digits, dash and underscore. Creates or
+  updates by code (`201` / `200`). Needs `access:admin`.
+- `GET /v1/owners?active=`, `GET /v1/owners/{code}`.
+- `POST /v1/owners/{code}/deactivate` and `/reactivate`. Deactivated, never
+  deleted: their stock and their history stay exactly where they are.
+- Every inbound body's `owner` is checked: unknown or inactive is a `422` on
+  `owner`. Sites, warehouses, zones and locations belong to the company, not
+  to an owner, so they do not carry one.
+- Two owners keep their stock apart on the same shelf: the balance key is
+  location, product, batch **and** owner, so `GET /v1/locations/{id}/stock`
+  shows both lines and `GET /v1/stock?owner=` shows one of them.
+- An API key carries one owner (or `*`). A **portal user** is a `User` with
+  an `owner` other than `*`: they sign in to the desktop and see only that
+  owner's products, stock, orders and tasks. Our own people keep `*`.
+- Subscribers carry an owner too, so one owner's ERP hears only their own
+  events.
+- The per-warehouse `multi_owner` setting is off by default. The API always
+  works with owners; the switch is what the screens read before showing the
+  owner column.
+
 ## Containers
 
 A container is a labelled physical thing: a pallet, a carton, a tote or a

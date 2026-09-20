@@ -207,7 +207,7 @@ def create_print_job(body: PrintJobIn, request: Request, db: DB, who: Principal 
                                  owner=body.owner, task_id=body.task_id)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(job.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/print-jobs", response_model=Page[PrintJobOut])
@@ -264,7 +264,7 @@ def reprint(id: int, body: ReprintIn, request: Request, db: DB, who: Principal =
         db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(copy.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class JobStatusIn(BaseModel):

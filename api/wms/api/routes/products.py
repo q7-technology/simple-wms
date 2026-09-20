@@ -78,7 +78,7 @@ def upsert_product(body: ProductIn, request: Request, db: DB,
         product, status = apply_product(db, body)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(product.id), status=status)
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/products", response_model=Page[ProductOut])

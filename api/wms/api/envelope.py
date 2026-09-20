@@ -8,6 +8,7 @@ from typing import Literal
 
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,18 @@ class Accepted(BaseModel):
     status: Literal["created", "updated", "accepted"]
 
 
+def check_owner(db: Session, owner: str) -> None:
+    """Whose stock it is has to be someone we know."""
+    from wms.api.errors import FieldError
+    from wms.models import Owner
+
+    row = db.execute(select(Owner).where(Owner.code == owner)).scalar_one_or_none()
+    if row is None:
+        raise FieldError("owner", f"unknown owner {owner}")
+    if not row.active:
+        raise FieldError("owner", f"owner {owner} is not active")
+
+
 def _lookup(db: Session, message_id: uuid.UUID) -> InboundMessage | None:
     ttl = timedelta(hours=get_settings().message_ttl_hours)
     row = db.get(InboundMessage, message_id)
@@ -51,7 +64,7 @@ def _replay(db: Session, existing: InboundMessage) -> JSONResponse:
 
 def handle(
     db: Session, who, message_id: uuid.UUID, path: str, work: Callable[[], BaseModel],
-    status_code: int = 202,
+    status_code: int = 202, owner: str | None = None,
 ) -> JSONResponse:
     """Run `work` once per message_id. A repeat returns the original reply
     and does nothing. The reply is stored in the same transaction as the work,
@@ -60,6 +73,8 @@ def handle(
     if existing is not None:
         return _replay(db, existing)
 
+    if owner is not None:
+        check_owner(db, owner)
     reply = work()
     content = reply.model_dump(mode="json")
     db.add(InboundMessage(

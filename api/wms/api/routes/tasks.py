@@ -72,7 +72,7 @@ def run(db, who, request, body, task, fn) -> object:
         return TaskReply(message_id=body.message_id, wms_id=str(task.id), status="accepted",
                          task=task_out(task, wh.code), line=line_out(task, line) if line is not None else None)
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/tasks", response_model=Page[TaskOut])

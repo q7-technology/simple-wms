@@ -209,7 +209,7 @@ def create_order(body: ProductionOrderIn, request: Request, db: DB,
                                   status="accepted",
                                   allocation=[AllocationRow(**row) for row in summary])
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/production-orders", response_model=Page[ProductionOrderOut])
@@ -283,7 +283,7 @@ def receive_finished_goods(ref: str, body: ProductionReceiptIn, request: Request
             received_total=o.output_received, expected=o.output_qty,
             complete=o.status == "complete", event_sent=receipt.event_sent)
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class CancelOrderIn(ActorFields):
@@ -301,4 +301,4 @@ def cancel_order(ref: str, body: CancelOrderIn, request: Request, db: DB,
         _rules(lambda: production.cancel(db, o, body.reason, actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(o.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

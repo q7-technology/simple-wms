@@ -56,6 +56,9 @@ def db(engine):
     tables = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)
     with engine.begin() as conn:
         conn.execute(text(f"truncate {tables} restart identity cascade"))
+        # DEFAULT is seeded by migration 0010 and everything falls back to it
+        conn.execute(text("insert into owner (code, name, settings, active, created_at) "
+                          "values ('DEFAULT', 'Default owner', '{}', true, now())"))
 
 
 @pytest.fixture

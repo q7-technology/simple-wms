@@ -147,7 +147,7 @@ def upsert_container(body: ContainerIn, request: Request, db: DB,
         return envelope.Accepted(message_id=body.message_id, wms_id=container.container_id,
                                  status=status)
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/containers", response_model=Page[ContainerOut])
@@ -198,7 +198,7 @@ def nest_container(ref: str, body: NestIn, request: Request, db: DB,
         _rules(lambda: containers.nest(db, c, parent))
         return envelope.Accepted(message_id=body.message_id, wms_id=c.container_id, status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.post("/containers/{ref}/unnest", status_code=202, response_model=envelope.Accepted)
@@ -210,7 +210,7 @@ def unnest_container(ref: str, body: ActorFields, request: Request, db: DB,
         containers.unnest(db, c)
         return envelope.Accepted(message_id=body.message_id, wms_id=c.container_id, status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class MoveContainerIn(ActorFields):
@@ -239,7 +239,7 @@ def move_container(ref: str, body: MoveContainerIn, request: Request, db: DB,
         return ContainerMoved(message_id=body.message_id, wms_id=c.container_id, status="accepted",
                               moved=moved, to_location=to.code)
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.post("/containers/{ref}/close", status_code=202, response_model=envelope.Accepted)
@@ -252,7 +252,7 @@ def close_container(ref: str, body: ActorFields, request: Request, db: DB,
         containers.close(db, c)
         return envelope.Accepted(message_id=body.message_id, wms_id=c.container_id, status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.post("/containers/{ref}/reopen", status_code=202, response_model=envelope.Accepted)
@@ -264,4 +264,4 @@ def reopen_container(ref: str, body: ActorFields, request: Request, db: DB,
         _rules(lambda: containers.reopen(db, c))
         return envelope.Accepted(message_id=body.message_id, wms_id=c.container_id, status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

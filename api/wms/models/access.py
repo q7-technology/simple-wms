@@ -22,6 +22,8 @@ class User(Base):
     # picker, receiver, supervisor, inventory_controller, admin
     role: Mapped[str] = mapped_column(String(32), default="supervisor")
     warehouses: Mapped[list] = mapped_column(JSONB, default=list)  # ["*"] or codes
+    # "*" for our own people; an owner code for a third-party portal user
+    owner: Mapped[str] = mapped_column(String(32), default="*")
     totp_secret: Mapped[str | None] = mapped_column(String(64))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = created_at_column()
@@ -112,3 +114,22 @@ class UserSession(Base):
     user_agent: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = created_at_column()
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Owner(Base):
+    """Whose stock it is. One owner to start with; a third-party warehouse
+    switches on more."""
+
+    __tablename__ = "owner"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    contact: Mapped[str | None] = mapped_column(String(120))
+    email: Mapped[str | None] = mapped_column(String(200))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    # per-owner switches, for later: billing rates, what they may send
+    settings: Mapped[dict] = mapped_column(JSONB, default=dict)
+    note: Mapped[str | None] = mapped_column(String(500))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = created_at_column()

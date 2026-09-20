@@ -190,7 +190,7 @@ def create_transfer(body: TransferIn, request: Request, db: DB, who: Principal =
         return TransferAccepted(message_id=body.message_id, wms_id=str(transfer.id), status="accepted",
                                 allocation=[AllocationRow(**row) for row in summary])
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/transfers", response_model=Page[TransferOut])
@@ -241,7 +241,7 @@ def ship_transfer(ref: str, body: ShipIn, request: Request, db: DB, who: Princip
                                       tracking_no=body.tracking_no, actor=actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(t.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class CloseVarianceIn(ActorFields):
@@ -262,7 +262,7 @@ def close_variance(ref: str, body: CloseVarianceIn, request: Request, db: DB,
                                                 actor=actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(t.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class CancelTransferIn(ActorFields):
@@ -280,4 +280,4 @@ def cancel_transfer(ref: str, body: CancelTransferIn, request: Request, db: DB,
         _rules(lambda: transfers.cancel(db, t, body.reason, actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(t.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

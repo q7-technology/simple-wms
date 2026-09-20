@@ -191,7 +191,7 @@ def create_receipt(body: ReceiptIn, request: Request, db: DB, who: Principal = r
         receipt = apply_receipt(db, body, who.name)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(receipt.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/receipts", response_model=Page[ReceiptOut])
@@ -240,7 +240,7 @@ def receipt_arrived(ref: str, body: ArrivedIn, request: Request, db: DB, who: Pr
         db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(r.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 # --- putaway suggestions ---------------------------------------------------
@@ -324,7 +324,7 @@ def move(body: MoveIn, request: Request, db: DB, who: Principal = require("tasks
                                             container_id=body.container_id, reason=body.reason, note=body.note))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(task.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 # --- counts --------------------------------------------------------------
@@ -374,7 +374,7 @@ def create_count(body: CountIn, request: Request, db: DB, who: Principal = requi
         db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(task.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 # --- replenishments ---------------------------------------------------------
@@ -429,4 +429,4 @@ def create_replenishment(body: ReplenIn, request: Request, db: DB, who: Principa
         db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(task.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

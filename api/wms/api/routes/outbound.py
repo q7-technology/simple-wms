@@ -243,7 +243,7 @@ def create_delivery(body: DeliveryIn, request: Request, db: DB, who: Principal =
         return DeliveryAccepted(message_id=body.message_id, wms_id=str(delivery.id), status="accepted",
                                 allocation=[AllocationRow(**row) for row in summary])
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 @router.get("/deliveries", response_model=Page[DeliveryOut])
@@ -350,7 +350,7 @@ def pack_delivery(ref: str, body: PackIn, request: Request, db: DB, who: Princip
             db.flush()
         return envelope.Accepted(message_id=body.message_id, wms_id=str(d.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class ShipIn(ActorFields):
@@ -370,7 +370,7 @@ def ship_delivery(ref: str, body: ShipIn, request: Request, db: DB, who: Princip
         _rules(lambda: outbound.ship(db, d, wh, carrier=body.carrier, tracking_no=body.tracking_no, actor=actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(d.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class CancelDeliveryIn(ActorFields):
@@ -388,4 +388,4 @@ def cancel_delivery(ref: str, body: CancelDeliveryIn, request: Request, db: DB,
         _rules(lambda: outbound.cancel(db, d, wh, body.reason, actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(d.id), status="accepted")
 
-    return envelope.handle(db, who, body.message_id, request.url.path, work)
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
