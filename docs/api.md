@@ -435,6 +435,17 @@ shape, and `format=csv` downloads exactly the same thing:
 | `pick-rate` | operator, lines, units, first_at, last_at, hours, lines_per_hour, units_per_hour | `from`, `to`, `operator` |
 | `variances` | at, location, zone, sku, batch, qty_change, reason, actor, note, ledger_id | `from`, `to`, `sku`, `reason` |
 | `shipped` | day, deliveries, lines, units, short, packages | `from`, `to` |
+| `billing` | measure, detail, count, qty, uom | `from`, `to` |
+
+`billing` is what a third-party warehouse invoices one owner for: the work
+done in the window, then the space held right now. Handling rows count ledger
+lines and the units they moved, in the direction that measure bills: receipts
+count what arrived, picks and shipments what left, adjustments both. Cartons
+shipped counts packages that went out on a delivery. The two storage rows are
+read as at this moment rather than over the window, because a ledger says what
+moved and never what sat still. Where an owner's stock is held in more than
+one unit of measure the `uom` reads `mixed` instead of adding pallets to
+eaches.
 
 `group_by=product` on stock on hand rolls the locations up and adds
 `locations` and `batches` counts. An operator with a single pick has no

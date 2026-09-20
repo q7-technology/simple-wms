@@ -16,7 +16,8 @@ def move(db, s, product, location, qty, **extra):
     rows = post(db, [LedgerLine(
         product_id=product.id, location_id=location.id, qty_change=Decimal(qty),
         uom=product.uom, movement_type=extra.pop("movement_type", "receipt"),
-        actor=extra.pop("actor", "jo"), received_at=s.received, **extra)])
+        actor=extra.pop("actor", "jo"), owner=extra.pop("owner", "DEFAULT"),
+        received_at=s.received, **extra)])
     db.commit()
     return rows[0]
 
@@ -187,7 +188,7 @@ def test_shipped_per_day(client, db, structure, headers):
 def test_every_report_is_listed_and_shares_one_shape(client, db, structure, headers):
     listing = client.get("/v1/reports", headers=headers).json()
     names = {r["report"] for r in listing["items"]}
-    assert names == {"stock-on-hand", "movements", "pick-rate", "variances", "shipped"}
+    assert names == {"stock-on-hand", "movements", "pick-rate", "variances", "shipped", "billing"}
     for row in listing["items"]:
         assert row["describe"]
         assert isinstance(row["filters"], list)
@@ -217,3 +218,56 @@ def test_reports_need_a_scope(client, db, structure):
     r = client.get("/v1/reports/movements", headers={"Authorization": f"Bearer {raw}"},
                    params={"warehouse": "BAL-WH01"})
     assert r.status_code == 403
+
+
+# --- what a third-party warehouse bills for ------------------------------------
+
+def test_billing_counts_what_an_owner_actually_used(client, db, structure, headers):
+    """A 3PL bills for movements handled and space held. Both come from the
+    ledger, so neither can drift from what happened."""
+    s = structure
+    client.post("/v1/owners", headers=headers, json={"code": "ACME", "name": "Acme Auto Parts"})
+    client.post("/v1/products", headers=headers, json=msg(
+        owner="ACME", sku="ACME-1", name="Their widget", uom="EA"))
+    from sqlalchemy import select as _select
+
+    from wms.models import Product
+    theirs = db.execute(_select(Product).where(Product.owner == "ACME")).scalar_one()
+
+    move(db, s, theirs, s.bk1, "100", owner="ACME", movement_type="receipt")
+    move(db, s, theirs, s.bk1, "-20", owner="ACME", movement_type="pick", actor="sam")
+    move(db, s, theirs, s.pf, "20", owner="ACME", movement_type="pick", actor="sam")
+    move(db, s, s.abc, s.bk2, "50")  # ours, and none of their business
+
+    got = report(client, headers, "billing", owner="ACME", warehouse="BAL-WH01")
+    assert got["report"] == "billing"
+    assert got["columns"] == ["measure", "detail", "count", "qty", "uom"]
+    rows = {r["measure"]: r for r in got["rows"]}
+    assert rows["Receipts"]["count"] == 1
+    assert rows["Receipts"]["qty"] == "100"
+    assert rows["Picks"]["count"] == 2
+    assert rows["Picks"]["qty"] == "20"
+    assert rows["Locations held"]["count"] == 2
+    assert rows["Stock on hand"]["qty"] == "100"
+    assert got["totals"]["movements"] == 3
+    assert got["totals"]["owner"] == "ACME"
+
+
+def test_billing_is_per_owner_and_never_leaks(client, db, structure, headers):
+    s = structure
+    move(db, s, s.abc, s.bk1, "60")
+    ours = report(client, headers, "billing", owner="DEFAULT", warehouse="BAL-WH01")
+    assert ours["totals"]["movements"] == 1
+    client.post("/v1/owners", headers=headers, json={"code": "ACME", "name": "Acme"})
+    theirs = report(client, headers, "billing", owner="ACME", warehouse="BAL-WH01")
+    assert theirs["totals"]["movements"] == 0
+    assert all(r["count"] == 0 for r in theirs["rows"] if r["measure"] != "Stock on hand")
+
+
+def test_billing_downloads_as_csv_like_the_others(client, db, structure, headers):
+    move(db, structure, structure.abc, structure.bk1, "10")
+    r = client.get("/v1/reports/billing", headers=headers,
+                   params={"warehouse": "BAL-WH01", "format": "csv"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/csv")
+    assert r.text.splitlines()[0] == "measure,detail,count,qty,uom"

@@ -34,6 +34,7 @@ DESCRIBE = {
     "pick-rate": "Lines and units picked per operator, and how fast.",
     "variances": "Every adjustment with its reason, oldest at the bottom.",
     "shipped": "Deliveries that left, by day.",
+    "billing": "What one owner's stock cost to handle and hold, for a third-party invoice.",
 }
 FILTERS = {
     "stock-on-hand": ["warehouse", "owner", "zone", "sku", "group_by"],
@@ -41,6 +42,7 @@ FILTERS = {
     "pick-rate": ["warehouse", "owner", "from", "to", "operator"],
     "variances": ["warehouse", "owner", "from", "to", "sku", "reason"],
     "shipped": ["warehouse", "owner", "from", "to"],
+    "billing": ["warehouse", "owner", "from", "to"],
 }
 
 
@@ -240,10 +242,101 @@ def shipped(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
                   out, totals, DESCRIBE["shipped"])
 
 
+# --- billing ---------------------------------------------------------------------
+
+# What a third-party warehouse charges for: work done, and space held. Each
+# measure names the movement types it bills, and which direction it counts.
+# `in` bills the units that arrived, `out` the units that left, and `both` the
+# units touched either way, which is what an adjustment is.
+BILLED = [
+    ("Receipts", ("receipt", "transfer_in", "production_receipt"), "in"),
+    ("Put-aways and moves", ("putaway", "move", "replenish"), "in"),
+    ("Picks", ("pick",), "out"),
+    ("Production issues", ("production_issue",), "out"),
+    ("Shipments", ("ship", "transfer_out"), "out"),
+    ("Adjustments", ("adjustment", "count"), "both"),
+]
+
+
+def _one_uom(uoms: set[str]) -> str | None:
+    """One unit if everything agrees, `mixed` if not. A 3PL that stores pallets
+    and eaches has to be told, not given a meaningless sum."""
+    if not uoms:
+        return None
+    return uoms.pop() if len(uoms) == 1 else "mixed"
+
+
+def billing(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
+            to: date | None) -> Report:
+    q = (select(StockLedger.movement_type, StockLedger.uom,
+                func.count().label("lines"),
+                func.sum(case((StockLedger.qty_change > 0, StockLedger.qty_change), else_=0)).label("qty_in"),
+                func.sum(case((StockLedger.qty_change < 0, -StockLedger.qty_change), else_=0)).label("qty_out"))
+         .where(StockLedger.warehouse_id == warehouse.id, StockLedger.owner == owner))
+    q = _window(q, StockLedger.at, frm, to)
+    handled = db.execute(q.group_by(StockLedger.movement_type, StockLedger.uom)).all()
+
+    seen: dict[str, list] = {}
+    for r in handled:
+        seen.setdefault(r.movement_type, []).append(r)
+
+    out: list[dict] = []
+    units_in = units_out = Decimal(0)
+    movements = 0
+    for measure, types, direction in BILLED:
+        lines = 0
+        qty = Decimal(0)
+        uoms: set[str] = set()
+        for movement_type in types:
+            for r in seen.get(movement_type, []):
+                lines += r.lines
+                qty_in, qty_out = r.qty_in or Decimal(0), r.qty_out or Decimal(0)
+                qty += {"in": qty_in, "out": qty_out, "both": qty_in + qty_out}[direction]
+                units_in += qty_in
+                units_out += qty_out
+                if qty_in or qty_out:
+                    uoms.add(r.uom)
+        movements += lines
+        out.append({"measure": measure, "detail": ", ".join(types), "count": lines,
+                    "qty": qstr(qty), "uom": _one_uom(uoms)})
+
+    # Cartons that left on a delivery. The work of packing one is billed whether
+    # it held one line or ten.
+    cartons = (select(func.count()).select_from(Package).join(Delivery, Delivery.id == Package.delivery_id)
+               .where(Delivery.warehouse_id == warehouse.id, Delivery.owner == owner,
+                      Delivery.status == "shipped"))
+    cartons = _window(cartons, Delivery.shipped_at, frm, to)
+    out.append({"measure": "Cartons shipped", "detail": "packed and despatched",
+                "count": db.execute(cartons).scalar_one(), "qty": None, "uom": None})
+
+    # Space. Read now, not over the window: a ledger says what moved, not what
+    # sat still, so storage is charged on what is on the shelves at this moment.
+    held = db.execute(
+        select(StockBalance.location_id, StockBalance.product_id, StockBalance.on_hand,
+               StockBalance.uom)
+        .where(StockBalance.warehouse_id == warehouse.id, StockBalance.owner == owner,
+               StockBalance.on_hand != 0)).all()
+    locations = {r.location_id for r in held}
+    skus = {r.product_id for r in held}
+    on_hand = sum((r.on_hand for r in held), Decimal(0))
+    out.append({"measure": "Locations held", "detail": "with stock on them right now",
+                "count": len(locations), "qty": None, "uom": None})
+    out.append({"measure": "Stock on hand", "detail": "as at this moment",
+                "count": len(skus), "qty": qstr(on_hand),
+                "uom": _one_uom({r.uom for r in held})})
+
+    totals = {"owner": owner, "movements": movements, "units_in": qstr(units_in),
+              "units_out": qstr(units_out), "locations": len(locations),
+              "on_hand": qstr(on_hand)}
+    return Report("billing", ["measure", "detail", "count", "qty", "uom"], out, totals,
+                  DESCRIBE["billing"])
+
+
 REPORTS = {
     "stock-on-hand": stock_on_hand,
     "movements": movements,
     "pick-rate": pick_rate,
     "variances": variances,
     "shipped": shipped,
+    "billing": billing,
 }

@@ -82,7 +82,7 @@ def run_report(
         kwargs |= {"frm": from_, "to": to, "operator": operator}
     elif name == "variances":
         kwargs |= {"frm": from_, "to": to, "sku": sku, "reason": reason}
-    elif name == "shipped":
+    elif name in ("shipped", "billing"):
         kwargs |= {"frm": from_, "to": to}
 
     report = reports.REPORTS[name](db, **kwargs)
