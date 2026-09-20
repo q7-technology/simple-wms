@@ -5,6 +5,8 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Query, Request
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
@@ -13,9 +15,12 @@ from wms.api import envelope
 from wms.api.deps import DB, Principal, authorise, require
 from wms.api.errors import Conflict, FieldError, NotFound
 from wms.api.routes.inbound import get_product, get_warehouse
+from wms.services.qty import qstr
 from wms.api.schemas import Page, Qty
 from wms.api.schemas_tasks import ActorFields, Priority, TaskOut, task_out
-from wms.models import Location, Product, Task, Transfer, TransferLine, Warehouse
+from wms.models import (
+    Location, Package, PackageLine, Product, Task, Transfer, TransferLine, Warehouse,
+)
 from wms.services import tasks as engine
 from wms.services import transfers
 from wms.services.stock import RuleError
@@ -70,6 +75,28 @@ class TransferLineOut(BaseModel):
     uom: str
 
 
+class TransferPackageLineOut(BaseModel):
+    line: int
+    sku: str
+    batch: str | None
+    qty: Qty
+    uom: str
+
+
+class TransferPackageOut(BaseModel):
+    package_no: int
+    type: str
+    container_id: str | None
+    sscc: str | None
+    weight_kg: Qty | None
+    length_cm: Qty | None
+    width_cm: Qty | None
+    height_cm: Qty | None
+    packed_by: str | None
+    created_at: datetime
+    lines: list[TransferPackageLineOut]
+
+
 class TransferOut(BaseModel):
     wms_id: str
     external_ref: str
@@ -93,6 +120,7 @@ class TransferOut(BaseModel):
     closed_at: datetime | None
     cancelled_at: datetime | None
     lines: list[TransferLineOut]
+    packages: list[TransferPackageOut]
     pick_task: TaskOut | None
     receive_task: TaskOut | None
 
@@ -126,13 +154,21 @@ def transfer_out(db, t: Transfer, full: bool = True) -> TransferOut:
             qty_allocated=l.qty_allocated, qty_picked=l.qty_picked, qty_shipped=l.qty_shipped,
             qty_received=l.qty_received, variance=l.qty_received - l.qty_shipped, uom=l.uom)
             for l in t.lines],
+        packages=[TransferPackageOut(
+            package_no=p.package_no, type=p.type, container_id=p.container_id, sscc=p.sscc,
+            weight_kg=p.weight_kg, length_cm=p.length_cm, width_cm=p.width_cm,
+            height_cm=p.height_cm, packed_by=p.packed_by, created_at=p.created_at,
+            lines=[TransferPackageLineOut(line=pl.delivery_line, sku=db.get(Product, pl.product_id).sku,
+                                          batch=pl.batch, qty=pl.qty, uom=pl.uom) for pl in p.lines])
+            for p in t.packages] if full else [],
         pick_task=load(t.pick_task_id, sender), receive_task=load(t.receive_task_id, receiver),
     )
 
 
 def get_transfer(db, ref: str, owner: str, who: Principal) -> tuple[Transfer, Warehouse, Warehouse]:
     t = db.execute(
-        select(Transfer).options(selectinload(Transfer.lines))
+        select(Transfer).options(selectinload(Transfer.lines),
+                                 selectinload(Transfer.packages).selectinload(Package.lines))
         .where(Transfer.owner == owner, Transfer.external_ref == ref)
     ).scalar_one_or_none()
     if t is None:
@@ -229,6 +265,70 @@ def list_transfers(db: DB, warehouse: str = Query(), status: str | None = None, 
 def get_transfer_detail(ref: str, db: DB, owner: str = "DEFAULT", who: Principal = require("tasks:read")):
     t, _, _ = get_transfer(db, ref, owner, who)
     return transfer_out(db, t)
+
+
+class PackLineIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    line: int = Field(ge=1)
+    sku: str = Field(min_length=1, max_length=64)
+    batch: str | None = Field(default=None, max_length=64)
+    qty: Decimal = Field(gt=0)
+    uom: str = Field(default="EA", max_length=16)
+
+
+class TransferPackageIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    package_no: int = Field(ge=1)
+    type: Literal["carton", "pallet", "tote", "satchel"] = "carton"
+    container_id: str | None = Field(default=None, max_length=64)
+    sscc: str | None = Field(default=None, max_length=18)
+    weight_kg: Decimal | None = Field(default=None, gt=0)
+    length_cm: Decimal | None = Field(default=None, gt=0)
+    width_cm: Decimal | None = Field(default=None, gt=0)
+    height_cm: Decimal | None = Field(default=None, gt=0)
+    lines: list[PackLineIn] = Field(min_length=1)
+
+
+class TransferPackIn(ActorFields):
+    packed_by: str | None = Field(default=None, max_length=64)
+    complete: bool = True
+    packages: list[TransferPackageIn] = Field(min_length=1)
+
+
+@router.post("/transfers/{ref}/pack", status_code=202, response_model=envelope.Accepted)
+def pack_transfer(ref: str, body: TransferPackIn, request: Request, db: DB,
+                  who: Principal = require("tasks:write")):
+    """Cartons on a transfer, so the docket and the far end know what to
+    expect. Packing is optional: a transfer ships fine on a bare pallet."""
+    t, sender, _ = get_transfer(db, ref, body.owner, who)
+
+    def work():
+        if t.status not in ("picked", "picking", "allocated"):
+            raise Conflict("not_open", f"{ref} is {t.status}")
+        for i, p in enumerate(body.packages):
+            if any(existing.package_no == p.package_no for existing in t.packages):
+                raise FieldError(f"packages.{i}.package_no", f"package {p.package_no} is already packed")
+            package = Package(package_no=p.package_no, type=p.type, container_id=p.container_id,
+                              sscc=p.sscc, weight_kg=p.weight_kg, length_cm=p.length_cm,
+                              width_cm=p.width_cm, height_cm=p.height_cm,
+                              packed_by=body.packed_by or body.operator or who.name)
+            for j, pl in enumerate(p.lines):
+                product = get_product(db, pl.sku, body.owner, f"packages.{i}.lines.{j}.sku")
+                line = next((l for l in t.lines if l.line_no == pl.line), None)
+                if line is None:
+                    raise FieldError(f"packages.{i}.lines.{j}.line", f"{ref} has no line {pl.line}")
+                left = transfers.to_pack(db, t, pl.line)
+                if pl.qty > left:
+                    raise FieldError(f"packages.{i}.lines.{j}.qty",
+                                     f"only {qstr(left)} {line.uom} of line {pl.line} are still on "
+                                     f"the bench; {qstr(line.qty_picked)} were picked")
+                package.lines.append(PackageLine(delivery_line=pl.line, product_id=product.id,
+                                                 batch=pl.batch or line.batch, qty=pl.qty, uom=pl.uom))
+            t.packages.append(package)
+        db.flush()
+        return envelope.Accepted(message_id=body.message_id, wms_id=str(t.id), status="accepted")
+
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
 
 
 class ShipIn(ActorFields):

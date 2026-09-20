@@ -92,7 +92,8 @@ class Delivery(Base):
     lines: Mapped[list[DeliveryLine]] = relationship(
         back_populates="delivery", cascade="all, delete-orphan", order_by="DeliveryLine.line_no")
     packages: Mapped[list[Package]] = relationship(
-        back_populates="delivery", cascade="all, delete-orphan", order_by="Package.package_no")
+        back_populates="delivery", cascade="all, delete-orphan",
+        foreign_keys="Package.delivery_id", order_by="Package.package_no")
 
 
 class DeliveryLine(Base):
@@ -119,10 +120,13 @@ class Package(Base):
     """A carton, pallet or tote that leaves the building."""
 
     __tablename__ = "package"
-    __table_args__ = (UniqueConstraint("delivery_id", "package_no"),)
+    __table_args__ = (UniqueConstraint("delivery_id", "package_no"),
+                      UniqueConstraint("transfer_id", "package_no"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    delivery_id: Mapped[int] = mapped_column(ForeignKey("delivery.id"), index=True)
+    # exactly one of these: a carton leaves on an order or on a transfer
+    delivery_id: Mapped[int | None] = mapped_column(ForeignKey("delivery.id"), index=True)
+    transfer_id: Mapped[int | None] = mapped_column(ForeignKey("transfer.id"), index=True)
     package_no: Mapped[int] = mapped_column(Integer)
     # carton, pallet, tote, satchel
     type: Mapped[str] = mapped_column(String(16), default="carton")
@@ -135,7 +139,10 @@ class Package(Base):
     packed_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = created_at_column()
 
-    delivery: Mapped[Delivery] = relationship(back_populates="packages")
+    delivery: Mapped[Delivery | None] = relationship(back_populates="packages",
+                                                     foreign_keys=[delivery_id])
+    transfer: Mapped["Transfer | None"] = relationship(back_populates="packages",  # noqa: F821
+                                                       foreign_keys=[transfer_id])
     lines: Mapped[list[PackageLine]] = relationship(
         back_populates="package", cascade="all, delete-orphan", order_by="PackageLine.id")
 
@@ -145,6 +152,7 @@ class PackageLine(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     package_id: Mapped[int] = mapped_column(ForeignKey("package.id"), index=True)
+    # the line of the document it came off, delivery or transfer alike
     delivery_line: Mapped[int] = mapped_column(Integer)
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
     batch: Mapped[str | None] = mapped_column(String(64))
@@ -192,6 +200,9 @@ class Transfer(Base):
 
     lines: Mapped[list[TransferLine]] = relationship(
         back_populates="transfer", cascade="all, delete-orphan", order_by="TransferLine.line_no")
+    packages: Mapped[list[Package]] = relationship(
+        back_populates="transfer", cascade="all, delete-orphan",
+        foreign_keys="Package.transfer_id", order_by="Package.package_no")
 
 
 class TransferLine(Base):

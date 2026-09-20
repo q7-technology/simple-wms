@@ -135,6 +135,19 @@ def _on_bench(db: Session, transfer: Transfer, line: TransferLine) -> list[tuple
     return out
 
 
+def to_pack(db: Session, transfer: Transfer, line_no: int) -> Decimal:
+    """What is still on the bench for this transfer line."""
+    picked = next((l.qty_picked for l in transfer.lines if l.line_no == line_no), Decimal(0))
+    packed = sum((pl.qty for p in transfer.packages for pl in p.lines
+                  if pl.delivery_line == line_no), Decimal(0))
+    return picked - packed
+
+
+def package_rows(transfer: Transfer) -> list[dict]:
+    return [{"package_no": p.package_no, "weight_kg": qstr(p.weight_kg), "sscc": p.sscc}
+            for p in transfer.packages]
+
+
 def ship(db: Session, transfer: Transfer, sender: Warehouse, receiver: Warehouse,
          *, carrier: str | None, tracking_no: str | None, actor: tasks.Actor) -> None:
     if transfer.status in ("in_transit", "receiving", "received", "closed"):
@@ -195,7 +208,7 @@ def ship(db: Session, transfer: Transfer, sender: Warehouse, receiver: Warehouse
              "to_warehouse": receiver.code, "carrier": transfer.carrier,
              "tracking_no": transfer.tracking_no,
              "lines": line_rows(db, transfer, "qty_requested", "qty_shipped"),
-             "packages": []})
+             "packages": package_rows(transfer)})
 
 
 @tasks.on_complete("transfer_receive")

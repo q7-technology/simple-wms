@@ -7,7 +7,7 @@ import { fmtDate, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill,
-  Section, Table, Toggle, type Column,
+  Section, Select, Table, Toggle, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -16,12 +16,36 @@ const SCOPES = [
   "integration:read", "integration:admin", "access:read", "access:admin",
 ];
 
+/** A supplier's own carton label is nobody's standard, so a site writes its own. */
+interface ScanPattern {
+  wms_id: string; warehouse: string | null; name: string; pattern: string; type: string;
+  order: number; fields: string[]; note: string | null; active: boolean;
+  created_by: string | null; created_at: string;
+}
+interface UnknownScan { raw: string; seen: number; last_seen_at: string; expecting: string | null }
+interface TryReply { matches: boolean; fields: Record<string, string> }
+
+const PATTERN_TYPES: { value: string; label: string }[] = [
+  { value: "product", label: "Product" },
+  { value: "location", label: "Location" },
+  { value: "container", label: "Container" },
+  { value: "operator", label: "Operator" },
+  { value: "receipt", label: "Receipt" },
+  { value: "delivery", label: "Delivery" },
+  { value: "production_order", label: "Production order" },
+  { value: "task", label: "Task" },
+];
+const PATTERN_TYPE_LABEL: Record<string, string> =
+  Object.fromEntries(PATTERN_TYPES.map((t) => [t.value, t.label]));
+
 type Selection =
   | { kind: "none" }
   | { kind: "key"; id: string }
   | { kind: "subscriber"; id: string }
+  | { kind: "pattern"; id: string }
   | { kind: "new-key" }
-  | { kind: "new-subscriber" };
+  | { kind: "new-subscriber" }
+  | { kind: "new-pattern"; raw: string };
 
 type EventFilter = "all" | "pending" | "failed" | "delivered";
 
@@ -312,11 +336,132 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
   );
 }
 
+/* --- scan pattern detail -------------------------------------------------- */
+
+/** "Matches · sku ABC123 · batch B2601 · qty 24" */
+function matchSentence(fields: Record<string, string>): string {
+  const parts = Object.entries(fields).map(([k, v]) => `${k} ${v}`);
+  return ["Matches", ...parts].join(" · ");
+}
+
+function PatternForm({ row, startRaw, onSaved, onCancel, reload }: {
+  row: ScanPattern | null; startRaw: string;
+  onSaved: (row: ScanPattern) => void; onCancel: () => void; reload: () => Promise<void>;
+}) {
+  const { warehouses, warehouse } = useAuth();
+  const save = useAction();
+  const trying = useAction();
+  const [name, setName] = useState(row?.name ?? "");
+  const [type, setType] = useState(row?.type ?? "product");
+  const [pattern, setPattern] = useState(row?.pattern ?? "");
+  const [order, setOrder] = useState(String(row?.order ?? 100));
+  const [warehouseCode, setWarehouseCode] = useState(
+    row ? (row.warehouse ?? "") : (warehouse?.code ?? ""),
+  );
+  const [note, setNote] = useState(row?.note ?? "");
+  const [active, setActive] = useState(row?.active ?? true);
+  const [raw, setRaw] = useState(startRaw);
+  const [result, setResult] = useState<TryReply | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const patternError = save.fieldErrors.pattern ?? trying.fieldErrors.pattern;
+
+  const doSave = async () => {
+    setSaved(false);
+    const out = await save.run(() => api.post<ScanPattern>("/v1/scan-patterns", {
+      warehouse: warehouseCode || null,
+      name: name.trim(),
+      pattern,
+      type,
+      order: Number(order) || 0,
+      note: note.trim() || null,
+      active,
+    }));
+    if (out) { setSaved(true); await reload(); onSaved(out); }
+  };
+
+  const doTry = async () => {
+    setResult(null);
+    const out = await trying.run(() => api.post<TryReply>("/v1/scan-patterns/try", { pattern, raw }));
+    if (out) setResult(out);
+  };
+
+  const turnOff = async () => {
+    if (!row) return;
+    if (!window.confirm(`Turn off ${row.name}? Scans it used to read fall through to the plain lookup.`)) return;
+    await save.run(() => api.post(`/v1/scan-patterns/${row.wms_id}/deactivate`));
+    setActive(false);
+    await reload();
+  };
+
+  return (
+    <>
+      <DetailHeader
+        eyebrow="Scan pattern"
+        title={row?.name ?? "New pattern"}
+        subtitle="A regular expression with named parts. The names say what the WMS found."
+      />
+      <div className="flex flex-col gap-3">
+        <Field label="Name" hint="Whose label it is, e.g. Supplier Co carton" error={save.fieldErrors.name}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!row} />
+        </Field>
+        <Field label="Reads" hint="What a match is" error={save.fieldErrors.type}>
+          <Select value={type} onChange={(e) => setType(e.target.value)}>
+            {PATTERN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </Select>
+        </Field>
+        <Field label="Pattern" hint="Named parts only: sku, gtin, batch, qty, uom, location, container_id, sscc, badge, operator, ref, po, serial" error={patternError}>
+          <Input className="mono" value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)$" />
+        </Field>
+        <Field label="Order" hint="Lowest is tried first" error={save.fieldErrors.order}>
+          <Input type="number" value={order} onChange={(e) => setOrder(e.target.value)} />
+        </Field>
+        <Field label="Warehouse" error={save.fieldErrors.warehouse}>
+          <Select value={warehouseCode} onChange={(e) => setWarehouseCode(e.target.value)}>
+            <option value="">All warehouses</option>
+            {warehouses.map((w) => <option key={w.code} value={w.code}>{w.code} · {w.name}</option>)}
+          </Select>
+        </Field>
+        <Field label="Note" hint="Optional" error={save.fieldErrors.note}>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+        <Toggle checked={active} onChange={setActive} label="Active" hint="Only active patterns are tried by a scanner" />
+      </div>
+
+      <Section title="Try it">
+        <div className="flex flex-col gap-3">
+          <Field label="Try it against" hint="Paste a scan from the list of unread ones">
+            <Input className="mono" value={raw} onChange={(e) => setRaw(e.target.value)} />
+          </Field>
+          <div className="flex">
+            <Button onClick={() => void doTry()} disabled={trying.busy || !pattern || !raw}>Try</Button>
+          </div>
+          {result?.matches
+            ? <Notice tone="ok">{matchSentence(result.fields)}</Notice>
+            : <Muted className="text-sm">No match yet.</Muted>}
+        </div>
+      </Section>
+
+      {save.error && !patternError && <Notice tone="gold">{save.error}</Notice>}
+      {trying.error && !patternError && <Notice tone="gold">{trying.error}</Notice>}
+      {saved && !save.error && <Notice tone="ok">Saved.</Notice>}
+      <div className="grow" />
+      <div className="flex gap-2 [&>*]:grow">
+        {row && row.active
+          ? <Button variant="gold" onClick={() => void turnOff()} disabled={save.busy}>Turn off</Button>
+          : <Button onClick={onCancel} disabled={save.busy}>Cancel</Button>}
+        <Button variant="primary" onClick={() => void doSave()} disabled={save.busy || !name.trim() || !pattern}>Save</Button>
+      </div>
+    </>
+  );
+}
+
 /* --- the screen ---------------------------------------------------------- */
 
 export function Integrations() {
   const { can, warehouse } = useAuth();
   const admin = can("integration:admin");
+  const writesMaster = can("master:write");
   const [selection, setSelection] = useState<Selection>({ kind: "none" });
   const [revealed, setRevealed] = useState<{ id: string; value: string } | null>(null);
   // Rows handed back by create, kept until the list catches up.
@@ -333,6 +478,14 @@ export function Integrations() {
     [warehouse?.code],
   );
   const printPointRows = printPoints.data?.items ?? [];
+  const patterns = useApi<Page<ScanPattern>>(
+    () => api.get<Page<ScanPattern>>("/v1/scan-patterns", { warehouse: warehouse?.code }),
+    [warehouse?.code],
+  );
+  const unknown = useApi<Page<UnknownScan>>(
+    () => api.get<Page<UnknownScan>>("/v1/scan-patterns/unknown", { warehouse: warehouse?.code }),
+    [warehouse?.code],
+  );
   const events = useApi<Page<OutboundEvent>>(
     () => api.get<Page<OutboundEvent>>("/v1/events", { status: filter === "all" ? undefined : filter, limit: 50 }),
     [filter],
@@ -371,6 +524,29 @@ export function Integrations() {
     },
   ];
 
+  const patternColumns: Column<ScanPattern>[] = [
+    { key: "name", header: "Name", width: "160px", render: (r) => <b>{r.name}</b> },
+    { key: "type", header: "Reads", width: "130px", render: (r) => PATTERN_TYPE_LABEL[r.type] ?? r.type },
+    { key: "fields", header: "Finds", width: "150px", render: (r) => r.fields.join(", ") },
+    { key: "pattern", header: "Pattern", render: (r) => <span className="mono">{r.pattern}</span> },
+    { key: "order", header: "Order", width: "70px", render: (r) => String(r.order) },
+    { key: "warehouse", header: "Warehouse", width: "110px", render: (r) => r.warehouse ?? <Muted>All</Muted> },
+    { key: "status", header: "Status", width: "70px", render: (r) => r.active ? <Pill tone="info">On</Pill> : <Pill tone="muted">Off</Pill> },
+  ];
+
+  const unknownColumns: Column<UnknownScan>[] = [
+    { key: "raw", header: "Scan", render: (r) => <span className="mono">{r.raw}</span> },
+    { key: "seen", header: "Times seen", width: "100px", render: (r) => String(r.seen) },
+    { key: "last", header: "Last seen", width: "110px", render: (r) => <Muted>{fmtWhen(r.last_seen_at)}</Muted> },
+    { key: "expecting", header: "Expected", width: "120px", render: (r) => r.expecting ?? <Muted>—</Muted> },
+    {
+      key: "actions", header: "", width: "140px", align: "right",
+      render: (r) => writesMaster
+        ? <Button small onClick={() => select({ kind: "new-pattern", raw: r.raw })}>Write a pattern</Button>
+        : null,
+    },
+  ];
+
   const eventColumns: Column<OutboundEvent>[] = [
     { key: "id", header: "Event ID", width: "120px", render: (r) => <span className="mono">{shortEventId(r.event_id)}</span> },
     { key: "type", header: "Type", width: "180px", render: (r) => r.event_type },
@@ -396,7 +572,12 @@ export function Integrations() {
   const selectedSub = selection.kind === "subscriber"
     ? subscribers.data?.items.find((s) => s.wms_id === selection.id) ?? (freshSub?.wms_id === selection.id ? freshSub : null)
     : null;
-  const selectedRowKey = selection.kind === "key" || selection.kind === "subscriber" ? selection.id : null;
+  const selectedPattern = selection.kind === "pattern"
+    ? patterns.data?.items.find((p) => p.wms_id === selection.id) ?? null
+    : null;
+  const selectedRowKey =
+    selection.kind === "key" || selection.kind === "subscriber" || selection.kind === "pattern"
+      ? selection.id : null;
 
   return (
     <>

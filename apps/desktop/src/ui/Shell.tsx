@@ -26,8 +26,16 @@ const ROLE_LABEL: Record<string, string> = {
   receiver: "Receiver", picker: "Picker", integration: "Integration",
 };
 
+/** Only warn near the end. A bar that always nags is one people stop reading. */
+const IDLE_WARN_SECONDS = 120;
+
+function countdown(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 export function Shell() {
-  const { user, warehouses, warehouse, setWarehouse, signOut } = useAuth();
+  const { user, warehouses, warehouse, setWarehouse, signOut, idleLeftSeconds, touch } = useAuth();
+  const warnIdle = idleLeftSeconds > 0 && idleLeftSeconds <= IDLE_WARN_SECONDS;
   return (
     <div className="min-h-screen flex flex-col">
       <header className="h-16 shrink-0 flex items-center gap-6 px-6 border-b border-line bg-card">
@@ -69,6 +77,14 @@ export function Shell() {
           </select>
         </label>
         <div className="flex items-center gap-2 text-sm leading-5">
+          {warnIdle && (
+            <span className="inline-flex items-center gap-2 rounded-full border border-gold-line px-2.5 py-0.5 text-xs leading-4 font-semibold text-gold whitespace-nowrap">
+              Signing out in {countdown(idleLeftSeconds)}
+              <button type="button" onClick={touch} className="text-gold underline cursor-pointer bg-transparent border-0 p-0 text-xs font-semibold">
+                Stay signed in
+              </button>
+            </span>
+          )}
           <div className="w-8 h-8 rounded-full border border-line-strong flex items-center justify-center text-xs font-semibold" title={user?.display_name}>
             {initials(user?.display_name ?? "?")}
           </div>

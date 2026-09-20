@@ -282,3 +282,91 @@ def test_transfer_listing_shows_both_ends(client, db, structure, receiver, heade
     assert page["total"] == 2
     assert client.get("/v1/transfers", headers=headers,
                       params={"warehouse": "MEL-WH01", "status": "in_transit"}).json()["total"] == 0
+
+
+# --- cartons on a transfer ------------------------------------------------------
+
+def picked_transfer(client, db, structure, receiver, headers, qty="12"):
+    s = structure
+    stock(db, s, s.abc, s.bk1, "50")
+    client.post("/v1/transfers", headers=headers, json=transfer_body(lines=[
+        {"line": 1, "sku": "ABC123", "qty": qty, "uom": "EA"}]))
+    task_id = client.get("/v1/transfers/STO-4500012", headers=headers).json()["pick_task"]["wms_id"]
+    client.post(f"/v1/tasks/{task_id}/lines/1/confirm", headers=headers,
+                json=msg(qty=qty, uom="EA", operator="op-017"))
+
+
+def test_a_transfer_can_be_packed_into_cartons(client, db, structure, receiver, headers, listener):
+    subscribe(db, listener, "transfer.shipped")
+    picked_transfer(client, db, structure, receiver, headers)
+
+    r = client.post("/v1/transfers/STO-4500012/pack", headers=headers, json=msg(
+        packed_by="op-017", complete=True,
+        packages=[
+            {"package_no": 1, "type": "carton", "weight_kg": 8.4, "length_cm": 40,
+             "width_cm": 30, "height_cm": 25,
+             "lines": [{"line": 1, "sku": "ABC123", "qty": 8, "uom": "EA"}]},
+            {"package_no": 2, "type": "carton", "weight_kg": 4,
+             "lines": [{"line": 1, "sku": "ABC123", "qty": 4, "uom": "EA"}]},
+        ]))
+    assert r.status_code == 202, r.text
+
+    got = client.get("/v1/transfers/STO-4500012", headers=headers).json()
+    assert [(p["package_no"], p["weight_kg"], p["lines"][0]["qty"]) for p in got["packages"]] == [
+        (1, "8.4", "8"), (2, "4", "4")]
+
+    r = client.post("/v1/transfers/STO-4500012/ship", headers=headers,
+                    json=msg(carrier="Toll", tracking_no="T-1"))
+    assert r.status_code == 202, r.text
+    shipped = [e for e in events(db) if e[0] == "transfer.shipped"][0][1]
+    assert shipped["packages"] == [{"package_no": 1, "weight_kg": "8.4", "sscc": None},
+                                   {"package_no": 2, "weight_kg": "4", "sscc": None}]
+
+
+def test_a_transfer_ships_fine_with_no_cartons_at_all(client, db, structure, receiver, headers, listener):
+    subscribe(db, listener, "transfer.shipped")
+    picked_transfer(client, db, structure, receiver, headers)
+    assert client.post("/v1/transfers/STO-4500012/ship", headers=headers,
+                       json=msg(carrier="Toll")).status_code == 202
+    shipped = [e for e in events(db) if e[0] == "transfer.shipped"][0][1]
+    assert shipped["packages"] == []
+
+
+def test_a_transfer_carton_cannot_hold_more_than_was_picked(client, db, structure, receiver, headers):
+    picked_transfer(client, db, structure, receiver, headers)
+    r = client.post("/v1/transfers/STO-4500012/pack", headers=headers, json=msg(
+        packed_by="op-017", complete=True,
+        packages=[{"package_no": 1, "type": "carton", "weight_kg": 9,
+                   "lines": [{"line": 1, "sku": "ABC123", "qty": 13, "uom": "EA"}]}]))
+    assert r.status_code == 422
+    assert "picked" in r.json()["errors"][0]["message"]
+
+
+def test_a_transfer_that_has_left_cannot_be_packed(client, db, structure, receiver, headers):
+    shipped_transfer(client, db, structure, receiver, headers)
+    r = client.post("/v1/transfers/STO-4500012/pack", headers=headers, json=msg(
+        packed_by="op-017", complete=True,
+        packages=[{"package_no": 1, "type": "carton", "weight_kg": 1,
+                   "lines": [{"line": 1, "sku": "ABC123", "qty": 1, "uom": "EA"}]}]))
+    assert r.status_code == 409
+    assert r.json()["code"] == "not_open"
+
+
+def test_a_transfer_carton_label_prints(client, db, structure, receiver, headers):
+    from wms.models import PrintJob
+
+    picked_transfer(client, db, structure, receiver, headers)
+    client.post("/v1/transfers/STO-4500012/pack", headers=headers, json=msg(
+        packed_by="op-017", complete=True,
+        packages=[{"package_no": 1, "type": "carton", "weight_kg": 8.4,
+                   "lines": [{"line": 1, "sku": "ABC123", "qty": 12, "uom": "EA"}]}]))
+    r = client.post("/v1/print-jobs", headers=headers, json=msg(
+        warehouse="BAL-WH01", template="transfer-docket", printer="Dock",
+        reference={"type": "transfer", "ref": "STO-4500012"}))
+    assert r.status_code == 202, r.text
+    job = db.execute(select(PrintJob).order_by(PrintJob.id.desc())).scalars().first()
+    assert job.data["transfer_ref"] == "STO-4500012"
+    assert job.data["from_warehouse"] == "BAL-WH01"
+    assert job.data["to_warehouse"] == "MEL-WH01"
+    assert job.data["packages"] == [{"package_no": 1, "weight_kg": "8.4", "sscc": None}]
+    assert job.data["lines"][0]["sku"] == "ABC123"

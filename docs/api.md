@@ -276,8 +276,11 @@ date travel with the stock, so FIFO survives the trip.
 - Statuses: `new`, `allocated`, `picking`, `picked`, `in_transit`,
   `receiving`, `received`, `variance` (something did not arrive), `closed`,
   `cancelled`.
-- Cartons on a transfer are not packed yet, so `transfer.shipped` carries an
-  empty `packages` list. Containers arrive with build step 6.
+- `POST /v1/transfers/{ref}/pack` — the same shape as a delivery's pack,
+  with `line` instead of `delivery_line`. Packing a transfer is optional: it
+  ships fine on a bare pallet and `transfer.shipped` then carries an empty
+  `packages` list. A carton cannot hold more than was picked, and a transfer
+  that has left cannot be packed.
 - Stock in the bucket counts as on hand at the receiving warehouse and is
   never offered to a pick, because its zone is `in_transit`.
 
@@ -1042,7 +1045,7 @@ events that can fire it.
 | `pallet-label` | v1 | `production.received` | sku, name, batch, qty, uom, location, reference, sscc |
 | `pick-list` | v1 | `delivery.allocated` | delivery_ref, ship_to, required_by, priority, pick_mode, lines |
 | `packing-slip` | v1 | `delivery.packed` | delivery_ref, ship_to, carrier, tracking_no, packages, lines |
-| `transfer-docket` | v1 | `transfer.shipped` | transfer_ref, from/to warehouse, packages, lines (build step 5) |
+| `transfer-docket` | v1 | `transfer.shipped` | transfer_ref, from/to warehouse, carrier, tracking_no, required_by, packages, lines |
 
 Adding a field is a new version; old versions keep working, because a
 printer out there is still rendering them. A reprint sends the version that

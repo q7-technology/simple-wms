@@ -286,16 +286,47 @@ register(Template(
 
 # --- transfer-docket --------------------------------------------------------
 
-def _not_yet(*args, **kwargs):
-    raise TemplateError("template", "transfer dockets arrive with build step 5")
+def _docket_data(db: Session, transfer) -> dict:
+    from wms.models import Warehouse as _W
+    from wms.services.transfers import package_rows
+
+    sender = db.get(_W, transfer.from_warehouse_id)
+    receiver = db.get(_W, transfer.to_warehouse_id)
+    return {
+        "transfer_ref": transfer.external_ref,
+        "from_warehouse": sender.code, "to_warehouse": receiver.code,
+        "carrier": transfer.carrier or transfer.carrier_hint,
+        "tracking_no": transfer.tracking_no,
+        "required_by": transfer.required_by.isoformat() if transfer.required_by else None,
+        "packages": package_rows(transfer),
+        "lines": [{"line": l.line_no, "sku": db.get(Product, l.product_id).sku, "batch": l.batch,
+                   "qty_requested": qstr(l.qty_requested), "qty_shipped": qstr(l.qty_shipped),
+                   "uom": l.uom} for l in transfer.lines],
+    }
+
+
+def _transfer(db: Session, ref: str, owner: str):
+    from wms.models import Transfer
+
+    t = db.execute(select(Transfer).where(
+        Transfer.owner == owner, Transfer.external_ref == ref)).scalar_one_or_none()
+    if t is None:
+        raise TemplateError("reference", f"no transfer {ref}")
+    return t
 
 
 register(Template(
     name="transfer-docket", version="v1",
-    fields=["transfer_ref", "from_warehouse", "to_warehouse", "packages", "lines"],
+    fields=["transfer_ref", "from_warehouse", "to_warehouse", "carrier", "tracking_no",
+            "required_by", "packages", "lines"],
     fires_on=["transfer.shipped"],
-    describe="The docket that travels between warehouses. Transfers arrive with build step 5.",
-    from_reference=_not_yet, from_event=lambda db, wh, owner, external_ref, data: [],
+    describe="The docket that travels with a transfer between warehouses.",
+    from_reference=lambda db, wh, ref, owner: (
+        _docket_data(db, _transfer(db, ref.get("ref", ""), owner)),
+        {"type": "transfer", "ref": ref.get("ref", "")}),
+    from_event=lambda db, wh, owner, external_ref, data: [(
+        _docket_data(db, _transfer(db, external_ref, owner)),
+        {"type": "transfer", "ref": external_ref})],
 ))
 
 

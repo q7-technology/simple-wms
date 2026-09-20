@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import type { Session } from "../api/client";
 import type { Me, SessionUser, Warehouse } from "../api/types";
@@ -15,6 +15,10 @@ interface AuthState {
   signOut: () => Promise<void>;
   reloadWarehouses: () => Promise<void>;
   can: (scope: string) => boolean;
+  /** Seconds left before an idle screen signs itself out. 0 when nobody is in. */
+  idleLeftSeconds: number;
+  /** Someone is still there: start the idle clock again. */
+  touch: () => void;
 }
 
 /** Either we are in, or the phone still has to say so. */
@@ -26,6 +30,9 @@ type LoginReply =
 
 const Ctx = createContext<AuthState | null>(null);
 const WAREHOUSE_KEY = "wms.warehouse";
+/** The warehouse says how long; until it has, assume a floor, not an office. */
+const IDLE_DEFAULT_MINUTES = 15;
+const IDLE_EVENTS = ["keydown", "pointerdown", "touchstart"] as const;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -105,6 +112,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return warehouses.find((w) => w.code === warehouseCode) ?? warehouses[0];
   }, [warehouses, warehouseCode]);
 
+  // Idle logout: a signed-in screen on the warehouse floor should not stay
+  // signed in all night. The scanner already does this; so does the desktop.
+  const [idleLeftSeconds, setIdleLeft] = useState(0);
+  const lastTouch = useRef(Date.now());
+  const limit = useRef(IDLE_DEFAULT_MINUTES * 60);
+  const idleLimit = (warehouse?.settings?.idle_logout_minutes ?? IDLE_DEFAULT_MINUTES) * 60;
+
+  const touch = useCallback(() => {
+    lastTouch.current = Date.now();
+    setIdleLeft(limit.current);
+  }, []);
+
+  useEffect(() => {
+    if (!user) { setIdleLeft(0); return; }
+    limit.current = idleLimit;
+    lastTouch.current = Date.now();
+    setIdleLeft(idleLimit);
+    const timer = setInterval(() => {
+      const idle = Math.floor((Date.now() - lastTouch.current) / 1000);
+      setIdleLeft(Math.max(0, limit.current - idle));
+      if (idle >= limit.current) void signOut();
+    }, 1000);
+    const bump = () => { lastTouch.current = Date.now(); };
+    for (const ev of IDLE_EVENTS) window.addEventListener(ev, bump);
+    return () => {
+      clearInterval(timer);
+      for (const ev of IDLE_EVENTS) window.removeEventListener(ev, bump);
+    };
+  }, [user, idleLimit, signOut]);
+
   const can = useCallback((scope: string) => {
     if (!user) return false;
     const area = scope.split(":")[0];
@@ -113,9 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthState>(() => ({
     ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signInWithSso,
-    signOut, reloadWarehouses: loadWarehouses, can,
+    signOut, reloadWarehouses: loadWarehouses, can, idleLeftSeconds, touch,
   }), [ready, user, warehouses, warehouse, setWarehouse, signIn, signInWithCode, signInWithSso,
-       signOut, loadWarehouses, can]);
+       signOut, loadWarehouses, can, idleLeftSeconds, touch]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
