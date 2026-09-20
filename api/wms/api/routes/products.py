@@ -25,51 +25,57 @@ def product_out(p: Product) -> ProductOut:
     )
 
 
+def apply_product(db, body: ProductIn) -> tuple[Product, str]:
+    """Create or update by owner and sku. Shared by the endpoint and CSV import."""
+    product = db.execute(
+        select(Product)
+        .options(selectinload(Product.barcodes))
+        .where(Product.owner == body.owner, Product.sku == body.sku)
+    ).scalar_one_or_none()
+    data = body.model_dump(
+        exclude_unset=True,
+        exclude=set(envelope.Envelope.model_fields) | {"barcodes"},
+    )
+    if product is None:
+        product = Product(owner=body.owner, **data)
+        db.add(product)
+        status = "created"
+    else:
+        for k, v in data.items():
+            setattr(product, k, v)
+        status = "updated"
+
+    if "barcodes" in body.model_fields_set:
+        wanted = {b.barcode: b for b in body.barcodes}
+        for b in wanted.values():
+            taken = db.execute(
+                select(ProductBarcode).where(ProductBarcode.barcode == b.barcode)
+            ).scalar_one_or_none()
+            if taken is not None and taken.product is not product:
+                raise FieldError("barcodes", f"{b.barcode} already belongs to {taken.product.sku}")
+        product.barcodes = [
+            existing for existing in product.barcodes if existing.barcode in wanted
+        ]
+        have = {b.barcode: b for b in product.barcodes}
+        for code, b in wanted.items():
+            if code in have:
+                have[code].kind = b.kind
+                have[code].qty_per = b.qty_per
+            else:
+                product.barcodes.append(
+                    ProductBarcode(barcode=code, kind=b.kind, qty_per=b.qty_per)
+                )
+    db.flush()
+    return product, status
+
+
 @router.post("/products", status_code=202, response_model=envelope.Accepted)
 def upsert_product(body: ProductIn, request: Request, db: DB,
                    who: Principal = require("master:write")):
     authorise(who, warehouse=None, owner=body.owner)
 
     def work():
-        product = db.execute(
-            select(Product)
-            .options(selectinload(Product.barcodes))
-            .where(Product.owner == body.owner, Product.sku == body.sku)
-        ).scalar_one_or_none()
-        data = body.model_dump(
-            exclude_unset=True,
-            exclude=set(envelope.Envelope.model_fields) | {"barcodes"},
-        )
-        if product is None:
-            product = Product(owner=body.owner, **data)
-            db.add(product)
-            status = "created"
-        else:
-            for k, v in data.items():
-                setattr(product, k, v)
-            status = "updated"
-
-        if "barcodes" in body.model_fields_set:
-            wanted = {b.barcode: b for b in body.barcodes}
-            for b in wanted.values():
-                taken = db.execute(
-                    select(ProductBarcode).where(ProductBarcode.barcode == b.barcode)
-                ).scalar_one_or_none()
-                if taken is not None and taken.product is not product:
-                    raise FieldError("barcodes", f"{b.barcode} already belongs to {taken.product.sku}")
-            product.barcodes = [
-                existing for existing in product.barcodes if existing.barcode in wanted
-            ]
-            have = {b.barcode: b for b in product.barcodes}
-            for code, b in wanted.items():
-                if code in have:
-                    have[code].kind = b.kind
-                    have[code].qty_per = b.qty_per
-                else:
-                    product.barcodes.append(
-                        ProductBarcode(barcode=code, kind=b.kind, qty_per=b.qty_per)
-                    )
-        db.flush()
+        product, status = apply_product(db, body)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(product.id), status=status)
 
     return envelope.handle(db, who, body.message_id, request.url.path, work)

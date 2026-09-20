@@ -104,9 +104,109 @@ def logout(body: RefreshIn, request: Request, db: DB):
 
 @router.get("/me", response_model=MeOut)
 def me(who: Who):
+    display = who.user.display_name if who.user else who.operator.name if who.operator else who.name
     return MeOut(
-        wms_id=str(who.id), username=who.name,
-        display_name=who.user.display_name if who.user else who.name,
-        role=who.role or "integration", warehouses=who.warehouses, scopes=who.scopes,
-        kind=who.kind,
+        wms_id=str(who.id), username=who.name, display_name=display,
+        role=who.role or "integration", warehouses=who.warehouses, scopes=who.scopes, kind=who.kind,
     )
+
+
+# --- scanner ---------------------------------------------------------------
+
+class ScannerLoginIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    device_id: str = Field(max_length=64)
+    warehouse: str = Field(max_length=32)
+    operator_id: str | None = Field(default=None, max_length=32)
+    pin: str | None = Field(default=None, max_length=8)
+    badge: str | None = Field(default=None, max_length=128)
+
+
+class OperatorOut(BaseModel):
+    code: str
+    name: str
+    roles: list[str]
+    supervisor: bool
+
+
+class ScannerSessionOut(BaseModel):
+    token: str
+    expires_in: int
+    operator: OperatorOut
+    warehouses: list[str]
+    device: str
+    idle_logout_minutes: int
+
+
+class ScannerUnlockIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    device_id: str = Field(max_length=64)
+    warehouse: str = Field(max_length=32)
+    operator_id: str = Field(max_length=32)
+    supervisor_badge: str = Field(max_length=128)
+    new_pin: str | None = Field(default=None, min_length=4, max_length=8, pattern=r"^[0-9]+$")
+
+
+class SupervisorCheckIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    badge: str = Field(max_length=128)
+    warehouse: str | None = Field(default=None, max_length=32)
+
+
+def _warehouse(db, code: str):
+    from wms.models import Warehouse
+    wh = db.execute(select(Warehouse).where(Warehouse.code == code)).scalar_one_or_none()
+    if wh is None:
+        from wms.api.errors import FieldError
+        raise FieldError("warehouse", f"unknown warehouse {code}")
+    return wh
+
+
+def _scanner_error(exc):
+    from fastapi.responses import JSONResponse
+    content = {"detail": exc.message, "code": exc.code}
+    if exc.tries_left is not None:
+        content["tries_left"] = exc.tries_left
+    return JSONResponse(status_code=exc.status, content=content)
+
+
+@router.post("/scanner-login", response_model=ScannerSessionOut)
+def scanner_login(body: ScannerLoginIn, request: Request, db: DB):
+    from wms.services import scanner_auth
+    from wms.services.settings import effective
+
+    wh = _warehouse(db, body.warehouse)
+    try:
+        op = scanner_auth.login(db, device_code=body.device_id, warehouse=wh, operator_id=body.operator_id,
+                                pin=body.pin, badge=body.badge, ip=_ip(request))
+    except scanner_auth.ScannerAuthError as exc:
+        return _scanner_error(exc)
+    roles = list(op.roles or [])
+    return ScannerSessionOut(
+        token=sessions.issue_operator_token(op.id, body.device_id), expires_in=sessions.OPERATOR_TTL_SECONDS,
+        operator=OperatorOut(code=op.code, name=op.name, roles=roles, supervisor="supervisor" in roles),
+        warehouses=list(op.warehouses or []), device=body.device_id,
+        idle_logout_minutes=effective(wh.settings)["idle_logout_minutes"],
+    )
+
+
+@router.post("/scanner-unlock")
+def scanner_unlock(body: ScannerUnlockIn, request: Request, db: DB):
+    from wms.services import scanner_auth
+
+    wh = _warehouse(db, body.warehouse)
+    try:
+        op = scanner_auth.unlock(db, device_code=body.device_id, warehouse=wh, operator_id=body.operator_id,
+                                 supervisor_badge=body.supervisor_badge, new_pin=body.new_pin, ip=_ip(request))
+    except scanner_auth.ScannerAuthError as exc:
+        return _scanner_error(exc)
+    return {"ok": True, "operator": op.code, "pin_changed": bool(body.new_pin)}
+
+
+@router.post("/supervisor-check")
+def supervisor_check(body: SupervisorCheckIn, who: Who, db: DB):
+    """Is this badge a supervisor here? Used by the scanner before an override."""
+    sup = access.find_supervisor_by_badge(db, body.badge, body.warehouse)
+    if sup is None:
+        return {"ok": False, "operator": None, "name": None}
+    return {"ok": True, "operator": sup.code, "name": sup.name}

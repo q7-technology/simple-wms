@@ -66,6 +66,14 @@ decimals and always carry a unit of measure.
   }]
 }
 ```
+Creates the receipt and one `receive` task with a line per receipt line.
+`batch` may be left null on a batch-tracked product; the scanner reads it
+off the label and the API refuses a different batch from the one given.
+`GET /v1/receipts?warehouse=&status=` lists (statuses `expected`,
+`arrived`, `receiving`, `complete`, `closed_short`, `cancelled`);
+`GET /v1/receipts/{ref}` returns the receipt with its lines, the task, every
+put-away ledger line and the events sent. `POST /v1/receipts/{ref}/arrived`
+with `{ message_id, dock, carrier }` marks the truck at the dock.
 Events: `receipt.confirmed` (per put-away), `receipt.closed`.
 
 ### POST /v1/production-orders
@@ -130,8 +138,11 @@ supervisor. If the warehouse setting "ERP counted GR" is on, no event fires.
   }]
 }
 ```
-`from_location: null` = FIFO source. The WMS uses this same body for
-replenishments it raises itself from min/max. Event: `replenishment.completed`.
+`from_location: null` = FIFO source: the oldest received stock of that
+product in the warehouse, chosen when the task is created. The WMS uses this
+same body for replenishments it raises itself from min/max (`source`:
+`api`, `min_max` or `manual`). Creates one `replenish` task; each line is
+confirmed on the scanner as a move. Event: `replenishment.completed`.
 
 ### POST /v1/moves — within one warehouse
 ```json
@@ -150,7 +161,30 @@ replenishments it raises itself from min/max. Event: `replenishment.completed`.
   "operator": "op-017"
 }
 ```
-Event: `stock.moved`.
+Done on the spot: one `move` task, already complete, with two ledger lines
+(out of `from_location`, into `to_location`). The received date travels
+with the stock. Refused with a field error if the quantity is not available
+or the destination allows one product or one batch only. Event: `stock.moved`.
+
+### POST /v1/counts — blind cycle count
+```json
+{
+  "message_id": "uuid",
+  "warehouse": "BAL-WH01",
+  "owner": "DEFAULT",
+  "locations": ["PF-01-02-A", "PF-01-03-B"],
+  "zone": null,
+  "sku": null,
+  "priority": "normal"
+}
+```
+Give `locations`, or a `zone` for every active shelf in it, and optionally a
+`sku` to count only that product. One `count` task with a line per product
+and batch recorded on those shelves. The expected quantity is hidden from a
+line until it is counted. A count that matches verifies the shelf and writes
+nothing. A variance parks the line and the task in `needs_supervisor`; a
+supervisor approves it with a reason (`stock.adjusted`, one adjustment
+ledger line) or asks for a recount. The short-pick flow raises the same task.
 
 ### POST /v1/transfers — between warehouses
 ```json
@@ -225,10 +259,15 @@ first (FIFO order). Quantities are decimal strings so nothing rounds them.
 ```
 ```json
 { "suggestions": [
-  { "location": "BK-04-01-C", "reason": "same_sku_has_space" },
-  { "location": "BK-04-02-A", "reason": "empty_in_preferred_zone" }
-] }
+  { "location": "BK-04-01-C", "zone": "BULK", "reason": "same_sku_has_space" },
+  { "location": "BK-04-02-A", "zone": "PICKFACE", "reason": "empty_in_preferred_zone" }
+], "flag": null }
 ```
+Rules in order: same product with space → empty shelf in the product's
+preferred zone → any allowed empty shelf → an overflow location, with
+`flag: "overflow"` so someone finds it a home. Shelf mixing rules and a
+capacity in the same unit are respected. The operator may override; the
+ledger records where it really went.
 
 ### POST /v1/scans/parse
 ```json
@@ -242,9 +281,107 @@ first (FIFO order). Quantities are decimal strings so nothing rounds them.
   "resolved": { "sku": "FG-900" }
 }
 ```
-Formats tried in order: GS1 → JSON in QR → custom per-site patterns → plain
-text lookup. A production-order QR resolves to
+Formats tried in order: GS1 (with or without a symbology prefix such as
+`]Q3` or `]C1`, and Digital Link URLs) → JSON in QR → plain text lookup.
+Plain text is matched as a location code or barcode (in `warehouse` if
+given), then a SKU, a product barcode (carton barcodes carry their
+`qty`), an operator badge, a receipt reference, then a task (`T-123`).
+`type` is one of `product`, `location`, `container`, `production_order`,
+`operator`, `receipt`, `task` or `unknown`. With `expecting` set, the reply
+adds `matches_expected` and a friendly `message` such as "That is a
+location. This step wants a product." Unknown scans are written to the
+audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
+Custom per-site patterns come later.
+
+## Tasks
+
+Everything is a task: receive, put away, pick, pack, ship, move, count,
+replenish, transfer, production issue and receipt. Documents create tasks;
+the scanner works them; confirming a line writes the ledger. Every action
+body carries the envelope so a scanner can retry it after a Wi-Fi drop and
+get the same reply.
+
+### GET /v1/tasks?warehouse=BAL-WH01&status=waiting,in_progress&type=receive
+Filters `status` and `type` (comma separated), `assigned_to`, `source_ref`,
+`owner`, `limit`, `offset`. `GET /v1/tasks/{id}` returns one.
+```json
+{
+  "wms_id": "4411",
+  "type": "receive",
+  "title": "Receive PO-88815",
+  "status": "in_progress",
+  "warehouse": "BAL-WH01",
+  "owner": "DEFAULT",
+  "priority": "normal",
+  "source_type": "receipt",
+  "source_ref": "PO-88815",
+  "assigned_to": "op-017",
+  "device": "SCN-BAL-07",
+  "needs_supervisor": false,
+  "progress": { "done": 1, "total": 5 },
+  "lines": [{
+    "line_no": 1, "source_line": 1, "sku": "ABC123", "name": "Brake pad set",
+    "batch": null, "expected_qty": "120", "actual_qty": "120", "variance": null,
+    "uom": "EA", "from_location": null, "to_location": "BK-04-01-C",
+    "container_id": null, "status": "done", "reason": null, "completed_at": "2026-09-19T22:22:00Z"
+  }]
+}
+```
+Task statuses: `waiting`, `in_progress`, `needs_supervisor`, `done`,
+`cancelled`. Line statuses: `open`, `done`, `short`, `variance`, `cancelled`.
+
+### Actions
+All reply `202` with `{ message_id, wms_id, status, task, line }`.
+- `POST /v1/tasks/{id}/start` — `{ message_id, operator, device }`. Assigns
+  the task to the operator and starts the clock.
+- `POST /v1/tasks/{id}/assign` — `{ message_id, assigned_to }` (desktop).
+- `POST /v1/tasks/{id}/cancel` — `{ message_id, reason }`. Cancel, never delete.
+- `POST /v1/tasks/{id}/close` — `{ message_id, reason }`. Close short: open
+  lines become `short`; a receipt becomes `closed_short` and `receipt.closed`
+  says so.
+- `POST /v1/tasks/{id}/lines/{line_no}/confirm`
+  ```json
+  { "message_id": "uuid", "qty": 120, "uom": "EA", "batch": "B2611",
+    "location": "BK-05-01-A", "from_location": null, "container_id": null,
+    "reason": null, "note": null, "operator": "op-017", "device": "SCN-BAL-07",
+    "supervisor_badge": null }
+  ```
+  What it does depends on the task type. `receive`: `qty` goes on to
+  `location`; the line closes when the expected quantity is reached, and a
+  quantity over the warehouse's receipt tolerance is `409` with
+  `code: "needs_supervisor"` until a `supervisor_badge` is scanned.
+  `move` and `replenish`: `qty` goes from `from_location` (or the line's) to
+  `location` (or the line's). `count`: `qty` is what was counted; a match
+  closes the line, a difference parks it as `variance` (a supervisor badge
+  plus `reason` adjusts on the spot).
+- `POST /v1/tasks/{id}/lines/{line_no}/approve` — `{ message_id, reason,
+  note, supervisor_badge }`. Accepts a counted quantity: one adjustment
+  ledger line and `stock.adjusted`. Needs a supervisor badge or a role with
+  `tasks:approve`.
+- `POST /v1/tasks/{id}/lines/{line_no}/recount` — `{ message_id }`. Back to open.
+
+Errors: `409` with a `code` (`needs_supervisor`, `task_not_open`,
+`line_finished`, `no_variance`) when the state does not allow it; `422`
+with field errors when the body is wrong (unknown shelf, not enough stock,
+mixing rule, batch mismatch).
+
+### POST /v1/imports/{type} — CSV with preview
+`type` is `products`, `locations` or `receipts`. Templates:
+`GET /v1/imports/templates/{type}`.
+```json
+{ "message_id": "uuid", "warehouse": "BAL-WH01", "owner": "DEFAULT",
+  "csv": "sku,name,uom,...\nABC123,Brake pad set,EA,...", "dry_run": true, "skip_problems": true }
+```
+```json
+{ "rows_read": 312, "ready": 309, "problems": 3, "committed": false, "imported": 0,
+  "summary": "as 41 receipts",
+  "preview": [{ "row": 18, "problem": "sku: unknown sku ABC12", "data": { "sku": "ABC12", "...": "..." } }] }
+```
+Problems come first in the preview. A dry run commits nothing. With
+`skip_problems: false` a run with problems is `422` and nothing is written.
+Receipts group rows by `reference`; a receipt with any bad line is skipped
+whole. Products and locations create or update, like their endpoints.
 
 ### Master data
 
@@ -351,8 +488,17 @@ location, so a move is two rows.
 ### Also
 - `GET /v1/health` — `{ "status": "ok" }` once the database answers.
 - `POST /v1/imports/{type}` — CSV upload with preview (`dry_run: true`).
-- `POST /v1/auth/scanner-login` — `{ device_id, operator_id, pin, warehouse }`
-  → `{ token, expires_in, operator, warehouses }`.
+- `POST /v1/auth/scanner-login` — `{ device_id, warehouse, operator_id, pin }`
+  or `{ device_id, warehouse, badge }` → `{ token, expires_in, operator:
+  { code, name, roles, supervisor }, warehouses, device, idle_logout_minutes }`.
+  The device must be registered (`403` otherwise, when "known devices only"
+  is on). A wrong PIN is `401` with `code: "wrong_pin"` and `tries_left`;
+  after the warehouse's lockout count it is `code: "locked"` until
+  `POST /v1/auth/scanner-unlock` `{ device_id, warehouse, operator_id,
+  supervisor_badge, new_pin }` or the desktop unlocks it. Every try is in
+  the audit log. Operator tokens last a shift (12 h); the idle logout is
+  the scanner's job. `POST /v1/auth/supervisor-check` `{ badge, warehouse }`
+  says whether a badge is a supervisor here.
 
 ## Desktop sign in and admin
 

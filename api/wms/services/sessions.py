@@ -24,9 +24,20 @@ ROLE_SCOPES: dict[str, list[str]] = {
     "admin": ["*"],
     "supervisor": ["master:*", "stock:*", "tasks:*", "integration:read", "access:read"],
     "inventory_controller": ["master:*", "stock:*", "tasks:*"],
-    "receiver": ["master:read", "stock:read", "tasks:*"],
-    "picker": ["master:read", "stock:read", "tasks:*"],
+    "receiver": ["master:read", "stock:read", "tasks:read", "tasks:write"],
+    "picker": ["master:read", "stock:read", "tasks:read", "tasks:write"],
 }
+
+
+OPERATOR_TTL_SECONDS = 12 * 3600
+OPERATOR_PREFIX = "wms_o."
+
+
+def operator_scopes(roles: list[str]) -> list[str]:
+    scopes = ["tasks:read", "tasks:write", "stock:read", "master:read"]
+    if "supervisor" in roles:
+        scopes += ["tasks:approve", "access:read"]
+    return scopes
 
 
 def scopes_for(role: str) -> list[str]:
@@ -119,3 +130,32 @@ def rotate_session(db: Session, row: UserSession) -> str:
 def revoke_session(db: Session, row: UserSession) -> None:
     row.revoked_at = datetime.now(UTC)
     db.flush()
+
+
+def issue_operator_token(operator_id: int, device: str, now: datetime | None = None,
+                         ttl: int = OPERATOR_TTL_SECONDS) -> str:
+    now = now or datetime.now(UTC)
+    payload = _b64(json.dumps(
+        {"oid": operator_id, "dev": device, "exp": int((now + timedelta(seconds=ttl)).timestamp()),
+         "n": secrets.token_hex(4)}, separators=(",", ":"),
+    ).encode())
+    return f"{OPERATOR_PREFIX}{payload}.{_sign(payload)}"
+
+
+def read_operator_token(token: str, now: datetime | None = None) -> tuple[int, str] | None:
+    if not token.startswith(OPERATOR_PREFIX):
+        return None
+    try:
+        payload, sig = token[len(OPERATOR_PREFIX):].split(".", 1)
+    except ValueError:
+        return None
+    if not hmac.compare_digest(sig, _sign(payload)):
+        return None
+    try:
+        data = json.loads(_unb64(payload))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    now = now or datetime.now(UTC)
+    if int(data.get("exp", 0)) <= int(now.timestamp()):
+        return None
+    return int(data["oid"]), str(data.get("dev", ""))

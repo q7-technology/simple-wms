@@ -3,7 +3,8 @@ from sqlalchemy import text
 
 from wms.api import errors
 from wms.api.deps import DB
-from wms.api.routes import access, auth, integration, products, stock, structure
+from wms.api.routes import access, auth, imports, inbound, integration, products, scans, stock, structure, tasks
+import wms.services.inbound  # noqa: F401  registers task hooks
 
 app = FastAPI(
     title="Simple WMS",
@@ -19,6 +20,10 @@ v1.include_router(auth.router)
 v1.include_router(structure.router)
 v1.include_router(products.router)
 v1.include_router(stock.router)
+v1.include_router(tasks.router)
+v1.include_router(inbound.router)
+v1.include_router(scans.router)
+v1.include_router(imports.router)
 v1.include_router(integration.router)
 v1.include_router(access.router)
 

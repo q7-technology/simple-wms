@@ -5,9 +5,10 @@ from wms.models.stock import StockBalance, StockLedger
 from wms.models.task import Task, TaskLine
 from wms.models.access import ApiClient, AuditLog, Device, Operator, User, UserSession
 from wms.models.integration import InboundMessage, OutboundEvent, PrintJob, Subscriber
+from wms.models.documents import Receipt, ReceiptLine
 
 __all__ = [
     "Base", "Site", "Warehouse", "Zone", "Location", "Product", "ProductBarcode",
     "StockLedger", "StockBalance", "Task", "TaskLine", "User", "Operator", "Device",
-    "ApiClient", "AuditLog", "UserSession", "Subscriber", "OutboundEvent", "PrintJob", "InboundMessage",
+    "ApiClient", "AuditLog", "UserSession", "Subscriber", "OutboundEvent", "PrintJob", "InboundMessage", "Receipt", "ReceiptLine",
 ]

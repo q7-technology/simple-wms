@@ -95,3 +95,17 @@ def verify_password(password: str, stored: str | None) -> bool:
         "sha256", password.encode(), bytes.fromhex(salt), int(iterations)
     )
     return hmac.compare_digest(candidate.hex(), digest)
+
+
+def find_supervisor_by_badge(session: Session, badge: str, warehouse: str | None = None):
+    """The operator behind a supervisor badge scan, or None."""
+    from wms.models import Operator
+
+    op = session.execute(
+        select(Operator).where(Operator.badge == badge, Operator.active.is_(True))
+    ).scalar_one_or_none()
+    if op is None or "supervisor" not in (op.roles or []):
+        return None
+    if warehouse and not ("*" in (op.warehouses or []) or warehouse in (op.warehouses or [])):
+        return None
+    return op

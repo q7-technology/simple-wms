@@ -27,6 +27,16 @@ class Unauthorised(Exception):
         super().__init__(message)
 
 
+class Conflict(Exception):
+    """The request is well formed but cannot be done in the current state.
+    `code` is machine readable: needs_supervisor, task_not_open, ..."""
+
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
+
 class Forbidden(Exception):
     def __init__(self, message: str):
         self.message = message
@@ -60,6 +70,10 @@ def install(app: FastAPI) -> None:
     async def _unauthorised(request: Request, exc: Unauthorised):
         return JSONResponse(status_code=401, content={"detail": exc.message},
                             headers={"WWW-Authenticate": "Bearer"})
+
+    @app.exception_handler(Conflict)
+    async def _conflict(request: Request, exc: Conflict):
+        return JSONResponse(status_code=409, content={"detail": exc.message, "code": exc.code})
 
     @app.exception_handler(Forbidden)
     async def _forbidden(request: Request, exc: Forbidden):

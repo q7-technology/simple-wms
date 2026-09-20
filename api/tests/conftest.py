@@ -175,3 +175,14 @@ def login(client, username, password):
 @pytest.fixture
 def user_headers(client, admin):
     return {"Authorization": f"Bearer {login(client, 'leighton', 'correct horse')['token']}"}
+
+
+@pytest.fixture
+def supervisor_badge(db):
+    from wms.models import Operator
+    from wms.services.access import hash_password
+
+    db.add(Operator(code="op-001", name="Tony S.", pin_hash=hash_password("1234"), badge="0007",
+                    roles=["supervisor"], warehouses=["BAL-WH01"]))
+    db.commit()
+    return "0007"

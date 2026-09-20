@@ -65,3 +65,6 @@ class TaskLine(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     task: Mapped[Task] = relationship(back_populates="lines")
+    product: Mapped["Product"] = relationship()  # noqa: F821
+    from_location: Mapped["Location | None"] = relationship(foreign_keys=[from_location_id])  # noqa: F821
+    to_location: Mapped["Location | None"] = relationship(foreign_keys=[to_location_id])  # noqa: F821

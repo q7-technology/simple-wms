@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from wms.api.errors import Forbidden
 from wms.db import get_sessionmaker
-from wms.models import ApiClient, User
+from wms.models import ApiClient, Operator, User
 from wms.services import access, sessions
 
 
@@ -34,6 +34,8 @@ class Principal:
     role: str | None = None
     user: User | None = None
     api_client: ApiClient | None = None
+    operator: Operator | None = None
+    device: str | None = None
     ip: str | None = None
     _extra: dict = field(default_factory=dict)
 
@@ -89,6 +91,17 @@ def get_principal(
         return Principal(
             kind="user", id=user.id, name=user.username, scopes=sessions.scopes_for(user.role),
             warehouses=list(user.warehouses or []), owner="*", role=user.role, user=user, ip=ip,
+        )
+
+    if raw.startswith(sessions.OPERATOR_PREFIX):
+        parsed = sessions.read_operator_token(raw)
+        op = db.get(Operator, parsed[0]) if parsed else None
+        if op is None or not op.active or (op.locked_until and op.locked_until > datetime.now(UTC)):
+            raise _unauthorised("scanner session expired or invalid")
+        return Principal(
+            kind="operator", id=op.id, name=op.code, scopes=sessions.operator_scopes(op.roles or []),
+            warehouses=list(op.warehouses or []), owner="*", role="operator", operator=op,
+            device=parsed[1] or None, ip=ip,
         )
 
     client = access.find_api_client(db, raw)

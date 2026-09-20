@@ -50,7 +50,8 @@ def _replay(db: Session, existing: InboundMessage) -> JSONResponse:
 
 
 def handle(
-    db: Session, who, message_id: uuid.UUID, path: str, work: Callable[[], Accepted],
+    db: Session, who, message_id: uuid.UUID, path: str, work: Callable[[], BaseModel],
+    status_code: int = 202,
 ) -> JSONResponse:
     """Run `work` once per message_id. A repeat returns the original reply
     and does nothing. The reply is stored in the same transaction as the work,
@@ -63,7 +64,7 @@ def handle(
     content = reply.model_dump(mode="json")
     db.add(InboundMessage(
         message_id=message_id, api_client_id=who.api_client_id, path=path,
-        status_code=202, response=content,
+        status_code=status_code, response=content,
     ))
     try:
         db.commit()
@@ -74,4 +75,4 @@ def handle(
         if existing is None:
             raise
         return _replay(db, existing)
-    return JSONResponse(status_code=202, content=content)
+    return JSONResponse(status_code=status_code, content=content)

@@ -169,34 +169,40 @@ def list_zones(db: DB, warehouse: str = Query(), who: Principal = require("maste
     return Page(items=[zone_out(z) for z in rows], total=len(rows))
 
 
+def apply_location(db, body: LocationIn) -> tuple[Location, str]:
+    """Create or update by warehouse and code. Shared by the endpoint and CSV import."""
+    wh = get_warehouse(db, body.warehouse)
+    zone = db.execute(
+        select(Zone).where(Zone.warehouse_id == wh.id, Zone.code == body.zone)
+    ).scalar_one_or_none()
+    if zone is None:
+        raise FieldError("zone", f"unknown zone {body.zone} in {wh.code}")
+    loc = db.execute(
+        select(Location).where(Location.warehouse_id == wh.id, Location.code == body.code)
+    ).scalar_one_or_none()
+    data = body.model_dump(
+        exclude_unset=True,
+        exclude=set(envelope.Envelope.model_fields) | {"warehouse", "zone"},
+    )
+    if loc is None:
+        loc = Location(warehouse=wh, zone=zone, **data)
+        db.add(loc)
+        status = "created"
+    else:
+        loc.zone = zone
+        _apply(loc, data)
+        status = "updated"
+    db.flush()
+    return loc, status
+
+
 @router.post("/locations", status_code=202, response_model=envelope.Accepted)
 def upsert_location(body: LocationIn, request: Request, db: DB,
                     who: Principal = require("master:write")):
     authorise(who, warehouse=body.warehouse, owner=None)
 
     def work():
-        wh = get_warehouse(db, body.warehouse)
-        zone = db.execute(
-            select(Zone).where(Zone.warehouse_id == wh.id, Zone.code == body.zone)
-        ).scalar_one_or_none()
-        if zone is None:
-            raise FieldError("zone", f"unknown zone {body.zone} in {wh.code}")
-        loc = db.execute(
-            select(Location).where(Location.warehouse_id == wh.id, Location.code == body.code)
-        ).scalar_one_or_none()
-        data = body.model_dump(
-            exclude_unset=True,
-            exclude=set(envelope.Envelope.model_fields) | {"warehouse", "zone"},
-        )
-        if loc is None:
-            loc = Location(warehouse=wh, zone=zone, **data)
-            db.add(loc)
-            status = "created"
-        else:
-            loc.zone = zone
-            _apply(loc, data)
-            status = "updated"
-        db.flush()
+        loc, status = apply_location(db, body)
         return envelope.Accepted(message_id=body.message_id, wms_id=str(loc.id), status=status)
 
     return envelope.handle(db, who, body.message_id, request.url.path, work)

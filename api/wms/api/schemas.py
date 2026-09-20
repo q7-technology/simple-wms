@@ -24,8 +24,8 @@ class Out(BaseModel):
 # --- structure -----------------------------------------------------------
 
 class SiteIn(Envelope):
-    code: str = Field(max_length=32)
-    name: str = Field(max_length=120)
+    code: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=120)
     timezone: str = Field(default="Australia/Melbourne", max_length=64)
     active: bool = True
 
@@ -39,9 +39,9 @@ class SiteOut(Out):
 
 
 class WarehouseIn(Envelope):
-    code: str = Field(max_length=32)
-    site: str = Field(max_length=32)
-    name: str = Field(max_length=120)
+    code: str = Field(min_length=1, max_length=32)
+    site: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=120)
     settings: dict = Field(default_factory=dict)
     active: bool = True
 
@@ -56,9 +56,9 @@ class WarehouseOut(Out):
 
 
 class ZoneIn(Envelope):
-    warehouse: str = Field(max_length=32)
-    code: str = Field(max_length=32)
-    name: str = Field(max_length=120)
+    warehouse: str = Field(min_length=1, max_length=32)
+    code: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=120)
     kind: Literal["bulk", "pickface", "staging", "in_transit", "overflow", "line_side"] = "bulk"
     active: bool = True
 
@@ -73,9 +73,9 @@ class ZoneOut(Out):
 
 
 class LocationIn(Envelope):
-    warehouse: str = Field(max_length=32)
-    code: str = Field(max_length=64)
-    zone: str = Field(max_length=32)
+    warehouse: str = Field(min_length=1, max_length=32)
+    code: str = Field(min_length=1, max_length=64)
+    zone: str = Field(min_length=1, max_length=32)
     type: Literal["shelf", "floor", "rack", "dock", "line_side", "in_transit"] = "shelf"
     access: Literal["ground", "step", "forklift"] = "ground"
     mixing: Literal["mixed", "single_sku", "single_batch"] = "mixed"
@@ -118,8 +118,8 @@ class BarcodeOut(Out):
 
 
 class ProductIn(Envelope):
-    sku: str = Field(max_length=64)
-    name: str = Field(max_length=200)
+    sku: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=200)
     uom: str = Field(default="EA", max_length=16)
     decimals_allowed: bool = False
     batch_tracked: bool = False
