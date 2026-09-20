@@ -69,6 +69,19 @@ use it as `Authorization: Bearer <key>` against `/v1/...`. Interactive API
 docs are at `/docs`. See `api/README.md` and `apps/desktop/README.md` for
 running either outside Docker.
 
+## Running the tests
+
+```
+(cd api && uv venv -p 3.12 && uv pip install -e ".[dev]" && .venv/bin/pytest -q)
+(cd apps/desktop && npm ci && npx vitest run)
+(cd apps/scanner && npm ci && npx vitest run)
+```
+
+The API tests need a PostgreSQL to talk to; `docker compose up -d db` is
+enough, and they make and drop their own databases on it. GitHub Actions runs
+all three on every push, along with a migration drift check and a Docker
+Compose smoke test.
+
 ## Support
 
 The software is free. Q7 Technology offers setup, hosting, integration and

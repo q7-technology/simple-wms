@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One run per branch: a new push cancels the one before it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: wms
+          POSTGRES_USER: wms
+          POSTGRES_PASSWORD: wms
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wms"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # the suite makes and drops its own databases on this server
+      TEST_DATABASE_URL: postgresql+psycopg://wms:wms@127.0.0.1:5432/wms_test
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv venv -p 3.12 && uv pip install -e ".[dev]"
+      - name: Tests
+        run: .venv/bin/pytest -q
+      - name: Migrations match the models
+        env:
+          WMS_DATABASE_URL: postgresql+psycopg://wms:wms@127.0.0.1:5432/wms_drift
+        run: |
+          .venv/bin/python - <<'PY'
+          from sqlalchemy import create_engine, text
+          url = "postgresql+psycopg://wms:wms@127.0.0.1:5432/postgres"
+          e = create_engine(url, isolation_level="AUTOCOMMIT")
+          with e.connect() as c:
+              c.execute(text('drop database if exists "wms_drift"'))
+              c.execute(text('create database "wms_drift"'))
+          PY
+          .venv/bin/alembic upgrade head
+          .venv/bin/alembic check
+
+  apps:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [desktop, scanner]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - name: Types
+        run: npx tsc -b
+      - name: Tests
+        run: npx vitest run
+      - name: Build
+        run: npx vite build
+
+  compose:
+    name: Docker Compose comes up
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Settings a real install needs
+        run: |
+          cp .env.example .env
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-password/' .env
+          sed -i 's/^WMS_SECRET_KEY=.*/WMS_SECRET_KEY=ci-only-secret-key-that-is-long-enough/' .env
+          mkdir -p apps/desktop/dist apps/scanner/dist
+          echo '<!doctype html><title>ci</title>' | tee apps/desktop/dist/index.html apps/scanner/dist/index.html
+      - name: Up
+        run: docker compose up -d --build db api worker
+      - name: The API answers and the migrations ran
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/v1/health 2>/dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          docker compose exec -T api python -c "print('api is importable')"
+          test "${ok:-0}" = 1 || (docker compose logs api; exit 1)
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
