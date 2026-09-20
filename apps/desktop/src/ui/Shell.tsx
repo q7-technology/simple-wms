@@ -15,6 +15,7 @@ const NAV: { to: string; label: string; step?: number }[] = [
   { to: "/replenishment", label: "Replenishment" },
   { to: "/import", label: "Import" },
   { to: "/integrations", label: "Integrations" },
+  { to: "/printing", label: "Printing" },
   { to: "/users", label: "Users" },
   { to: "/settings", label: "Settings" },
 ];

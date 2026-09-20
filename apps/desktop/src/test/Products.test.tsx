@@ -55,7 +55,18 @@ function baseFetch(url: string, init: RequestInit): Response | null {
     ] });
   }
   if (url === "/v1/products" && init?.method === "POST") return jsonResponse(202, { message_id: "m", wms_id: "1", status: "updated" });
+  if (url === "/v1/print-jobs" && init?.method === "POST") {
+    const body = JSON.parse(String(init.body));
+    return jsonResponse(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
+  }
   return null;
+}
+
+/** Every print job posted, oldest first. */
+function printJobs(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls
+    .filter((c) => c[0] === "/v1/print-jobs")
+    .map((c) => JSON.parse(String((c[1] as RequestInit).body)) as Record<string, unknown>);
 }
 
 describe("Products", () => {
@@ -109,7 +120,7 @@ describe("Products", () => {
     expect(within(panel).getByText("Carton of 12")).toBeInTheDocument();
     expect(within(panel).getByText("Supplier label")).toBeInTheDocument();
     expect(await screen.findByText("168 EA · 2 warehouses")).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Print product label" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Print product label" })).toBeEnabled();
   });
 
   it("saves the product with the whole barcode set and the message envelope", async () => {
@@ -143,6 +154,40 @@ describe("Products", () => {
       { barcode: "19312345000019", kind: "carton", qty_per: "24" },
     ]);
     expect(await screen.findByText("Saved ABC123.")).toBeInTheDocument();
+  });
+
+  it("prints a product label, with the batch and quantity only when they are filled", async () => {
+    window.localStorage.removeItem("wms.printer");
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("ABC123"));
+    const panel = screen.getByRole("complementary", { name: "Detail" });
+    await user.click(within(panel).getByRole("button", { name: "Print product label" }));
+    await user.type(within(panel).getByLabelText("Printer"), "Office");
+    await user.click(within(panel).getByRole("button", { name: "Print" }));
+
+    expect(await screen.findByText("Sent the label for ABC123 to Office.")).toBeInTheDocument();
+    let bodies = printJobs(fetchMock);
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].message_id).toEqual(expect.any(String));
+    expect(bodies[0]).toMatchObject({
+      warehouse: "BAL-WH01", template: "product-label", printer: "Office", copies: 1,
+      reference: { type: "product", ref: "ABC123" },
+    });
+    expect(bodies[0].reference).not.toHaveProperty("batch");
+    expect(bodies[0].reference).not.toHaveProperty("qty");
+
+    // second time round: the printer is remembered, and a batch and a quantity are sent
+    await user.click(within(panel).getByRole("button", { name: "Print product label" }));
+    expect(within(panel).getByLabelText("Printer")).toHaveValue("Office");
+    await user.type(within(panel).getByLabelText("Batch"), "B2611");
+    await user.type(within(panel).getByLabelText("Quantity"), "12");
+    await user.click(within(panel).getByRole("button", { name: "Print" }));
+
+    await waitFor(() => expect(printJobs(fetchMock)).toHaveLength(2));
+    bodies = printJobs(fetchMock);
+    expect(bodies[1].reference).toEqual({ type: "product", ref: "ABC123", batch: "B2611", qty: "12" });
+    expect(window.localStorage.getItem("wms.printer")).toBe("Office");
   });
 
   it("adds a new product and shows API field errors under the field", async () => {

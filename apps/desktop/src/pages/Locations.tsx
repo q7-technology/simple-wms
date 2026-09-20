@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { Location, Page, StockAtShelf, Zone } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { fmtQty } from "../lib/format";
+import { fmtQty, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, Muted, Notice, PageHeader, SearchInput,
   Section, SegmentedChoice, Select, Table, Toggle, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
+
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
 
 type LocType = Location["type"];
 type Access = Location["access"];
@@ -88,6 +97,13 @@ export function Locations() {
   const save = useAction();
   const addZone = useAction();
 
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printAll, setPrintAll] = useState(false);
+  const [printOne, setPrintOne] = useState(false);
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ where: "main" | "panel"; tone: "ok" | "gold"; text: string } | null>(null);
+
   // Forget the selection when the warehouse changes.
   useEffect(() => { setSelected(null); setAdding(false); setDraft(null); setZoneFilter(null); }, [code]);
 
@@ -143,6 +159,39 @@ export function Locations() {
     if (draft && !draft.zone) patch({ zone: body.code });
   }
 
+  /** One location-label job per shelf. A refusal is counted, never hidden. */
+  async function sendLabels(codes: string[], where: "main" | "panel") {
+    const name = printer.trim();
+    if (!name || !code || codes.length === 0) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    let sent = 0;
+    let firstFailure: string | null = null;
+    for (const ref of codes) {
+      try {
+        await api.message("/v1/print-jobs", {
+          warehouse: code, template: "location-label", printer: name, copies: 1,
+          reference: { type: "location", ref },
+        });
+        sent += 1;
+      } catch (e) {
+        if (!firstFailure) firstFailure = e instanceof ApiError ? e.message : "Could not reach the WMS";
+      }
+    }
+    const failed = codes.length - sent;
+    setPrintBusy(false);
+    setPrintAll(false);
+    setPrintOne(false);
+    setPrinted({
+      where,
+      tone: failed > 0 ? "gold" : "ok",
+      text: failed > 0
+        ? `Sent ${plural(sent, "label")} to ${name}. ${plural(failed, "label")} failed: ${firstFailure}`
+        : `Sent ${plural(sent, "label")} to ${name}.`,
+    });
+  }
+
   const columns: Column<Location>[] = [
     { key: "code", header: "Location", width: "150px", render: (l) => <b>{l.code}</b> },
     { key: "zone", header: "Zone", width: "110px", render: (l) => l.zone },
@@ -172,7 +221,15 @@ export function Locations() {
           accent="Locations"
           title="and zones"
           actions={<>
-            <Button disabled title="Printing comes with step 4">Print location labels</Button>
+            {canPrint && (
+              <Button
+                onClick={() => { setPrintAll((v) => !v); setPrintOne(false); setPrinted(null); }}
+                disabled={!code || rows.length === 0}
+                title={code && rows.length === 0 ? "No locations listed to print" : undefined}
+              >
+                Print location labels
+              </Button>
+            )}
             {writable && <Button variant="primary" onClick={startAdd} disabled={!code}>Add location</Button>}
           </>}
         />
@@ -216,6 +273,23 @@ export function Locations() {
           </form>
         )}
 
+        {canPrint && printAll && (
+          <form
+            className="card p-4 flex gap-3 items-end flex-wrap"
+            onSubmit={(e) => { e.preventDefault(); void sendLabels(rows.map((l) => l.code), "main"); }}
+          >
+            <Field label="Printer" className="w-[220px]">
+              <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+            </Field>
+            <Button type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+              {printBusy ? "Printing…" : "Print"}
+            </Button>
+            <Button type="button" onClick={() => setPrintAll(false)}>Cancel</Button>
+            <Muted className="text-sm">{plural(rows.length, "label")} · one job each</Muted>
+          </form>
+        )}
+        {printed?.where === "main" && <Notice tone={printed.tone}>{printed.text}</Notice>}
+
         {zones.error && <Notice tone="gold">{zones.error}</Notice>}
         {locations.error && <Notice tone="gold">{locations.error}</Notice>}
         {!code && <Muted className="text-sm">No warehouse yet. Add one in Settings before adding locations.</Muted>}
@@ -240,7 +314,9 @@ export function Locations() {
 
       <DetailPanel
         footer={panelOpen ? <>
-          <Button disabled title="Printing comes with step 4">Print label</Button>
+          {canPrint && selected && (
+            <Button onClick={() => { setPrintOne((v) => !v); setPrintAll(false); setPrinted(null); }}>Print label</Button>
+          )}
           {writable && (
             <Button variant="primary" onClick={() => void onSave()} disabled={save.busy || !draft?.code.trim() || !draft?.zone}>
               {save.busy ? "Saving…" : "Save"}
@@ -259,6 +335,23 @@ export function Locations() {
             />
             {save.error && Object.keys(save.fieldErrors).length === 0 && <Notice tone="gold">{save.error}</Notice>}
             {saved && <Notice>{saved}</Notice>}
+            {printed?.where === "panel" && <Notice tone={printed.tone}>{printed.text}</Notice>}
+            {canPrint && printOne && selected && (
+              <form
+                className="flex flex-col gap-3 rounded-md border border-line p-3"
+                onSubmit={(e) => { e.preventDefault(); void sendLabels([selected.code], "panel"); }}
+              >
+                <Field label="Printer">
+                  <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+                </Field>
+                <div className="flex gap-2 [&>*]:grow">
+                  <Button small type="button" onClick={() => setPrintOne(false)}>Cancel</Button>
+                  <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+                    {printBusy ? "Printing…" : "Print"}
+                  </Button>
+                </div>
+              </form>
+            )}
 
             {adding && (
               <Field label="Code" error={save.fieldErrors.code} hint="Unique in this warehouse. Sets the label text.">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { Barcode, Page, Product, StockBySku } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtQty, plural } from "../lib/format";
@@ -9,6 +9,15 @@ import {
   Section, SegmentedChoice, Select, Table, Toggle, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
+
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
 
 const OWNER = "DEFAULT";
 const UNITS = ["EA", "KG", "L", "M", "CTN"];
@@ -79,7 +88,15 @@ export function Products() {
   );
   const save = useAction();
 
-  useEffect(() => { setSaved(null); }, [selected?.sku, adding]);
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printBatch, setPrintBatch] = useState("");
+  const [printQty, setPrintQty] = useState("");
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+
+  useEffect(() => { setSaved(null); setPrintOpen(false); setPrinted(null); }, [selected?.sku, adding]);
 
   const rows = useMemo(() => {
     const all = products.data?.items ?? [];
@@ -125,6 +142,32 @@ export function Products() {
     products.setData(page);
     const fresh = page.items.find((p) => p.sku === body.sku) ?? null;
     if (fresh) { setSelected(fresh); setAdding(false); setDraft(draftOf(fresh)); }
+  }
+
+  /** Batch and quantity are optional: they only go on the label when filled. */
+  async function sendLabel() {
+    const name = printer.trim();
+    const sku = selected?.sku;
+    if (!name || !sku || !warehouse?.code) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    try {
+      await api.message("/v1/print-jobs", {
+        warehouse: warehouse.code, template: "product-label", printer: name, copies: 1,
+        reference: {
+          type: "product", ref: sku,
+          ...(printBatch.trim() ? { batch: printBatch.trim() } : {}),
+          ...(printQty.trim() ? { qty: printQty.trim() } : {}),
+        },
+      });
+      setPrintOpen(false);
+      setPrinted({ tone: "ok", text: `Sent the label for ${sku} to ${name}.` });
+    } catch (e) {
+      setPrinted({ tone: "gold", text: e instanceof ApiError ? e.message : "Could not reach the WMS" });
+    } finally {
+      setPrintBusy(false);
+    }
   }
 
   const columns: Column<Product>[] = [
@@ -206,7 +249,9 @@ export function Products() {
 
       <DetailPanel
         footer={panelOpen ? <>
-          <Button disabled title="Printing comes with step 4">Print product label</Button>
+          {canPrint && selected && (
+            <Button onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}>Print product label</Button>
+          )}
           {writable && (
             <Button variant="primary" onClick={() => void onSave()} disabled={save.busy || !draft?.sku.trim() || !draft?.name.trim()}>
               {save.busy ? "Saving…" : "Save"}
@@ -223,6 +268,31 @@ export function Products() {
             />
             {generalError && <Notice tone="gold">{generalError}</Notice>}
             {saved && <Notice>{saved}</Notice>}
+            {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
+            {canPrint && printOpen && selected && (
+              <form
+                className="flex flex-col gap-3 rounded-md border border-line p-3"
+                onSubmit={(e) => { e.preventDefault(); void sendLabel(); }}
+              >
+                <Field label="Printer">
+                  <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Batch">
+                    <Input value={printBatch} onChange={(e) => setPrintBatch(e.target.value)} placeholder="Optional" />
+                  </Field>
+                  <Field label="Quantity">
+                    <Input inputMode="decimal" value={printQty} onChange={(e) => setPrintQty(e.target.value)} placeholder="Optional" />
+                  </Field>
+                </div>
+                <div className="flex gap-2 [&>*]:grow">
+                  <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
+                  <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+                    {printBusy ? "Printing…" : "Print"}
+                  </Button>
+                </div>
+              </form>
+            )}
 
             <Field label="SKU" error={save.fieldErrors.sku} hint={adding ? "Unique per owner. Cannot change once saved." : undefined}>
               <Input value={draft.sku} onChange={(e) => patch({ sku: e.target.value })} readOnly={!adding} disabled={!writable} placeholder="ABC123" autoFocus={adding} />

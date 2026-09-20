@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { ApiClientRow, OutboundEvent, Page, Subscriber } from "../api/types";
+import type { ApiClientRow, OutboundEvent, Page, PrintPoint, Subscriber } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtDate, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
@@ -314,7 +315,7 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
 /* --- the screen ---------------------------------------------------------- */
 
 export function Integrations() {
-  const { can } = useAuth();
+  const { can, warehouse } = useAuth();
   const admin = can("integration:admin");
   const [selection, setSelection] = useState<Selection>({ kind: "none" });
   const [revealed, setRevealed] = useState<{ id: string; value: string } | null>(null);
@@ -326,6 +327,12 @@ export function Integrations() {
 
   const clients = useApi<Page<ApiClientRow>>(() => api.get<Page<ApiClientRow>>("/v1/api-clients"), []);
   const subscribers = useApi<Page<Subscriber>>(() => api.get<Page<Subscriber>>("/v1/subscribers"), []);
+  // A summary only; the Printing screen manages them. A failed load shows the empty state.
+  const printPoints = useApi<Page<PrintPoint>>(
+    warehouse ? () => api.get<Page<PrintPoint>>("/v1/print-points", { warehouse: warehouse.code }) : null,
+    [warehouse?.code],
+  );
+  const printPointRows = printPoints.data?.items ?? [];
   const events = useApi<Page<OutboundEvent>>(
     () => api.get<Page<OutboundEvent>>("/v1/events", { status: filter === "all" ? undefined : filter, limit: 50 }),
     [filter],
@@ -354,11 +361,14 @@ export function Integrations() {
     { key: "status", header: "Status", width: "90px", render: subscriberPill },
   ];
 
-  const printColumns: Column<never>[] = [
-    { key: "event", header: "Event", width: "150px", render: () => null },
-    { key: "template", header: "Template", render: () => null },
-    { key: "printer", header: "Printer", width: "150px", render: () => null },
-    { key: "copies", header: "Copies", width: "70px", render: () => null },
+  const printColumns: Column<PrintPoint>[] = [
+    { key: "event", header: "Event", width: "150px", render: (r) => r.event_type },
+    { key: "template", header: "Template", render: (r) => <>{r.template} <Muted>{r.version}</Muted></> },
+    { key: "printer", header: "Printer", width: "150px", render: (r) => r.printer },
+    {
+      key: "copies", header: "Copies", width: "70px",
+      render: (r) => <>{r.copies}{(!r.active || r.copies === 0) && <Muted> · off</Muted>}</>,
+    },
   ];
 
   const eventColumns: Column<OutboundEvent>[] = [
@@ -428,10 +438,18 @@ export function Integrations() {
         <Section title="Print points (event → template → printer)">
           <Table
             columns={printColumns}
-            rows={[]}
-            rowKey={() => ""}
-            empty="Print points arrive with build step 4. The queue below already carries print jobs."
+            rows={printPointRows}
+            rowKey={(r) => r.wms_id}
+            empty={
+              printPoints.loading ? "Loading…"
+                : warehouse
+                  ? "No print points yet. Add one on the Printing screen to print a label the moment an event happens."
+                  : "Choose a warehouse to see its print points."
+            }
           />
+          <Muted className="text-xs leading-4">
+            Manage them on the <Link to="/printing">Printing screen</Link>.
+          </Muted>
         </Section>
 
         <Section

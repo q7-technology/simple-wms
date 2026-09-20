@@ -173,3 +173,22 @@ export interface DeliveryAccepted extends Accepted { allocation: AllocationRow[]
 
 export type ShortReason =
   | "not_found" | "short_on_shelf" | "damaged" | "location_unreadable" | "customer_cancelled";
+
+/* --- step 4: printing --------------------------------------------------- */
+
+export interface PrintTemplate {
+  template: string; version: string; fields: string[]; fires_on: string[]; describe: string;
+}
+export interface PrintPoint {
+  wms_id: string; warehouse: string | null; event_type: string; template: string; version: string;
+  printer: string; copies: number; owner: string; active: boolean;
+  created_at: string; updated_at: string | null;
+}
+export type PrintJobStatus = "pending" | "accepted" | "printed" | "failed";
+export interface PrintJob {
+  wms_id: string; job_id: string; warehouse: string | null; owner: string; template: string;
+  version: string; printer: string; copies: number; reference: Record<string, unknown>;
+  data: Record<string, unknown>; status: PrintJobStatus; attempts: number;
+  next_attempt_at: string | null; last_error: string | null; external_ref: string | null;
+  reprint_of: string | null; created_at: string; sent_at: string | null; printed_at: string | null;
+}

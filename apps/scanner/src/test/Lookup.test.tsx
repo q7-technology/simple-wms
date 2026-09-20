@@ -31,12 +31,20 @@ function reply(status: number, body: unknown) {
   return { ok: status < 400, status, text: async () => JSON.stringify(body) };
 }
 
-const fetchMock = vi.fn(async (url: string) => {
+const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+  void init;
   if (url.startsWith("/v1/stock?")) return reply(200, STOCK);
   if (url.startsWith("/v1/products/")) return reply(200, PRODUCT);
   if (url.startsWith("/v1/locations/PF-01-02-A/stock")) return reply(200, SHELF);
+  if (url === "/v1/print-jobs") return reply(202, { message_id: "m", wms_id: "p1", job_id: "j1", status: "pending" });
   return reply(404, { detail: "not found" });
 });
+
+/** The last print job posted, as the API saw it. */
+function lastPrintJob() {
+  const call = fetchMock.mock.calls.filter(([u]) => u === "/v1/print-jobs").at(-1)!;
+  return JSON.parse(String((call[1] as RequestInit).body)) as Record<string, unknown>;
+}
 
 function renderLookup(path: string) {
   return render(
@@ -96,9 +104,52 @@ describe("Lookup", () => {
     expect(screen.getByText("PF-01-02-A")).toBeInTheDocument();
     expect(screen.getByTestId("stock-row")).toHaveTextContent("Brake pad set · B2601 · received 10 Aug");
     expect(fetchMock.mock.calls.map(([u]) => u)).toContain("/v1/locations/PF-01-02-A/stock?warehouse=BAL-WH01");
+    // printing waits until the scanner knows which printer
     expect(screen.getByRole("button", { name: "Print label" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Move from here" }));
     expect(await screen.findByText("Move page")).toBeInTheDocument();
+  });
+
+  it("prints a shelf label through the queue and remembers the printer", async () => {
+    const user = userEvent.setup();
+    renderLookup("/lookup?location=PF-01-02-A");
+    await screen.findByText("PICKFACE · BAL-WH01");
+
+    await user.type(screen.getByLabelText("Printer"), "Office");
+    await user.click(screen.getByRole("button", { name: "Print label" }));
+
+    expect(await screen.findByText("Sent PF-01-02-A to Office.")).toBeInTheDocument();
+    const body = lastPrintJob();
+    expect(body.message_id).toEqual(expect.any(String));
+    expect(body).toMatchObject({
+      warehouse: "BAL-WH01", template: "location-label", printer: "Office", copies: 1,
+      reference: { type: "location", ref: "PF-01-02-A" },
+    });
+    const queued = JSON.parse(window.localStorage.getItem("wms.scanner.queue") ?? "[]") as { label: string }[];
+    expect(queued.at(-1)!.label).toBe("Print location-label · PF-01-02-A");
+    expect(window.localStorage.getItem("wms.printer")).toBe("Office");
+    // asked once, then remembered
+    expect(screen.queryByLabelText("Printer")).not.toBeInTheDocument();
+  });
+
+  it("prints a product label for the sku on screen, with no batch when the stock is spread about", async () => {
+    window.localStorage.setItem("wms.printer", "Office");
+    const user = userEvent.setup();
+    renderLookup("/lookup?sku=ABC123");
+    await screen.findByText("Brake pad set · EA");
+
+    expect(screen.queryByLabelText("Printer")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Print label" }));
+
+    expect(await screen.findByText("Sent ABC123 to Office.")).toBeInTheDocument();
+    const body = lastPrintJob();
+    expect(body).toMatchObject({
+      warehouse: "BAL-WH01", template: "product-label", printer: "Office", copies: 1,
+      reference: { type: "product", ref: "ABC123" },
+    });
+    expect(body.reference).not.toHaveProperty("batch");
+    const queued = JSON.parse(window.localStorage.getItem("wms.scanner.queue") ?? "[]") as { label: string }[];
+    expect(queued.at(-1)!.label).toBe("Print product-label · ABC123");
   });
 
   it("adds decimal quantities without floating point drift", () => {

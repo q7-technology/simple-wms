@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { Accepted, Page, Receipt, ReceiptLine, TaskReply } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtDate, fmtQty, fmtWhen, plural } from "../lib/format";
@@ -10,6 +10,15 @@ import {
   StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
+
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
 
 type Filter = "all" | "expected" | "arrived" | "receiving" | "complete" | "late";
 const FILTERS: { value: Filter; label: string }[] = [
@@ -81,10 +90,54 @@ function eventPill(status: string) {
 function ReceiptDetail({ receipt, write, tolerance, reload }: {
   receipt: Receipt; write: boolean; tolerance: number | undefined; reload: () => Promise<void>;
 }) {
+  const { can } = useAuth();
   const action = useAction();
   const [dock, setDock] = useState(receipt.dock ?? "");
   const [carrier, setCarrier] = useState(receipt.carrier ?? "");
   const open = receipt.status === "expected" || receipt.status === "arrived" || receipt.status === "receiving";
+
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+
+  // The shelves the stock went to, each one only once.
+  const shelves = useMemo(
+    () => [...new Set(receipt.putaways.map((p) => p.location))],
+    [receipt.putaways],
+  );
+
+  /** One location-label per shelf this receipt was put away to. */
+  async function sendLabels() {
+    const name = printer.trim();
+    if (!name || shelves.length === 0) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    let sent = 0;
+    let firstFailure: string | null = null;
+    for (const ref of shelves) {
+      try {
+        await api.message("/v1/print-jobs", {
+          warehouse: receipt.warehouse, template: "location-label", printer: name, copies: 1,
+          reference: { type: "location", ref },
+        });
+        sent += 1;
+      } catch (e) {
+        if (!firstFailure) firstFailure = e instanceof ApiError ? e.message : "Could not reach the WMS";
+      }
+    }
+    const failed = shelves.length - sent;
+    setPrintBusy(false);
+    setPrintOpen(false);
+    setPrinted({
+      tone: failed > 0 ? "gold" : "ok",
+      text: failed > 0
+        ? `Sent ${plural(sent, "label")} to ${name}. ${plural(failed, "label")} failed: ${firstFailure}`
+        : `Sent ${plural(sent, "label")} to ${name}.`,
+    });
+  }
 
   const markArrived = async () => {
     const out = await action.run(() => api.message<Accepted>(`/v1/receipts/${encodeURIComponent(receipt.external_ref)}/arrived`, {
@@ -156,9 +209,35 @@ function ReceiptDetail({ receipt, write, tolerance, reload }: {
         </div>
       </Section>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
+      {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
+      {canPrint && printOpen && shelves.length > 0 && (
+        <form
+          className="flex flex-col gap-3 rounded-md border border-line p-3"
+          onSubmit={(e) => { e.preventDefault(); void sendLabels(); }}
+        >
+          <Field label="Printer">
+            <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+          </Field>
+          <Muted className="text-xs leading-4">{plural(shelves.length, "shelf", "shelves")} · one label each</Muted>
+          <div className="flex gap-2 [&>*]:grow">
+            <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
+            <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+              {printBusy ? "Printing…" : "Print"}
+            </Button>
+          </div>
+        </form>
+      )}
       <div className="grow" />
       <div className="flex gap-2 [&>*]:grow">
-        <Button disabled title="Printing comes with step 4">Print labels</Button>
+        {canPrint && (
+          <Button
+            onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}
+            disabled={shelves.length === 0}
+            title={shelves.length === 0 ? "Nothing has been put away yet" : undefined}
+          >
+            Print labels
+          </Button>
+        )}
         {write && open && receipt.task && (
           <Button variant="gold" onClick={() => void closeShort()} disabled={action.busy}>Close short</Button>
         )}

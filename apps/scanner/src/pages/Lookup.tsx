@@ -5,10 +5,19 @@ import type { Product, ScanResult, StockAtLocation, StockAtShelf, StockBySku } f
 import { useSession } from "../auth/Session";
 import { fmtDate, fmtQty } from "../lib/format";
 import { useScanWedge } from "../lib/useScanWedge";
-import { BigLocation, Button, Card, Footer, Header, Input, Main, Notice, Pill, ProductCard, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ScanHint, Screen } from "../ui";
 import { errorText } from "./SignIn";
 
 type Scope = "here" | "all";
+
+/* The printer is asked for once and remembered, the same key the desktop uses. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
 
 function cx(...parts: (string | false | null | undefined)[]) { return parts.filter(Boolean).join(" "); }
 
@@ -54,7 +63,7 @@ function Stat({ label, value, brand }: { label: string; value: string; brand?: b
 const ROW = "min-h-14 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left text-ink text-sm leading-5 cursor-pointer active:bg-brand-tint";
 
 export function Lookup() {
-  const { session, warehouse } = useSession();
+  const { session, warehouse, queue } = useSession();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const wh = warehouse || session?.warehouses[0] || "";
@@ -71,6 +80,10 @@ export function Lookup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+  const [printer, setPrinter] = useState(readPrinter);
+  const [askPrinter, setAskPrinter] = useState(() => readPrinter() === "");
+  const [printBusy, setPrintBusy] = useState(false);
 
   // Product: where is it?
   useEffect(() => {
@@ -136,6 +149,42 @@ export function Lookup() {
 
   const moveTo = sku ? `/move?sku=${encodeURIComponent(sku)}` : location ? `/move?from=${encodeURIComponent(location)}` : null;
 
+  // One shelf in the list means the batch is not in doubt; more than one and the label carries none.
+  const onlyShelf = shelves.length === 1 ? shelves[0] : null;
+  const canPrint = Boolean((showShelf && shelf) || (showProduct && stock));
+
+  /** Every write from the scanner goes through the queue, printing included. */
+  const print = async () => {
+    const name = printer.trim();
+    if (!name) return;
+    const job = showShelf && shelf
+      ? { warehouse: shelf.warehouse, template: "location-label", ref: shelf.location, reference: { type: "location", ref: shelf.location } }
+      : showProduct && stock
+        ? {
+          warehouse: wh, template: "product-label", ref: stock.sku,
+          reference: { type: "product", ref: stock.sku, ...(onlyShelf?.batch ? { batch: onlyShelf.batch } : {}) },
+        }
+        : null;
+    if (!job) return;
+    setPrintBusy(true);
+    setNotice(null);
+    setSent(null);
+    try {
+      rememberPrinter(name);
+      setAskPrinter(false);
+      const item = await queue.submit({
+        path: "/v1/print-jobs",
+        body: { warehouse: job.warehouse, template: job.template, printer: name, copies: 1, reference: job.reference },
+        label: `Print ${job.template} · ${job.ref}`,
+      });
+      if (item.status === "failed") setNotice(item.error ?? "The printer would not take that label.");
+      else if (item.status === "queued") setNotice("Queued · the label prints when the connection is back.");
+      else setSent(`Sent ${job.ref} to ${name}.`);
+    } finally {
+      setPrintBusy(false);
+    }
+  };
+
   return (
     <Screen>
       <Header eyebrow="Look up" title="Where is it?" right={session ? `${first} · ${site}` : undefined} />
@@ -146,6 +195,7 @@ export function Lookup() {
         </div>
 
         {notice && <Notice tone="gold">{notice}</Notice>}
+        {sent && <Notice tone="ok">{sent}</Notice>}
         {error && <Notice tone="gold">{error}</Notice>}
         {loading && <span className="text-sm leading-5 text-muted">Looking…</span>}
         {!sku && !location && !loading && <span className="text-sm leading-5 text-muted">Nothing looked up yet.</span>}
@@ -221,9 +271,20 @@ export function Lookup() {
             </div>
           </>
         )}
+        {askPrinter && canPrint && (
+          <Field label="Printer">
+            <Input
+              value={printer}
+              onChange={(e) => setPrinter(e.target.value)}
+              placeholder="Office"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </Field>
+        )}
       </Main>
       <Footer>
-        <Button disabled title="Step 4">Print label</Button>
+        <Button disabled={printBusy || !canPrint || !printer.trim()} onClick={() => void print()}>Print label</Button>
         <Button variant="primary" disabled={!moveTo || loading} onClick={() => moveTo && navigate(moveTo)}>Move from here</Button>
       </Footer>
     </Screen>

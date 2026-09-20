@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type {
   Delivery, DeliveryLine, DeliveryPackage, DeliveryStatus, Task, TaskLine,
 } from "../api/types";
@@ -23,6 +23,20 @@ const TASK_STATUS: Record<string, string> = {
 };
 
 const PACKAGE_TYPES = ["carton", "pallet", "tote", "satchel"];
+
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
+
+type PrintKind = "cartons" | "pick-list" | "packing-slip";
+const PRINT_LABEL: Record<PrintKind, string> = {
+  cartons: "carton labels", "pick-list": "pick list", "packing-slip": "packing slip",
+};
 
 /* Quantities are decimals. Work in their smallest unit, never as floats. */
 function decimals(v: string) {
@@ -308,6 +322,50 @@ export function DeliveryDetail() {
   const detail = useApi<Delivery>(() => api.get<Delivery>(`/v1/deliveries/${encodeURIComponent(ref)}`), [ref]);
   const d = detail.data;
 
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printKind, setPrintKind] = useState<PrintKind | null>(null);
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+  const arm = (kind: PrintKind) => { setPrintKind((k) => (k === kind ? null : kind)); setPrinted(null); };
+
+  /** A carton label per package, or the one document the button asked for. */
+  async function sendPrint() {
+    const name = printer.trim();
+    if (!name || !d || !printKind) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    const jobs = printKind === "cartons"
+      ? d.packages.map((p) => ({
+        template: "carton-label",
+        reference: { type: "delivery", ref: d.external_ref, package_no: p.package_no },
+      }))
+      : [{ template: printKind, reference: { type: "delivery", ref: d.external_ref } }];
+    let sent = 0;
+    let firstFailure: string | null = null;
+    for (const job of jobs) {
+      try {
+        await api.message("/v1/print-jobs", {
+          warehouse: d.warehouse, template: job.template, printer: name, copies: 1, reference: job.reference,
+        });
+        sent += 1;
+      } catch (e) {
+        if (!firstFailure) firstFailure = e instanceof ApiError ? e.message : "Could not reach the WMS";
+      }
+    }
+    const failed = jobs.length - sent;
+    const what = printKind === "cartons" ? plural(sent, "carton label") : `the ${PRINT_LABEL[printKind]}`;
+    setPrintBusy(false);
+    setPrintKind(null);
+    setPrinted({
+      tone: failed > 0 ? "gold" : "ok",
+      text: failed > 0
+        ? `Sent ${what} to ${name}. ${failed} failed: ${firstFailure}`
+        : `Sent ${what} to ${name}.`,
+    });
+  }
+
   const cancel = async () => {
     if (!d) return;
     if (!window.confirm(`Cancel ${d.external_ref}? The reservations go back and delivery.cancelled is sent. Nothing is deleted.`)) return;
@@ -426,17 +484,49 @@ export function DeliveryDetail() {
           {form === "ship" && <ShipForm delivery={d} onCancel={() => setForm("none")} reload={detail.reload} />}
 
           {action.error && <Notice tone="gold">{action.error}</Notice>}
+          {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
 
-          {write && (
+          {canPrint && printKind && (
+            <form
+              className="flex gap-3 items-end flex-wrap rounded-md border border-line p-3"
+              onSubmit={(e) => { e.preventDefault(); void sendPrint(); }}
+            >
+              <Field label="Printer" className="w-[220px]">
+                <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Packing bench 2" autoFocus />
+              </Field>
+              <Button type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+                {printBusy ? "Printing…" : "Print"}
+              </Button>
+              <Button type="button" onClick={() => setPrintKind(null)}>Cancel</Button>
+              <Muted className="text-sm">
+                {printKind === "cartons" ? `${plural(d.packages.length, "carton label")} · one job each` : `One ${PRINT_LABEL[printKind]}`}
+              </Muted>
+            </form>
+          )}
+
+          {(write || canPrint) && (
             <div className="flex gap-2">
-              {d.status !== "shipped" && d.status !== "cancelled" && (
+              {write && d.status !== "shipped" && d.status !== "cancelled" && (
                 <Button variant="gold" onClick={() => void cancel()} disabled={action.busy}>Cancel delivery</Button>
               )}
-              {(d.status === "picked" || d.status === "packing") && (
+              {write && (d.status === "picked" || d.status === "packing") && (
                 <Button variant="primary" onClick={() => setForm(form === "pack" ? "none" : "pack")}>Pack</Button>
               )}
-              {d.status === "packed" && (
+              {write && d.status === "packed" && (
                 <Button variant="primary" onClick={() => setForm(form === "ship" ? "none" : "ship")}>Ship</Button>
+              )}
+              {canPrint && (
+                <>
+                  <Button
+                    onClick={() => arm("cartons")}
+                    disabled={d.packages.length === 0}
+                    title={d.packages.length === 0 ? "Nothing has been packed yet" : undefined}
+                  >
+                    Print labels
+                  </Button>
+                  <Button onClick={() => arm("pick-list")}>Print pick list</Button>
+                  <Button onClick={() => arm("packing-slip")}>Print packing slip</Button>
+                </>
               )}
             </div>
           )}

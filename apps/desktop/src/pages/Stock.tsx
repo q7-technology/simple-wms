@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import type { LedgerRow, Page, Product, StockBySku } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtDate, fmtQty, fmtWhen, plural } from "../lib/format";
 import { useApi } from "../lib/useApi";
 import {
-  Button, Chip, DetailHeader, DetailPanel, KeyValue, Muted, Notice, PageHeader, SearchInput,
+  Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, SearchInput,
   Section, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
@@ -17,8 +17,17 @@ const MOVEMENT: Record<string, string> = {
   transfer_in: "Transfer in", production_issue: "Issue to production", production_receipt: "Production receipt",
 };
 
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
+
 export function Stock() {
-  const { warehouse, warehouses } = useAuth();
+  const { warehouse, warehouses, can } = useAuth();
   const [params, setParams] = useSearchParams();
   const sku = params.get("sku") ?? "";
   const [draft, setDraft] = useState(sku);
@@ -37,6 +46,34 @@ export function Stock() {
     sku ? () => api.get<Page<LedgerRow>>("/v1/stock/ledger", { sku, warehouse: scope, batch, limit: 12 }) : null,
     [sku, scope, batch],
   );
+
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+  useEffect(() => { setPrintOpen(false); setPrinted(null); }, [sku]);
+
+  /** The looked-up SKU, with the batch chip when one is on. */
+  async function sendLabel() {
+    const name = printer.trim();
+    if (!name || !sku || !warehouse?.code) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    try {
+      await api.message("/v1/print-jobs", {
+        warehouse: warehouse.code, template: "product-label", printer: name, copies: 1,
+        reference: { type: "product", ref: sku, ...(batch ? { batch } : {}) },
+      });
+      setPrintOpen(false);
+      setPrinted({ tone: "ok", text: `Sent the label for ${sku} to ${name}.` });
+    } catch (e) {
+      setPrinted({ tone: "gold", text: e instanceof ApiError ? e.message : "Could not reach the WMS" });
+    } finally {
+      setPrintBusy(false);
+    }
+  }
 
   const batches = useMemo(() => {
     const set = new Set<string>();
@@ -133,10 +170,30 @@ export function Stock() {
 
       <DetailPanel
         footer={sku ? <>
-          <Button disabled title="Printing comes with step 4">Print product label</Button>
+          {canPrint && (
+            <Button onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}>Print product label</Button>
+          )}
           <Button variant="primary" disabled title="Moves come with step 2">Move stock</Button>
         </> : undefined}
       >
+        {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
+        {canPrint && printOpen && sku && (
+          <form
+            className="flex flex-col gap-3 rounded-md border border-line p-3"
+            onSubmit={(e) => { e.preventDefault(); void sendLabel(); }}
+          >
+            <Field label="Printer">
+              <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+            </Field>
+            <Muted className="text-xs leading-4">{batch ? `Batch ${batch}` : "Every batch"}</Muted>
+            <div className="flex gap-2 [&>*]:grow">
+              <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
+              <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+                {printBusy ? "Printing…" : "Print"}
+              </Button>
+            </div>
+          </form>
+        )}
         {product.data ? (
           <>
             <DetailHeader

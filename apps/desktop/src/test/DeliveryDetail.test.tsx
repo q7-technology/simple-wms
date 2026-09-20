@@ -75,6 +75,15 @@ const PACKED = {
   task: null, events: [],
 };
 
+const UNPACKED = { ...PICKED, wms_id: "d3", external_ref: "0080012399", packages: [], events: [] };
+
+/** Every print job posted, oldest first. */
+function printJobs(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls
+    .filter((c) => c[0] === "/v1/print-jobs")
+    .map((c) => JSON.parse(String((c[1] as RequestInit).body)) as Record<string, unknown>);
+}
+
 function renderPage(ref: string) {
   return render(
     <MemoryRouter initialEntries={[`/deliveries/${ref}`]}>
@@ -106,7 +115,12 @@ describe("DeliveryDetail", () => {
         const body = JSON.parse(String(init.body));
         return json(202, { message_id: body.message_id, wms_id: "d2", status: "accepted" });
       }
+      if (path === "/v1/print-jobs" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        return json(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
+      }
       if (path === "/v1/deliveries/0080012345") return json(200, PICKED);
+      if (path === "/v1/deliveries/0080012399") return json(200, UNPACKED);
       if (path === "/v1/deliveries/0080012338") return json(200, PACKED);
       return json(404, { detail: "nope" });
     });
@@ -139,6 +153,51 @@ describe("DeliveryDetail", () => {
     expect(screen.getByText("delivery.allocated")).toBeInTheDocument();
     expect(screen.getByText("Delivered", { selector: "span.rounded-full" })).toBeInTheDocument();
     expect(screen.getByText("Queued", { selector: "span.rounded-full" })).toBeInTheDocument();
+  });
+
+  it("prints a carton label per package, the pick list and the packing slip", async () => {
+    window.localStorage.removeItem("wms.printer");
+    renderPage("0080012345");
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { name: "0080012345 Acme Auto Parts" });
+
+    await user.click(screen.getByRole("button", { name: "Print labels" }));
+    await user.type(screen.getByLabelText("Printer"), "Packing bench 2");
+    await user.click(screen.getByRole("button", { name: "Print" }));
+
+    expect(await screen.findByText("Sent 1 carton label to Packing bench 2.")).toBeInTheDocument();
+    const carton = printJobs(fetchMock)[0];
+    expect(carton.message_id).toEqual(expect.any(String));
+    expect(carton).toMatchObject({
+      warehouse: "BAL-WH01", template: "carton-label", printer: "Packing bench 2", copies: 1,
+      reference: { type: "delivery", ref: "0080012345", package_no: 1 },
+    });
+
+    // the printer is remembered for the pick list and the packing slip
+    await user.click(screen.getByRole("button", { name: "Print pick list" }));
+    expect(screen.getByLabelText("Printer")).toHaveValue("Packing bench 2");
+    await user.click(screen.getByRole("button", { name: "Print" }));
+    expect(await screen.findByText("Sent the pick list to Packing bench 2.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Print packing slip" }));
+    await user.click(screen.getByRole("button", { name: "Print" }));
+    expect(await screen.findByText("Sent the packing slip to Packing bench 2.")).toBeInTheDocument();
+
+    const bodies = printJobs(fetchMock);
+    expect(bodies).toHaveLength(3);
+    expect(bodies[1]).toMatchObject({ template: "pick-list", reference: { type: "delivery", ref: "0080012345" } });
+    expect(bodies[2]).toMatchObject({ template: "packing-slip", reference: { type: "delivery", ref: "0080012345" } });
+    expect(bodies[1].reference).not.toHaveProperty("package_no");
+    expect(window.localStorage.getItem("wms.printer")).toBe("Packing bench 2");
+  });
+
+  it("keeps the carton label off until something is packed", async () => {
+    renderPage("0080012399");
+    expect(await screen.findByText("Nothing packed yet.")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Print labels" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "Nothing has been packed yet");
+    expect(screen.getByRole("button", { name: "Print pick list" })).toBeEnabled();
   });
 
   it("packs what is left in a carton", async () => {

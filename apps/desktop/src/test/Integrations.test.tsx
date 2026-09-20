@@ -96,8 +96,8 @@ describe("Integrations", () => {
     // Events are asked for with the limit.
     expect(fetchMock.mock.calls.some((c) => c[0] === "/v1/events?limit=50")).toBe(true);
 
-    // Step-4 placeholder for print points.
-    expect(screen.getByText("Print points arrive with build step 4. The queue below already carries print jobs.")).toBeInTheDocument();
+    // Print points are summarised here and managed on the Printing screen.
+    expect(screen.getByRole("link", { name: "Printing screen" })).toHaveAttribute("href", "/printing");
   });
 
   it("retries a failed or retrying event", async () => {

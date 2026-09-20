@@ -72,6 +72,13 @@ function renderPage() {
   );
 }
 
+/** Every print job posted, oldest first. */
+function printJobs(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls
+    .filter((c) => c[0] === "/v1/print-jobs")
+    .map((c) => JSON.parse(String((c[1] as RequestInit).body)) as Record<string, unknown>);
+}
+
 describe("Receiving", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   beforeEach(() => {
@@ -86,7 +93,12 @@ describe("Receiving", () => {
         return json(202, { message_id: body.message_id, wms_id: "r9", status: "created" });
       }
       if (path === "/v1/receipts") return json(200, { items: RECEIPTS, total: RECEIPTS.length });
+      if (path === "/v1/print-jobs" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        return json(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
+      }
       if (path === "/v1/receipts/PO-88815") return json(200, DETAIL);
+      if (path === "/v1/receipts/PO-88816") return json(200, RECEIPTS[1]);
       if (path === "/v1/receipts/PO-90001") return json(200, { ...RECEIPTS[1], external_ref: "PO-90001", supplier: "Filters AU", status: "expected" });
       return json(404, { detail: "nope" });
     });
@@ -131,9 +143,41 @@ describe("Receiving", () => {
     expect(screen.getByText("120 EA ABC123 → BK-04-01-C")).toBeInTheDocument();
     expect(screen.getByText("receipt.confirmed → ERP")).toBeInTheDocument();
     expect(screen.getByText("Delivered")).toBeInTheDocument();
-    expect(screen.getByText("Print labels")).toBeDisabled();
+    expect(screen.getByText("Print labels")).toBeEnabled();
     expect(screen.getByText("Close short")).toBeInTheDocument();
     expect(fetchMock.mock.calls.some((c) => (c[0] as string) === "/v1/receipts/PO-88815")).toBe(true);
+  });
+
+  it("prints a location label for every shelf the stock went to", async () => {
+    window.localStorage.removeItem("wms.printer");
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("PO-88815"));
+    await screen.findByText("120 EA ABC123 → BK-04-01-C");
+
+    await user.click(screen.getByRole("button", { name: "Print labels" }));
+    await user.type(screen.getByLabelText("Printer"), "Office");
+    await user.click(screen.getByRole("button", { name: "Print" }));
+
+    expect(await screen.findByText("Sent 1 label to Office.")).toBeInTheDocument();
+    const bodies = printJobs(fetchMock);
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].message_id).toEqual(expect.any(String));
+    expect(bodies[0]).toMatchObject({
+      warehouse: "BAL-WH01", template: "location-label", printer: "Office", copies: 1,
+      reference: { type: "location", ref: "BK-04-01-C" },
+    });
+    expect(window.localStorage.getItem("wms.printer")).toBe("Office");
+  });
+
+  it("keeps the print button off until something has been put away", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("PO-88816"));
+    expect(await screen.findByText("Nothing put away yet.")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Print labels" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "Nothing has been put away yet");
   });
 
   it("creates an expected receipt with a message_id", async () => {

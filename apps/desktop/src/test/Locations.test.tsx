@@ -32,6 +32,13 @@ function renderPage() {
   );
 }
 
+/** Every print job posted, oldest first. */
+function printJobs(mock: ReturnType<typeof vi.fn>) {
+  return mock.mock.calls
+    .filter((c) => c[0] === "/v1/print-jobs")
+    .map((c) => JSON.parse(String((c[1] as RequestInit).body)) as Record<string, string>);
+}
+
 describe("Locations", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   beforeEach(() => {
@@ -52,6 +59,10 @@ describe("Locations", () => {
         ] });
       }
       if (url === "/v1/locations" && init?.method === "POST") return jsonResponse(202, { message_id: "m", wms_id: "12", status: "created" });
+      if (url === "/v1/print-jobs" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        return jsonResponse(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
+      }
       return jsonResponse(404, { detail: `no route ${url}` });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -95,7 +106,7 @@ describe("Locations", () => {
     expect(within(panel).getByLabelText(/^Barcode/)).toHaveValue("LOC-PF-01-02-A");
     expect(await screen.findByText("ABC123 ×48")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Save" })).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Print label" })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "Print label" })).toBeEnabled();
   });
 
   it("adds a location with the message envelope", async () => {
@@ -123,6 +134,64 @@ describe("Locations", () => {
       mixing: "single_sku", pick_sequence: 103, capacity: "96", capacity_uom: "EA", barcode: null, active: true,
     });
     expect(await screen.findByText("Added PF-01-03-A.")).toBeInTheDocument();
+  });
+
+  it("prints a location label for every row listed and remembers the printer", async () => {
+    window.localStorage.removeItem("wms.printer");
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByText("PF-01-02-A");
+    await user.click(screen.getByRole("button", { name: "Print location labels" }));
+    await user.type(screen.getByLabelText("Printer"), "Office");
+    await user.click(screen.getByRole("button", { name: "Print" }));
+
+    expect(await screen.findByText("Sent 2 labels to Office.")).toBeInTheDocument();
+    const bodies = printJobs(fetchMock);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0].message_id).toEqual(expect.any(String));
+    expect(bodies[0].message_id.length).toBeGreaterThan(10);
+    expect(bodies[0]).toMatchObject({
+      warehouse: "BAL-WH01", template: "location-label", printer: "Office", copies: 1,
+      reference: { type: "location", ref: "PF-01-02-A" },
+    });
+    expect(bodies[1].reference).toEqual({ type: "location", ref: "BK-04-01-C" });
+    expect(window.localStorage.getItem("wms.printer")).toBe("Office");
+  });
+
+  it("prints one label from the panel, with the printer already filled in", async () => {
+    window.localStorage.setItem("wms.printer", "Office");
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("BK-04-01-C"));
+    const panel = screen.getByRole("complementary", { name: "Detail" });
+    await user.click(within(panel).getByRole("button", { name: "Print label" }));
+    expect(within(panel).getByLabelText("Printer")).toHaveValue("Office");
+    await user.click(within(panel).getByRole("button", { name: "Print" }));
+
+    expect(await screen.findByText("Sent 1 label to Office.")).toBeInTheDocument();
+    const bodies = printJobs(fetchMock);
+    expect(bodies).toHaveLength(1);
+    expect(typeof bodies[0].message_id).toBe("string");
+    expect(bodies[0]).toMatchObject({
+      warehouse: "BAL-WH01", template: "location-label", printer: "Office", copies: 1,
+      reference: { type: "location", ref: "BK-04-01-C" },
+    });
+  });
+
+  it("says so in gold when the API refuses a label", async () => {
+    window.localStorage.setItem("wms.printer", "Office");
+    const ok = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url === "/v1/print-jobs") return jsonResponse(422, { errors: [{ field: "reference", message: "no location BK-04-01-C" }] });
+      return ok(url, init);
+    });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("BK-04-01-C"));
+    const panel = screen.getByRole("complementary", { name: "Detail" });
+    await user.click(within(panel).getByRole("button", { name: "Print label" }));
+    await user.click(within(panel).getByRole("button", { name: "Print" }));
+    expect(await screen.findByText(/no location BK-04-01-C/)).toBeInTheDocument();
   });
 
   it("shows a field error from the API under the field", async () => {

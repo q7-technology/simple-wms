@@ -7,6 +7,7 @@ import { Stock } from "./pages/Stock";
 import { Locations } from "./pages/Locations";
 import { Products } from "./pages/Products";
 import { Integrations } from "./pages/Integrations";
+import { Printing } from "./pages/Printing";
 import { Settings } from "./pages/Settings";
 import { Users } from "./pages/Users";
 import { TaskBoard } from "./pages/TaskBoard";
@@ -35,6 +36,7 @@ export function App() {
               <Route path="/locations" element={<Locations />} />
               <Route path="/products" element={<Products />} />
               <Route path="/integrations" element={<Integrations />} />
+              <Route path="/printing" element={<Printing />} />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/stock" replace />} />
