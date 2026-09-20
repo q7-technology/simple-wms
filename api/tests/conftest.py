@@ -190,3 +190,24 @@ def supervisor_badge(db):
                     roles=["supervisor"], warehouses=["BAL-WH01"]))
     db.commit()
     return "0007"
+
+
+@pytest.fixture
+def receiver(db, structure):
+    """A second warehouse, with somewhere for stock in transit to sit."""
+    from wms.models import Location, Warehouse, Zone
+
+    wh = Warehouse(site=structure.site, code="MEL-WH01", name="Melbourne")
+    bulk = Zone(warehouse=wh, code="BULK", name="Bulk", kind="bulk")
+    transit = Zone(warehouse=wh, code="IN-TRANSIT", name="In transit", kind="in_transit")
+    pack = Zone(warehouse=wh, code="PACK", name="Packing", kind="packing")
+    locs = [
+        Location(warehouse=wh, zone=bulk, code="MB-01-01-A", pick_sequence=110),
+        Location(warehouse=wh, zone=bulk, code="MB-01-02-A", pick_sequence=120),
+        Location(warehouse=wh, zone=transit, code="TRANSIT-IN", type="floor", pick_sequence=0),
+        Location(warehouse=wh, zone=pack, code="MEL-PACK-01", type="floor", pick_sequence=900),
+    ]
+    db.add_all([wh, bulk, transit, pack, *locs])
+    db.commit()
+    return SimpleNamespace(warehouse=wh, bulk=bulk, transit=transit,
+                           shelf=locs[0], shelf2=locs[1], in_transit=locs[2], pack=locs[3])

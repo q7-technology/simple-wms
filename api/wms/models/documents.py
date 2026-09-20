@@ -152,3 +152,62 @@ class PackageLine(Base):
     uom: Mapped[str] = mapped_column(String(16))
 
     package: Mapped[Package] = relationship(back_populates="lines")
+
+
+class Transfer(Base):
+    """One order, two legs. Stock sits in an in-transit bucket between them."""
+
+    __tablename__ = "transfer"
+    __table_args__ = (UniqueConstraint("owner", "external_ref"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner: Mapped[str] = mapped_column(String(32), default="DEFAULT")
+    external_ref: Mapped[str] = mapped_column(String(64))
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    from_warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    to_warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    required_by: Mapped[date | None] = mapped_column(Date)
+    priority: Mapped[str] = mapped_column(String(16), default="normal")
+    carrier_hint: Mapped[str | None] = mapped_column(String(64))
+    carrier: Mapped[str | None] = mapped_column(String(64))
+    tracking_no: Mapped[str | None] = mapped_column(String(64))
+    # new, allocated, picking, picked, in_transit, receiving, received,
+    # variance (something did not arrive), closed, cancelled
+    status: Mapped[str] = mapped_column(String(16), default="new", index=True)
+    # the sender's bench, and the bucket at the receiver
+    staging_location_id: Mapped[int | None] = mapped_column(ForeignKey("location.id"))
+    in_transit_location_id: Mapped[int | None] = mapped_column(ForeignKey("location.id"))
+    pick_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
+    receive_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
+    # the expected receipt raised at the far end
+    receipt_id: Mapped[int | None] = mapped_column(ForeignKey("receipt.id"))
+    note: Mapped[str | None] = mapped_column(String(500))
+    variance_reason: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = created_at_column()
+    allocated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    shipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    lines: Mapped[list[TransferLine]] = relationship(
+        back_populates="transfer", cascade="all, delete-orphan", order_by="TransferLine.line_no")
+
+
+class TransferLine(Base):
+    __tablename__ = "transfer_line"
+    __table_args__ = (UniqueConstraint("transfer_id", "line_no"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    transfer_id: Mapped[int] = mapped_column(ForeignKey("transfer.id"), index=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    batch: Mapped[str | None] = mapped_column(String(64))
+    qty_requested: Mapped[Qty]
+    qty_allocated: Mapped[Qty]
+    qty_picked: Mapped[Qty]
+    qty_shipped: Mapped[Qty]
+    qty_received: Mapped[Qty]
+    uom: Mapped[str] = mapped_column(String(16))
+
+    transfer: Mapped[Transfer] = relationship(back_populates="lines")

@@ -20,6 +20,9 @@ from wms.services.settings import effective
 OPEN_LINE = ("open", "variance")
 FINISHED_LINE = ("done", "short", "cancelled")
 
+# what a confirmed line of each task type is called in the ledger
+MOVEMENT_TYPES = {"replenish": "replenish", "transfer_receive": "transfer_in"}
+
 TITLES = {
     "receive": "Receive", "putaway": "Put away", "pick": "Pick", "pack": "Pack", "ship": "Ship",
     "move": "Move", "count": "Count", "replenish": "Replenish", "transfer_pick": "Transfer pick",
@@ -213,7 +216,7 @@ def confirm(db: Session, task: Task, line: TaskLine, *, qty: Decimal, uom: str |
     product = line.product
     if task.type == "receive":
         _confirm_receive(db, task, line, product, qty, batch, to_location, container_id, actor, note, received_at)
-    elif task.type in ("move", "replenish", "putaway"):
+    elif task.type in ("move", "replenish", "putaway", "transfer_receive"):
         _confirm_move(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
     elif task.type in ("pick", "transfer_pick"):
         _confirm_pick(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
@@ -293,7 +296,7 @@ def _confirm_move(db, task, line, product, qty, batch, from_code, to_code, conta
     stock.check_mixing(db, dst, product, batch)
     received_at = bal.received_at or date.today()
     common = dict(product_id=product.id, uom=line.uom, batch=batch, owner=task.owner, container_id=container_id,
-                  movement_type="replenish" if task.type == "replenish" else task.type, task_id=task.id,
+                  movement_type=MOVEMENT_TYPES.get(task.type, task.type), task_id=task.id,
                   task_line_id=line.id, received_at=received_at, actor=actor.name, device=actor.device,
                   api_client_id=actor.api_client_id, external_ref=task.source_ref, reason=reason, note=note)
     post(db, [LedgerLine(location_id=src.id, qty_change=-qty, **common),

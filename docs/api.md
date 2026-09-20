@@ -227,11 +227,41 @@ ledger line) or asks for a recount. The short-pick flow raises the same task.
   }]
 }
 ```
-Pick and pack at the sender → ship (stock → in-transit bucket) → expected
-receipt auto-created at the receiver → receive (stock → shelves). Batch and
-received date travel with the stock. A variance stays in transit until closed
-with a reason (`stock.adjusted`). Events: `transfer.shipped`,
-`transfer.received`.
+Pick at the sender → ship (stock → the in-transit bucket) → expected receipt
+auto-created at the receiver → receive (stock → shelves). Batch and received
+date travel with the stock, so FIFO survives the trip.
+
+- The reply carries an `allocation` list like a delivery: line, sku,
+  qty_requested, qty_allocated, uom, short.
+- The **in-transit bucket is a real location** in an `in_transit` zone at the
+  *receiving* warehouse, so the ledger always knows where the stock is. A
+  receiver without one is a `422` on `to_warehouse` naming what to add; a
+  sender without a packing or staging zone is a `422` on `from_warehouse`.
+- Leg one is a `transfer_pick` task at the sender, picked to its bench like
+  any other pick. Leg two is a `transfer_receive` task at the receiver, which
+  puts the stock away out of the bucket onto a scanned shelf.
+- `POST /v1/transfers/{ref}/ship` — `{ message_id, carrier, tracking_no,
+  shipped_by }`. Writes `transfer_out` rows off the bench and into the
+  bucket, raises the receiver's expected receipt and its put-away task, and
+  fires `transfer.shipped`. Nothing picked is `409 nothing_picked`.
+- `POST /v1/transfers/{ref}/close-variance` — `{ message_id, reason, note }`.
+  Whatever never turned up stays in the bucket until this writes it off with
+  a reason, one `stock.adjusted` per ledger line. `409 no_variance` when
+  there is nothing left in transit.
+- `POST /v1/transfers/{ref}/cancel` — before it ships only; a shipped
+  transfer is `409 already_shipped`.
+- `GET /v1/transfers?warehouse=&status=&direction=out|in` — both ends see a
+  transfer; `direction` narrows it. `GET /v1/transfers/{ref}` returns it with
+  both tasks.
+- Statuses: `new`, `allocated`, `picking`, `picked`, `in_transit`,
+  `receiving`, `received`, `variance` (something did not arrive), `closed`,
+  `cancelled`.
+- Cartons on a transfer are not packed yet, so `transfer.shipped` carries an
+  empty `packages` list. Containers arrive with build step 6.
+- Stock in the bucket counts as on hand at the receiving warehouse and is
+  never offered to a pick, because its zone is `in_transit`.
+
+Events: `transfer.shipped`, `transfer.received`.
 
 ### POST /v1/deliveries/{ref}/pack
 ```json
