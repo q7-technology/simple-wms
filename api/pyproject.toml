@@ -17,6 +17,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-timeout>=2.3", "httpx2>=0.1"]
+# Only for a site that talks to SAP. pyrfc needs the SAP NetWeaver RFC SDK,
+# which is licensed and not on any public index, so it cannot be installed
+# from here and is never required. The adapter and its tests run without it.
+sap = ["pyrfc>=3.3"]
 
 [project.scripts]
 wms = "wms.cli:main"

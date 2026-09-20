@@ -960,9 +960,11 @@ Needs the `integration:admin` scope (`integration:read` to list).
 
 ### Subscribers
 - `POST /v1/subscribers` — `{ name, url, secret?, event_types, warehouses,
-  owner, active }`. Creates or updates by name. `event_types` takes exact
-  names, `transfer.*` or `*`. On create the HMAC `secret` is generated if not
-  given and returned once (`201`); on update it is never returned (`200`).
+  owner, transport, settings, active }`. Creates or updates by name.
+  `event_types` takes exact names, `transfer.*` or `*`. On create the HMAC
+  `secret` is generated if not given and returned once (`201`); on update it
+  is never returned (`200`). `transport` is `http` by default, which needs an
+  `http://` or `https://` url, or `sap_rfc`, which is described under SAP.
 - `GET /v1/subscribers` — with `status` (`idle`, `ok`, `retrying`, `failed`),
   `last_delivery_at`, `pending` and `failed` counts.
 
@@ -1057,6 +1059,59 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
   "qty_change": -2, "uom": "EA", "reason": "count_variance", "ledger_id": "L-889201"
 }
 ```
+
+## SAP
+
+The first ERP adapter. An SAP subscriber is an ordinary row in `subscriber`
+with `transport: "sap_rfc"`: the same event queue, the same backoff, the same
+Integrations page. Nothing about the WMS changes shape because SAP is on the
+other end.
+
+```json
+{ "name": "sap-erp", "url": "rfc://PRD", "transport": "sap_rfc",
+  "event_types": ["receipt.confirmed", "delivery.shipped", "stock.adjusted"],
+  "settings": {
+    "connection": { "ashost": "sap.example", "sysnr": "00", "client": "100",
+                    "user": "WMS", "passwd_env": "SAP_PASSWORD" },
+    "plant_by_warehouse": { "BAL-WH01": "1000" },
+    "storage_location": "0001",
+    "movement_types": { "delivery.shipped": "601" } } }
+```
+
+The password is never stored. `passwd_env` names an environment variable and
+the worker reads it from the host, beside every other secret. A body that
+puts `passwd` in `connection` is refused with a `422`.
+
+Each event becomes one `BAPI_GOODSMVT_CREATE`, committed with
+`BAPI_TRANSACTION_COMMIT`, or rolled back and retried:
+
+| Event | `GM_CODE` | Movement type |
+|---|---|---|
+| `receipt.confirmed` | 01 | 101 |
+| `production.received` | 02 | 101 |
+| `production.components_issued` | 03 | 261 |
+| `delivery.shipped` | 03 | 601 |
+| `stock.moved` | 04 | 311 |
+| `transfer.shipped` | 04 | 351 |
+| `transfer.received` | 04 | 101 |
+| `stock.adjusted` | 05 | 701 up, 702 down |
+
+Quantities cross as the decimal strings they already are. A shelf code never
+does: SAP is told a plant and a storage location, and which shelf a thing sits
+on stays the WMS's business. Anything in `movement_types` overrides the table
+above for a site with its own numbering.
+
+SAP answers in a `RETURN` table rather than a status code. A row of type `E`
+or `A` is a refusal: the work is rolled back, SAP's own message is kept on the
+event, and the queue tries again on the usual 1 min, 5, 30, 2 h. An event type
+with no mapping fails at once instead of four times, because retrying will not
+invent one.
+
+`pyrfc` needs the SAP NetWeaver RFC SDK, which is licensed and cannot be
+fetched from PyPI. Download the SDK from SAP, then `pip install
+'simple-wms-api[sap]'` on the worker host. Every other part of the WMS,
+including the whole adapter apart from opening the connection, runs and is
+tested without it.
 
 ## Print jobs (to Platen)
 

@@ -17,6 +17,12 @@ class Subscriber(Base):
     name: Mapped[str] = mapped_column(String(120), unique=True)
     url: Mapped[str] = mapped_column(String(500))
     secret: Mapped[str] = mapped_column(String(128))
+    # How the worker reaches it: "http" posts the signed envelope, "sap_rfc"
+    # turns the event into a BAPI call. Same queue, same backoff, either way.
+    transport: Mapped[str] = mapped_column(String(16), default="http")
+    # Transport settings. For SAP: the connection, the plant per warehouse and
+    # any movement types that differ from the defaults. Never a password.
+    settings: Mapped[dict] = mapped_column(JSONB, default=dict)
     event_types: Mapped[list] = mapped_column(JSONB, default=list)  # ["*"] or names
     warehouses: Mapped[list] = mapped_column(JSONB, default=lambda: ["*"])
     owner: Mapped[str] = mapped_column(String(32), default="*")

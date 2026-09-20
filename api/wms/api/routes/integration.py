@@ -2,12 +2,14 @@
 Plain REST from a signed-in admin; no message envelope."""
 from __future__ import annotations
 
+import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import func, select
 
 from wms.api.deps import DB, Principal, require
@@ -125,18 +127,39 @@ def revoke_api_client(id: int, db: DB, who: Principal = require("integration:adm
 class SubscriberIn(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(max_length=120)
-    url: str = Field(max_length=500, pattern=r"^https?://")
+    url: str = Field(max_length=500)
     secret: str | None = Field(default=None, min_length=16, max_length=128)
     event_types: list[str] = Field(min_length=1)
     warehouses: list[str] = Field(default_factory=lambda: ["*"])
     owner: str = Field(default="*", max_length=32)
+    # How the worker reaches it. "http" posts the signed envelope; "sap_rfc"
+    # turns the event into a BAPI call over the same queue and backoff.
+    transport: Literal["http", "sap_rfc"] = "http"
+    settings: dict = Field(default_factory=dict)
     active: bool = True
+
+    @model_validator(mode="after")
+    def check_transport(self) -> "SubscriberIn":
+        if self.transport == "http":
+            if not re.match(r"^https?://", self.url):
+                raise ValueError("an http subscriber needs an http:// or https:// url")
+            return self
+        connection = (self.settings or {}).get("connection") or {}
+        if "passwd" in connection:
+            raise ValueError(
+                "an SAP password does not belong in the database; name an environment "
+                "variable with passwd_env and set it on the host")
+        if not (self.settings or {}).get("plant_by_warehouse"):
+            raise ValueError("an SAP subscriber needs plant_by_warehouse in its settings")
+        return self
 
 
 class SubscriberOut(BaseModel):
     wms_id: str
     name: str
     url: str
+    transport: str
+    settings: dict
     event_types: list[str]
     warehouses: list[str]
     owner: str
@@ -179,7 +202,8 @@ def _subscriber_health(db, sub_id: int) -> dict:
 
 def subscriber_out(db, s: Subscriber, secret: str | None = None) -> SubscriberOut:
     data = dict(
-        wms_id=str(s.id), name=s.name, url=s.url, event_types=s.event_types,
+        wms_id=str(s.id), name=s.name, url=s.url, transport=s.transport,
+        settings=s.settings or {}, event_types=s.event_types,
         warehouses=s.warehouses, owner=s.owner, active=s.active, created_at=s.created_at,
         **_subscriber_health(db, s.id),
     )

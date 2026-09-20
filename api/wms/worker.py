@@ -11,6 +11,7 @@ import hmac
 import json
 import logging
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -19,7 +20,8 @@ from sqlalchemy.orm import Session
 
 from wms.config import get_settings
 from wms.db import get_sessionmaker
-from wms.models import InboundMessage, OutboundEvent
+from wms.models import InboundMessage, OutboundEvent, Subscriber
+from wms.services import sap
 
 log = logging.getLogger("wms.worker")
 
@@ -30,7 +32,14 @@ def sign(secret: str, body: bytes) -> str:
     return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
-def deliver(http: httpx.Client, row: OutboundEvent, now: datetime) -> None:
+def deliver(http: httpx.Client, row: OutboundEvent, now: datetime,
+            connect: Callable[[Subscriber], object] | None = None) -> None:
+    """Hand one event to its subscriber, however that subscriber is reached.
+    A refusal is a refusal whether it came back as an HTTP status or as a
+    row in a BAPI return table, and it backs off the same way."""
+    if row.subscriber.transport == sap.TRANSPORT:
+        _deliver_to_sap(row, now, connect or sap.connect)
+        return
     body = json.dumps(row.payload, separators=(",", ":")).encode()
     headers = {
         "Content-Type": "application/json",
@@ -54,6 +63,32 @@ def deliver(http: httpx.Client, row: OutboundEvent, now: datetime) -> None:
         row.delivered_at = now
         row.last_error = None
         return
+    _retry_later(row, now, error)
+
+
+def _deliver_to_sap(row: OutboundEvent, now: datetime,
+                    connect: Callable[[Subscriber], object]) -> None:
+    row.attempts += 1
+    try:
+        document = sap.deliver(row, connect(row.subscriber))
+    except sap.Unmapped as exc:
+        # Four goes at a mapping that does not exist is just noise. Fail it
+        # now and let somebody see it on the Integrations page.
+        row.status = "failed"
+        row.last_error = str(exc)[:500]
+        log.warning("event %s to %s has no SAP mapping: %s", row.event_id, row.subscriber.name, exc)
+        return
+    except sap.SapError as exc:
+        _retry_later(row, now, str(exc)[:500])
+        return
+    row.status = "delivered"
+    row.delivered_at = now
+    row.last_error = None
+    log.info("event %s posted to SAP by %s as document %s",
+             row.event_id, row.subscriber.name, document or "(none)")
+
+
+def _retry_later(row: OutboundEvent, now: datetime, error: str) -> None:
     row.last_error = error
     if row.attempts >= len(BACKOFF):
         row.status = "failed"
@@ -65,7 +100,7 @@ def deliver(http: httpx.Client, row: OutboundEvent, now: datetime) -> None:
 
 
 def run_once(session: Session, http: httpx.Client, now: datetime | None = None,
-             limit: int = 50) -> int:
+             limit: int = 50, connect: Callable[[Subscriber], object] | None = None) -> int:
     """Deliver every due event. Returns how many were attempted."""
     now = now or datetime.now(UTC)
     rows = session.execute(
@@ -76,7 +111,7 @@ def run_once(session: Session, http: httpx.Client, now: datetime | None = None,
         .with_for_update(skip_locked=True)
     ).scalars().all()
     for row in rows:
-        deliver(http, row, now)
+        deliver(http, row, now, connect)
         session.commit()
     return len(rows)
 
