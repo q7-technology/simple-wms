@@ -1,6 +1,7 @@
 """Step 6c: every report comes out of the ledger."""
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 
 from wms.services.ledger import LedgerLine, post
@@ -76,7 +77,9 @@ def test_stock_on_hand_as_csv(client, db, structure, headers):
 
 def test_movements_by_day_and_type(client, db, structure, headers):
     s = structure
-    today = datetime.now(UTC)
+    # Days are counted on the warehouse's clock, so the test counts them there
+    # too. On a UTC server at ten at night these are already different days.
+    today = datetime.now(ZoneInfo("Australia/Melbourne"))
     move(db, s, s.abc, s.bk1, "120", at=today - timedelta(days=2))
     move(db, s, s.abc, s.bk1, "-20", movement_type="pick", actor="sam")
     move(db, s, s.abc, s.pf, "20", movement_type="pick", actor="sam")
@@ -177,7 +180,9 @@ def test_shipped_per_day(client, db, structure, headers):
     got = report(client, headers, "shipped", warehouse="BAL-WH01")
     assert got["columns"] == ["day", "deliveries", "lines", "units", "short", "packages"]
     row = got["rows"][0]
-    assert row["day"] == date.today().isoformat()
+    # The warehouse's day, which is not the server's once it is past 10 pm
+    # in London and already tomorrow in Ballarat.
+    assert row["day"] == datetime.now(ZoneInfo("Australia/Melbourne")).date().isoformat()
     assert row["deliveries"] == 1 and row["lines"] == 1
     assert row["units"] == "10" and row["short"] == 0 and row["packages"] == 1
     assert got["totals"]["deliveries"] == 1
@@ -283,3 +288,26 @@ def test_billing_never_quietly_drops_a_movement_it_does_not_know(client, db, str
     assert rows["Other movements"]["count"] == 1
     assert rows["Other movements"]["detail"] == "scrap"
     assert got["totals"]["movements"] == 1
+
+
+# --- which day a movement belongs to -------------------------------------------
+
+def test_a_day_is_the_warehouses_day_not_the_servers(client, db, structure, headers):
+    """Half past eight on a Thursday morning in Ballarat is still Wednesday in
+    UTC. The report has to say Thursday, because that is the shift that did
+    the work."""
+    s = structure
+    at = datetime(2026, 7, 15, 22, 30, tzinfo=UTC)  # 16 July, 08:30 in Melbourne
+    move(db, s, s.abc, s.bk1, "12", at=at)
+
+    got = report(client, headers, "movements", warehouse="BAL-WH01")
+    assert got["rows"][0]["day"] == "2026-07-16"
+
+    # And the window is read on that same clock, so asking for the 16th finds it
+    # and asking for the 15th does not.
+    on_the_day = report(client, headers, "movements", warehouse="BAL-WH01",
+                        **{"from": "2026-07-16", "to": "2026-07-16"})
+    assert on_the_day["totals"]["lines"] == 1
+    day_before = report(client, headers, "movements", warehouse="BAL-WH01",
+                        **{"from": "2026-07-15", "to": "2026-07-15"})
+    assert day_before["totals"]["lines"] == 0

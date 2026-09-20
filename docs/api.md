@@ -449,6 +449,11 @@ eaches. A movement type the report has never heard of is billed under `Other
 movements` rather than left off, so the invoice can never quietly under-count
 what the warehouse did.
 
+A day is the warehouse's day. Movements and shipments are grouped, and the
+`from` and `to` window is read, on the clock of the warehouse's site, so half
+past eight on a Thursday morning in Ballarat lands on Thursday and not on the
+Wednesday that a UTC server would call it.
+
 `group_by=product` on stock on hand rolls the locations up and adds
 `locations` and `batches` counts. An operator with a single pick has no
 measurable span, so `lines_per_hour` is `null` rather than a made-up number.
@@ -686,7 +691,7 @@ scope may call them; `master:read` for the GET side.
 ```json
 { "message_id": "uuid", "code": "BAL-WH01", "site": "BAL", "name": "Ballarat 1",
   "settings": { "erp_counts_gr": false, "allow_ship_short": true, "blind_counts": true,
-                "receipt_tolerance_pct": 5, "idle_logout_minutes": 15 } }
+                "receipt_tolerance_pct": 5, "idle_logout_minutes": 480 } }
 ```
 A warehouse reads back with a `timezone`, carried down from its site. Stock
 moves on the warehouse's clock, so a client shows the warehouse's times and
@@ -885,7 +890,7 @@ shoulder is already spent.
 `GET /v1/warehouses/{code}` returns the warehouse with every switch filled in
 from defaults. `PATCH /v1/warehouses/{code}/settings` merges the keys sent:
 ```json
-{ "erp_counts_gr": true, "receipt_tolerance_pct": 10, "idle_logout_minutes": 15 }
+{ "erp_counts_gr": true, "receipt_tolerance_pct": 10, "idle_logout_minutes": 480 }
 ```
 Keys: `erp_counts_gr`, `batch_from_production_order`, `receipt_tolerance_pct`,
 `supplier_tolerance_pct`, `allow_ship_short`, `supervisor_for_short_pick`,

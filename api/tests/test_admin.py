@@ -226,7 +226,8 @@ def test_warehouse_settings_merge(client, user_headers):
     assert r.status_code == 200
     defaults = r.json()["settings"]
     assert defaults["erp_counts_gr"] is False
-    assert defaults["idle_logout_minutes"] == 15
+    # A picker signs in once a shift, not after every pallet.
+    assert defaults["idle_logout_minutes"] == 480
     assert defaults["allow_hard_deletes"] is False
 
     r = client.patch("/v1/warehouses/BAL-WH01/settings", headers=user_headers,
@@ -235,7 +236,7 @@ def test_warehouse_settings_merge(client, user_headers):
     got = r.json()["settings"]
     assert got["erp_counts_gr"] is True
     assert got["receipt_tolerance_pct"] == 10
-    assert got["idle_logout_minutes"] == 15
+    assert got["idle_logout_minutes"] == 480
 
     r = client.patch("/v1/warehouses/BAL-WH01/settings", headers=user_headers,
                      json={"allow_hard_deletes": True})

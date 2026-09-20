@@ -18,7 +18,9 @@ class WarehouseSettings(BaseModel):
     auto_pick_mode: str = Field(default="auto", pattern="^(single|batch|auto)$")
     batch_pick_max_orders: int = Field(default=8, ge=1, le=100)
     # Scanners and security
-    idle_logout_minutes: int = Field(default=15, ge=1, le=480)
+    # A whole shift. The floor signs in once and stays signed in; a handheld
+    # left on a bench overnight is still signed out by morning.
+    idle_logout_minutes: int = Field(default=480, ge=1, le=480)
     pin_lockout_tries: int = Field(default=5, ge=1, le=20)
     # desktop sign in: how many wrong passwords, and for how long after
     password_lockout_tries: int = Field(default=5, ge=1, le=20)

@@ -32,7 +32,7 @@ envelope.
 | Size | Multiple warehouses and sites | Warehouse is a first-class object; transfers from day one |
 | Input device | Handheld Android scanners running a PWA | Installed from the browser; works through Wi-Fi drops; PIN login |
 | First integrations | None, just a clean API | Design the envelope first, subscribers later |
-| Stock tracking | Product, quantity, batch/lot | No expiry dates; batch is a per-product switch |
+| Stock tracking | Product, quantity, batch/lot | Batch is a per-product switch; expiry and lot detail live on the batch master (see Settled questions) |
 | Ownership | One owner now, room for many | Owner column on every stock line |
 | Pallets and cartons | Hooks only, switch on later | `container_id` present but unused |
 | Hosting | Self-hosted Docker | One compose file, Postgres, backups |
@@ -179,16 +179,24 @@ API first, screens second, for every step.
 The software is free. Q7 Technology offers setup and hosting, integration,
 go-live and training, and ongoing support on a fixed monthly retainer.
 
-## Open questions
+## Settled questions
 
-- Is this purely a Q7 product, or the seed of something else?
-- Which ERP goes first when one does (SAP adapter vs plain webhook receiver)?
-- Platen's exact job API: status callback or polling; where printer names live.
-- Batch master table with attributes, or batch as a string on the ledger?
-- Camera scanning as a phone fallback, or scanners only?
-- Idle logout and PIN length the floor will accept.
-- Blind counts by default, or show expected quantity?
-- Ledger retention before archiving.
+The eight that were open are answered, on 21 September 2026. They are
+decisions now, so change them here first.
+
+| Question | Decision | What it means |
+|---|---|---|
+| Whose product | A Q7 product, open in the open | The source is public so anyone can trust it and host it, but the roadmap serves Q7 and Q7's clients. The API contract may change with a note in `docs/api.md`. No compatibility promise to outside integrators. |
+| First ERP | An SAP adapter | Built with `pyrfc`, which is why the API is Python. Goods receipt, goods issue and stock transfer postings, with their acknowledgements. The signed outbound events and the REST inbound door stay as they are and serve everyone else. |
+| Platen | Push, then callback | The worker posts template, version, printer, copies and JSON. Platen answers `accepted`, then calls `POST /v1/print-jobs/{job_id}/status` with `printed` or `failed`. Printer names live in the WMS as print points, so the printing screen can show which printer a job went to. Built and running. |
+| Batch | A batch master, now | A batch table keyed by product and batch code, holding expiry, manufacture date, supplier lot and a released or quarantined status. The ledger keeps its batch string, so nothing already written changes; the table fills in behind it. |
+| Scanning | Scanners only | The scanner app reads a keyboard wedge. No camera, no decode library, no permission prompt. A phone can still use the app by typing a code. |
+| Floor login | 8 hours idle, 4-digit PIN | A picker signs in once a shift, not after every pallet. `idle_logout_minutes` defaults to 480 and PINs stay 4 to 8 digits so a site can ask for more. Lockout after 5 wrong tries. |
+| Counts | Show the expected quantity | Counting is no longer blind by default. The count task line has to carry the expected quantity to the scanner, and the count screen shows it. `blind_counts` stays as the per-warehouse switch for sites that want it hidden. |
+| Ledger retention | Roll the database by year | Nothing trims the ledger and no archive table exists. A yearly dump goes to cold storage and everything stays live, which is the only shape that does not argue with the append-only rule. |
+
+Three of these are work that is not built yet: the SAP adapter, the batch
+master, and the expected quantity on a count.
 
 ## Related artefacts
 

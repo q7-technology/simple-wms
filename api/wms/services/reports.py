@@ -46,11 +46,18 @@ FILTERS = {
 }
 
 
-def _window(q, column, frm: date | None, to: date | None):
+def _day(column, tz: str):
+    """Which day a moment belongs to, on the warehouse's clock. Half past eight
+    on a Thursday morning in Ballarat is still Wednesday in UTC, and it is the
+    Thursday shift that did the work."""
+    return cast(func.timezone(tz, column), Date)
+
+
+def _window(q, column, frm: date | None, to: date | None, tz: str):
     if frm:
-        q = q.where(cast(column, Date) >= frm)
+        q = q.where(_day(column, tz) >= frm)
     if to:
-        q = q.where(cast(column, Date) <= to)
+        q = q.where(_day(column, tz) <= to)
     return q
 
 
@@ -118,7 +125,8 @@ def stock_on_hand(db: Session, *, warehouse: Warehouse, owner: str, zone: str | 
 
 def movements(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None, to: date | None,
               sku: str | None = None, movement_type: str | None = None) -> Report:
-    day = cast(StockLedger.at, Date).label("day")
+    tz = warehouse.site.timezone
+    day = _day(StockLedger.at, tz).label("day")
     q = (select(day, StockLedger.movement_type,
                 func.count().label("lines"),
                 func.sum(case((StockLedger.qty_change > 0, StockLedger.qty_change), else_=0)).label("qty_in"),
@@ -128,7 +136,7 @@ def movements(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
         q = q.join(Product, Product.id == StockLedger.product_id).where(Product.sku == sku)
     if movement_type:
         q = q.where(StockLedger.movement_type.in_(movement_type.split(",")))
-    q = _window(q, StockLedger.at, frm, to)
+    q = _window(q, StockLedger.at, frm, to, tz)
     rows = db.execute(q.group_by(day, StockLedger.movement_type)
                       .order_by(day.desc(), StockLedger.movement_type)).all()
 
@@ -146,6 +154,7 @@ def movements(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
 
 def pick_rate(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None, to: date | None,
               operator: str | None = None) -> Report:
+    tz = warehouse.site.timezone
     q = (select(StockLedger.actor,
                 func.count().label("lines"),
                 func.sum(-StockLedger.qty_change).label("units"),
@@ -155,7 +164,7 @@ def pick_rate(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
                 StockLedger.movement_type == "pick", StockLedger.qty_change < 0))
     if operator:
         q = q.where(StockLedger.actor == operator)
-    q = _window(q, StockLedger.at, frm, to)
+    q = _window(q, StockLedger.at, frm, to, tz)
     rows = db.execute(q.group_by(StockLedger.actor).order_by(func.count().desc(),
                                                              StockLedger.actor)).all()
 
@@ -182,6 +191,7 @@ def pick_rate(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
 
 def variances(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None, to: date | None,
               sku: str | None = None, reason: str | None = None) -> Report:
+    tz = warehouse.site.timezone
     q = (select(StockLedger, Product, Location, Zone)
          .join(Product, Product.id == StockLedger.product_id)
          .join(Location, Location.id == StockLedger.location_id)
@@ -192,7 +202,7 @@ def variances(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
         q = q.where(Product.sku == sku)
     if reason:
         q = q.where(StockLedger.reason == reason)
-    q = _window(q, StockLedger.at, frm, to)
+    q = _window(q, StockLedger.at, frm, to, tz)
     rows = db.execute(q.order_by(StockLedger.id.desc())).all()
 
     out = [{"at": l.at.isoformat(), "location": loc.code, "zone": zn.code, "sku": p.sku,
@@ -211,11 +221,12 @@ def variances(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None
 
 def shipped(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
             to: date | None) -> Report:
-    day = cast(Delivery.shipped_at, Date).label("day")
+    tz = warehouse.site.timezone
+    day = _day(Delivery.shipped_at, tz).label("day")
     q = (select(day, Delivery.id, Delivery.short)
          .where(Delivery.warehouse_id == warehouse.id, Delivery.owner == owner,
                 Delivery.status == "shipped"))
-    q = _window(q, Delivery.shipped_at, frm, to)
+    q = _window(q, Delivery.shipped_at, frm, to, tz)
     rows = db.execute(q).all()
 
     by_day: dict[str, dict] = {}
@@ -268,12 +279,13 @@ def _one_uom(uoms: set[str]) -> str | None:
 
 def billing(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
             to: date | None) -> Report:
+    tz = warehouse.site.timezone
     q = (select(StockLedger.movement_type, StockLedger.uom,
                 func.count().label("lines"),
                 func.sum(case((StockLedger.qty_change > 0, StockLedger.qty_change), else_=0)).label("qty_in"),
                 func.sum(case((StockLedger.qty_change < 0, -StockLedger.qty_change), else_=0)).label("qty_out"))
          .where(StockLedger.warehouse_id == warehouse.id, StockLedger.owner == owner))
-    q = _window(q, StockLedger.at, frm, to)
+    q = _window(q, StockLedger.at, frm, to, tz)
     handled = db.execute(q.group_by(StockLedger.movement_type, StockLedger.uom)).all()
 
     seen: dict[str, list] = {}
@@ -310,7 +322,7 @@ def billing(db: Session, *, warehouse: Warehouse, owner: str, frm: date | None,
     cartons = (select(func.count()).select_from(Package).join(Delivery, Delivery.id == Package.delivery_id)
                .where(Delivery.warehouse_id == warehouse.id, Delivery.owner == owner,
                       Delivery.status == "shipped"))
-    cartons = _window(cartons, Delivery.shipped_at, frm, to)
+    cartons = _window(cartons, Delivery.shipped_at, frm, to, tz)
     out.append({"measure": "Cartons shipped", "detail": "packed and despatched",
                 "count": db.execute(cartons).scalar_one(), "qty": None, "uom": None})
 
