@@ -488,6 +488,28 @@ def test_cancelling_the_pick_task_cancels_the_delivery(client, db, structure, he
     assert reserved_at(db, s.bk1.id, s.abc.id) == Decimal("0")
 
 
+def test_closing_the_pick_task_short_frees_the_reservation_and_tells_the_erp(client, db, structure, headers, listener):
+    """A supervisor stops a pick from the desktop: the rest is short, not held."""
+    subscribe(db, listener, "delivery.picked")
+    s = structure
+    task_id = open_delivery(client, db, s, headers, qty="10", on_hand="10")
+    client.post(f"/v1/tasks/{task_id}/lines/1/confirm", headers=headers, json=msg(qty=4, uom="EA", operator="op-017"))
+
+    r = client.post(f"/v1/tasks/{task_id}/close", headers=headers, json=msg(reason="truck left"))
+    assert r.status_code == 202, r.text
+    assert r.json()["task"]["status"] == "done"
+    assert reserved_at(db, s.bk1.id, s.abc.id) == Decimal("0")
+
+    got = client.get("/v1/deliveries/0080012345", headers=headers).json()
+    assert got["status"] == "picked"
+    assert got["short"] is True
+    assert got["lines"][0]["qty_picked"] == "4"
+    assert got["lines"][0]["short_reason"] == "truck left"
+    picked = [e for e in events(db) if e[0] == "delivery.picked"][0][1]
+    assert picked["complete"] is False
+    assert picked["lines"][0]["qty_picked"] == "4"
+
+
 def test_delivery_listing_and_filters(client, db, structure, headers):
     s = structure
     stock(db, s, s.abc, s.bk1, "100")
