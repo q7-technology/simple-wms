@@ -11,7 +11,8 @@ from wms.api.deps import DB, Principal, authorise, require
 from wms.api.errors import Conflict, FieldError, Forbidden, NotFound
 from wms.api.schemas import Page
 from wms.api.schemas_tasks import (
-    ApproveIn, AssignIn, CancelIn, CloseIn, ConfirmIn, RecountIn, StartIn, TaskOut, TaskReply, line_out, task_out,
+    ApproveIn, AssignIn, CancelIn, CloseIn, ConfirmIn, RecountIn, ShortIn, StartIn, TaskOut, TaskReply,
+    line_out, task_out,
 )
 from wms.models import Task, TaskLine, Warehouse
 from wms.services import access, stock
@@ -94,7 +95,9 @@ def list_tasks(
     if source_ref:
         q = q.where(Task.source_ref == source_ref)
     total = db.execute(select(func.count()).select_from(q.subquery())).scalar_one()
-    rows = db.execute(q.order_by(Task.priority.desc(), Task.id).limit(limit).offset(offset)).scalars().all()
+    rows = db.execute(
+        q.order_by(engine.priority_order(Task.priority), Task.id).limit(limit).offset(offset)
+    ).scalars().all()
     return Page(items=[task_out(t, wh.code) for t in rows], total=total)
 
 
@@ -143,6 +146,22 @@ def confirm_line(id: int, line_no: int, body: ConfirmIn, request: Request, db: D
         engine.confirm(db, task, line, qty=body.qty, uom=body.uom, actor=actor, batch=body.batch,
                        to_location=body.location, from_location=body.from_location,
                        container_id=body.container_id, reason=body.reason, note=body.note)
+        return line
+
+    return run(db, who, request, body, task, do)
+
+
+@router.post("/tasks/{id}/lines/{line_no}/short", status_code=202, response_model=TaskReply)
+def short_line(id: int, line_no: int, body: ShortIn, request: Request, db: DB,
+               who: Principal = require("tasks:write")):
+    """Short pick: take what is there, say why, and let a supervisor sign it off.
+    A quantity that looks wrong raises a count task for that shelf."""
+    task, wh = get_task(db, id, who)
+    line = get_line(task, line_no)
+    actor = actor_for(db, who, body, wh)
+
+    def do():
+        engine.short_pick(db, task, line, qty=body.qty, reason=body.reason, actor=actor, note=body.note)
         return line
 
     return run(db, who, request, body, task, do)

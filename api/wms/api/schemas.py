@@ -59,7 +59,7 @@ class ZoneIn(Envelope):
     warehouse: str = Field(min_length=1, max_length=32)
     code: str = Field(min_length=1, max_length=32)
     name: str = Field(min_length=1, max_length=120)
-    kind: Literal["bulk", "pickface", "staging", "in_transit", "overflow", "line_side"] = "bulk"
+    kind: Literal["bulk", "pickface", "packing", "staging", "in_transit", "overflow", "line_side"] = "bulk"
     active: bool = True
 
 

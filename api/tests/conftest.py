@@ -60,26 +60,30 @@ def db(engine):
 
 @pytest.fixture
 def structure(db):
-    """One site, one warehouse, two zones, three locations, two products."""
+    """One site, one warehouse, four zones, five locations, two products."""
     from wms.models import Location, Product, ProductBarcode, Site, Warehouse, Zone
 
     site = Site(code="BAL", name="Ballarat")
     wh = Warehouse(site=site, code="BAL-WH01", name="Ballarat 1")
     bulk = Zone(warehouse=wh, code="BULK", name="Bulk", kind="bulk")
     pick = Zone(warehouse=wh, code="PICKFACE", name="Pick face", kind="pickface")
+    pack = Zone(warehouse=wh, code="PACK", name="Packing", kind="packing")
+    dock = Zone(warehouse=wh, code="RECEIVE", name="Receiving dock", kind="staging")
     locs = [
         Location(warehouse=wh, zone=bulk, code="BK-04-01-C", pick_sequence=410),
         Location(warehouse=wh, zone=bulk, code="BK-04-02-A", pick_sequence=420),
         Location(warehouse=wh, zone=pick, code="PF-01-02-A", pick_sequence=120),
+        Location(warehouse=wh, zone=pack, code="PACK-01", type="floor", pick_sequence=900),
+        Location(warehouse=wh, zone=dock, code="DOCK-01", type="dock", pick_sequence=10),
     ]
     abc = Product(sku="ABC123", name="Widget", uom="EA")
     abc.barcodes.append(ProductBarcode(barcode="09312345000012", kind="gtin"))
     fg = Product(sku="FG-900", name="Finished good", uom="EA", batch_tracked=True)
-    db.add_all([site, wh, bulk, pick, *locs, abc, fg])
+    db.add_all([site, wh, bulk, pick, pack, dock, *locs, abc, fg])
     db.commit()
     return SimpleNamespace(
-        site=site, warehouse=wh, bulk=bulk, pick=pick,
-        bk1=locs[0], bk2=locs[1], pf=locs[2], abc=abc, fg=fg,
+        site=site, warehouse=wh, bulk=bulk, pick=pick, pack=pack, dock=dock,
+        bk1=locs[0], bk2=locs[1], pf=locs[2], staging=locs[3], dock_loc=locs[4], abc=abc, fg=fg,
         received=date(2026, 8, 30),
     )
 

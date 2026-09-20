@@ -129,4 +129,13 @@ class RecountIn(ActorFields):
     pass
 
 
+class ShortIn(ActorFields):
+    """What was actually found, and why the rest is not coming."""
+    qty: Decimal = Field(default=Decimal(0), ge=0)
+    uom: str | None = Field(default=None, max_length=16)
+    reason: Literal["not_found", "short_on_shelf", "damaged", "location_unreadable", "customer_cancelled"]
+    note: str | None = Field(default=None, max_length=500)
+    supervisor_badge: str | None = Field(default=None, max_length=128)
+
+
 Priority = Literal["low", "normal", "high"]

@@ -39,7 +39,7 @@ def suggest(db: Session, warehouse: Warehouse, product: Product, batch: str | No
             seen.add(loc.id)
             out.append({"location": loc.code, "zone": loc.zone.code, "reason": reason})
 
-    normal = [l for l in locations if l.zone.kind not in ("overflow", "staging", "in_transit", "line_side")]
+    normal = [l for l in locations if l.zone.kind not in ("overflow", "packing", "staging", "in_transit", "line_side")]
     # 1. same product with space
     for loc in normal:
         if stock.on_hand_total(db, loc.id, product.id, owner) > 0 and allowed(loc):

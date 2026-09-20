@@ -133,14 +133,9 @@ def rebuild_balances(session: Session) -> int:
 
     on_hand is the sum of every change at the key. received_at is the oldest
     receipt date among the inbound rows at that key, which is the FIFO date.
-    reserved comes from open task lines and is recomputed by the task engine
-    (step 3); here it is carried over so a rebuild never loses it.
+    reserved is not in the ledger: it comes from the open pick lines, so it is
+    recomputed from those once the balances are back.
     """
-    reserved = {
-        (r.location_id, r.product_id, r.batch, r.owner): r.reserved
-        for r in session.execute(select(StockBalance)).scalars()
-        if r.reserved
-    }
     session.execute(delete(StockBalance))
     key = (
         StockLedger.warehouse_id, StockLedger.location_id, StockLedger.product_id,
@@ -164,9 +159,12 @@ def rebuild_balances(session: Session) -> int:
             batch=s.batch,
             owner=s.owner,
             on_hand=s.on_hand,
-            reserved=reserved.get((s.location_id, s.product_id, s.batch, s.owner), Decimal(0)),
+            reserved=Decimal(0),
             uom=s.uom,
             received_at=s.received_at,
         ))
     session.flush()
+    from wms.services.reservations import rebuild_reservations
+
+    rebuild_reservations(session)
     return len(sums)

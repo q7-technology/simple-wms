@@ -47,7 +47,7 @@ class Zone(Base):
     warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"))
     code: Mapped[str] = mapped_column(String(32))
     name: Mapped[str] = mapped_column(String(120))
-    # bulk, pickface, staging, in_transit, overflow, line_side
+    # bulk, pickface, packing, staging, in_transit, overflow, line_side
     kind: Mapped[str] = mapped_column(String(32), default="bulk")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 

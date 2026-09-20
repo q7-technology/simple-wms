@@ -27,6 +27,13 @@ TITLES = {
 }
 
 
+def priority_order(column):
+    """Sort high, then normal, then low. Alphabetical order would say otherwise."""
+    from sqlalchemy import case
+
+    return case({"high": 0, "normal": 1, "low": 2}, value=column, else_=1)
+
+
 class TaskError(Exception):
     """A state problem: 409 with a code."""
 
@@ -122,7 +129,10 @@ def assign(db: Session, task: Task, assigned_to: str | None) -> None:
 
 
 def cancel(db: Session, task: Task, reason: str | None, actor: Actor) -> None:
+    from wms.services import reservations
+
     _must_be_open(task)
+    reservations.release_task(db, task)
     task.status = "cancelled"
     task.cancelled_at = datetime.now(UTC)
     task.note = reason or task.note
@@ -136,7 +146,10 @@ def cancel(db: Session, task: Task, reason: str | None, actor: Actor) -> None:
 
 def close_short(db: Session, task: Task, reason: str | None, actor: Actor) -> None:
     """Stop here: what is not done is short. Used for receipts the supplier under-delivered."""
+    from wms.services import reservations
+
     _must_be_open(task)
+    reservations.release_task(db, task)
     for line in task.lines:
         if line.status not in FINISHED_LINE:
             line.status = "short"
@@ -202,6 +215,8 @@ def confirm(db: Session, task: Task, line: TaskLine, *, qty: Decimal, uom: str |
         _confirm_receive(db, task, line, product, qty, batch, to_location, container_id, actor, note, received_at)
     elif task.type in ("move", "replenish", "putaway"):
         _confirm_move(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
+    elif task.type in ("pick", "transfer_pick"):
+        _confirm_pick(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
     elif task.type == "count":
         _confirm_count(db, task, line, product, qty, actor, reason, note)
     else:
@@ -295,6 +310,89 @@ def _confirm_move(db, task, line, product, qty, batch, from_code, to_code, conta
         emit(db, "stock.moved", warehouse=_warehouse(db, task).code, owner=task.owner, external_ref=task.source_ref,
              data={"sku": product.sku, "batch": batch, "qty": qstr(qty), "uom": line.uom, "from": src.code,
                    "to": dst.code, "reason": reason, "operator": actor.name})
+
+
+def _confirm_pick(db, task, line, product, qty, batch, from_code, to_code, container_id, actor, reason, note):
+    """Pick moves stock off the shelf to the staging area. It leaves the
+    building at ship, so the ledger always knows where it is."""
+    from wms.services import reservations
+
+    src = _location(db, task, from_code, "from_location") or line.from_location
+    dst = _location(db, task, to_code, "to_location") or line.to_location
+    if src is None or dst is None:
+        raise stock.RuleError("from_location", "this line has no shelf to pick from")
+    if line.from_location_id and src.id != line.from_location_id:
+        raise stock.RuleError("from_location", f"this line is at {line.from_location.code}, not {src.code}")
+    if qty <= 0:
+        raise stock.RuleError("qty", "picked quantity must be above zero")
+    outstanding = line.expected_qty - (line.actual_qty or Decimal(0))
+    if qty > outstanding:
+        raise stock.RuleError("qty", f"this line wants {qstr(outstanding)} {line.uom} more, not {qstr(qty)}")
+    batch = batch or line.batch
+    bal = stock.balance(db, src.id, product.id, batch, task.owner)
+    if bal is None or bal.on_hand < qty:
+        raise stock.RuleError("qty", f"only {qstr(bal.on_hand if bal else Decimal(0))} {line.uom} of {product.sku} at {src.code}")
+    received_at = bal.received_at or date.today()
+    # the reservation is spent as the stock moves
+    reservations.release(db, location_id=src.id, product_id=product.id, batch=batch,
+                         owner=task.owner, qty=qty)
+    common = dict(product_id=product.id, uom=line.uom, batch=batch, owner=task.owner,
+                  container_id=container_id or line.container_id, movement_type="pick", task_id=task.id,
+                  task_line_id=line.id, received_at=received_at, actor=actor.name, device=actor.device,
+                  api_client_id=actor.api_client_id, external_ref=task.source_ref, reason=reason, note=note)
+    post(db, [LedgerLine(location_id=src.id, qty_change=-qty, **common),
+              LedgerLine(location_id=dst.id, qty_change=qty, **common)])
+    line.actual_qty = (line.actual_qty or Decimal(0)) + qty
+    line.batch = batch
+    line.to_location_id = dst.id
+    if line.actual_qty >= line.expected_qty:
+        line.status = "done"
+        line.completed_at = datetime.now(UTC)
+
+
+# Short-pick reasons that mean the shelf quantity is wrong, so it gets counted.
+COUNT_WORTHY = ("not_found", "short_on_shelf", "damaged")
+
+
+def short_pick(db: Session, task: Task, line: TaskLine, *, qty: Decimal, reason: str, actor: Actor,
+               note: str | None = None) -> None:
+    """Take what is there and close the line short. Needs a supervisor badge,
+    and raises a count task for that shelf when the quantity looks wrong."""
+    from wms.services import reservations
+
+    _must_be_open(task)
+    if line.status in FINISHED_LINE:
+        raise TaskError("line_finished", f"line {line.line_no} is already {line.status}")
+    if task.type not in ("pick", "transfer_pick"):
+        raise TaskError("not_supported", "only a pick line can be short")
+    if not actor.supervisor:
+        raise NeedsSupervisor("a short pick needs a supervisor badge")
+    if not reason:
+        raise stock.RuleError("reason", "say why it is short")
+    if task.status == "waiting":
+        start(db, task, actor)
+    if qty > 0:
+        _confirm_pick(db, task, line, line.product, qty, line.batch, None, None, None, actor, reason, note)
+    reservations.release_line(db, line, task.owner)
+    line.status = "short"
+    line.reason = reason
+    line.completed_at = datetime.now(UTC)
+    db.flush()
+    if reason in COUNT_WORTHY and line.from_location_id:
+        _raise_count(db, task, line, reason)
+    _finish(db, task, reason)
+
+
+def _raise_count(db: Session, task: Task, line: TaskLine, reason: str) -> None:
+    """A short pick means the shelf and the system disagree. Count it."""
+    wh = _warehouse(db, task)
+    count = create(db, type="count", warehouse=wh, owner=task.owner, source_type="short_pick",
+                   created_by=task.assigned_to or "wms", priority="high",
+                   note=f"Raised by a short pick on {task.source_ref} ({reason.replace('_', ' ')})",
+                   lines=[LineSpec(product=line.product, expected_qty=Decimal(0), uom=line.uom,
+                                   batch=line.batch, from_location=line.from_location)])
+    count.source_ref = f"CNT-{count.id:04d}"
+    db.flush()
 
 
 def _confirm_count(db, task, line, product, counted, actor, reason, note):

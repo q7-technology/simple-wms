@@ -47,8 +47,32 @@ decimals and always carry a unit of measure.
 }
 ```
 - `pick_mode`: `single`, `batch` or `auto` (WMS decides by order size/zone).
+  Batch picking arrives with build step 5; until then every mode picks singly.
 - `batch: null` = WMS picks by FIFO. Set it to force a batch.
-- Stock is reserved immediately; the reply says what could not be allocated.
+- Stock is reserved immediately; the reply says what could not be allocated:
+```json
+{ "message_id": "uuid", "wms_id": "41", "status": "accepted",
+  "allocation": [{ "delivery_line": 10, "sku": "ABC123", "qty_ordered": "10",
+                   "qty_allocated": "4", "uom": "EA", "short": "6" }] }
+```
+- A reservation holds stock at one shelf, so nothing is promised twice:
+  `GET /v1/stock` keeps the same `on_hand` and drops `available`.
+- One `pick` task is raised, in walk order by pick sequence, with a line per
+  shelf the stock was reserved at. Picking moves the stock to the warehouse's
+  staging area; it leaves the building at ship. A warehouse with no staging
+  zone is a `422` naming what to add.
+- Statuses: `new`, `allocated`, `picking`, `picked`, `packing`, `packed`,
+  `shipped`, `cancelled`.
+- `GET /v1/deliveries?warehouse=&status=` lists (soonest required first, then
+  priority); `GET /v1/deliveries/{ref}` returns the delivery with its lines,
+  packages, both tasks and the events sent.
+- `POST /v1/deliveries/{ref}/ship` — `{ message_id, carrier, tracking_no,
+  shipped_by }`. Writes one ledger line per carton line out of staging.
+  Refused `409 short_not_allowed` when the order is short and
+  `allow_short` is false.
+- `POST /v1/deliveries/{ref}/cancel` — `{ message_id, reason }`. Cancels the
+  open tasks and gives every reservation back. A shipped delivery cannot be
+  cancelled. Cancel, never delete.
 - Events: `delivery.allocated`, `delivery.picked`, `delivery.packed`,
   `delivery.shipped`, `delivery.cancelled`.
 
@@ -226,7 +250,9 @@ with a reason (`stock.adjusted`). Events: `transfer.shipped`,
   }]
 }
 ```
-Event: `delivery.packed`. Fires the `carton-label` print point.
+Event: `delivery.packed`. Fires the `carton-label` print point (step 4).
+Call it once per bench load; `complete: true` closes the packing. A carton
+line cannot hold more than was picked for that delivery line.
 
 ### GET /v1/stock?sku=ABC123&warehouse=BAL-WH01 — where is it?
 ```json
@@ -352,9 +378,24 @@ All reply `202` with `{ message_id, wms_id, status, task, line }`.
   quantity over the warehouse's receipt tolerance is `409` with
   `code: "needs_supervisor"` until a `supervisor_badge` is scanned.
   `move` and `replenish`: `qty` goes from `from_location` (or the line's) to
-  `location` (or the line's). `count`: `qty` is what was counted; a match
+  `location` (or the line's). `pick`: `qty` comes off the line's shelf and
+  goes to staging; more than the line wants is a `422`. `count`: `qty` is
+  what was counted; a match
   closes the line, a difference parks it as `variance` (a supervisor badge
   plus `reason` adjusts on the spot).
+- `POST /v1/tasks/{id}/lines/{line_no}/short` — a pick line that cannot be
+  filled:
+  ```json
+  { "message_id": "uuid", "qty": 6, "reason": "not_found",
+    "operator": "op-017", "device": "SCN-BAL-07", "supervisor_badge": "0042" }
+  ```
+  Takes `qty` off the shelf, closes the line short and gives the rest of the
+  reservation back. Always needs a supervisor badge (`409 needs_supervisor`
+  without one). Reasons: `not_found`, `short_on_shelf`, `damaged`,
+  `location_unreadable`, `customer_cancelled`. The first three raise a
+  high-priority count task for that shelf, because the shelf and the system
+  disagree. An unreadable location barcode removes the line and raises no
+  count.
 - `POST /v1/tasks/{id}/lines/{line_no}/approve` — `{ message_id, reason,
   note, supervisor_badge }`. Accepts a counted quantity: one adjustment
   ledger line and `stock.adjusted`. Needs a supervisor badge or a role with
@@ -405,7 +446,9 @@ scope may call them; `master:read` for the GET side.
 ```json
 { "message_id": "uuid", "warehouse": "BAL-WH01", "code": "PICKFACE", "name": "Pick face", "kind": "pickface" }
 ```
-`kind`: `bulk`, `pickface`, `staging`, `in_transit`, `overflow`, `line_side`.
+`kind`: `bulk`, `pickface`, `packing`, `staging`, `in_transit`, `overflow`,
+`line_side`. Picked stock waits in a `packing` zone (a `staging` zone if
+there is none), and neither is offered for put-away or reservation.
 
 #### POST /v1/locations
 ```json
@@ -616,11 +659,11 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 | `stock.moved` | sku, batch, qty, from, to, reason | ERP |
 | `stock.adjusted` | sku, batch, location, qty_change, uom, reason, ledger_id | ERP |
 | `replenishment.completed` | replen_ref, lines with qty moved | ERP |
-| `delivery.allocated` | lines: qty_ordered, qty_allocated | ERP |
-| `delivery.picked` | lines: qty_picked, short reasons | ERP |
-| `delivery.packed` | packages: package_no, weight, dims, contents | Carriers, Platen |
+| `delivery.allocated` | delivery_ref, complete, lines: qty_ordered, qty_allocated | ERP |
+| `delivery.picked` | delivery_ref, complete, lines: qty_picked, short_reason | ERP |
+| `delivery.packed` | delivery_ref, packages: package_no, weight, dims, contents | Carriers, Platen |
 | `delivery.shipped` | carrier, tracking_no, short, lines: qty_ordered/qty_shipped, packages | ERP, carriers, EDI |
-| `delivery.cancelled` | reason | ERP |
+| `delivery.cancelled` | delivery_ref, reason | ERP |
 | `transfer.shipped` | transfer_ref, from/to warehouse, lines qty_requested/qty_shipped, packages | ERP |
 | `transfer.received` | transfer_ref, complete, lines qty_shipped/qty_received/variance | ERP |
 | `production.components_issued` | po_ref, lines qty_requested/qty_issued, deliver_to | ERP |
@@ -629,6 +672,7 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 ### `delivery.shipped` data
 ```json
 {
+  "delivery_ref": "0080012345",
   "carrier": "TBC",
   "tracking_no": null,
   "short": true,
