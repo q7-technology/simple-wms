@@ -90,7 +90,10 @@ describe("Menu", () => {
     expect(screen.getByText("0 queued · all synced")).toBeInTheDocument();
     expect(screen.getByText("Idle logout in 15 min")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Look up" })).toHaveAttribute("href", "/lookup");
-    expect(screen.getByTitle("Step 3")).toHaveTextContent("Pick");
+    // outbound arrived with build step 3; production receipts are still to come
+    expect(screen.getByRole("link", { name: "Pick" })).toHaveAttribute("href", "/pick");
+    expect(screen.getByRole("link", { name: "Pack" })).toHaveAttribute("href", "/pack");
+    expect(screen.getByTitle("Step 5")).toHaveTextContent("Production receipt");
   });
 
   it("routes a typed location scan to the lookup screen", async () => {

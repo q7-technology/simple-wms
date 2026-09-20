@@ -16,10 +16,12 @@ function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
 }
 
-/** Where a task opens on the scanner. Only receive and count exist in this build step. */
-function taskPath(type: string, id: string): string | null {
+/** Where a task opens on the scanner. Packing is worked by delivery reference. */
+function taskPath(type: string, id: string, ref?: string): string | null {
   if (type === "receive") return `/receive/${id}`;
   if (type === "count") return `/count/${id}`;
+  if (type === "pick") return `/pick/${id}`;
+  if (type === "pack") return ref ? `/pack/${ref}` : null;
   return null;
 }
 
@@ -40,6 +42,7 @@ const ICON = {
   receive: <Icon><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></Icon>,
   move: <Icon><path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" /></Icon>,
   count: <Icon><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></Icon>,
+  pack: <Icon><path d="M12 3v6" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /></Icon>,
   lookup: <Icon><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></Icon>,
 };
 
@@ -109,7 +112,7 @@ export function Menu() {
           return;
         }
         case "task": {
-          const path = taskPath(str("type"), str("task_id"));
+          const path = taskPath(str("type"), str("task_id"), str("source_ref") || str("external_ref") || undefined);
           if (path) navigate(path);
           else setNotice(LATER);
           return;
@@ -124,7 +127,7 @@ export function Menu() {
   useScanWedge((code) => { void onScan(code); });
 
   const openTask = (t: Task) => {
-    const path = taskPath(t.type, t.wms_id);
+    const path = taskPath(t.type, t.wms_id, t.source_ref ?? undefined);
     if (path) navigate(path);
     else setNotice(LATER);
   };
@@ -186,7 +189,8 @@ export function Menu() {
         <div className="flex flex-col gap-2">
           <span className="eyebrow text-muted">Start a task</span>
           <div className="grid grid-cols-2 gap-3">
-            <LaterTile label="Pick" step="Step 3" icon={ICON.pick} />
+            <Tile to="/pick" label="Pick" icon={ICON.pick} />
+            <Tile to="/pack" label="Pack" icon={ICON.pack} />
             <LaterTile label="Production receipt" step="Step 5" icon={ICON.production} />
             <Tile to="/receive" label="Receive" icon={ICON.receive} />
             <Tile to="/move" label="Move" icon={ICON.move} />
