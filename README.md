@@ -10,12 +10,12 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Multi-warehouse from day one** — transfers with an in-transit bucket
 - **Prints nothing itself** — versioned template + JSON to Platen or any print service
 
-Status: **build step 4 (Platen) done**. On top of steps 1 to 3: seven
-versioned document types, print points that map an event to a template and a
-printer, a durable job queue with the same backoff as events, the status
-Platen sends back, and reprints that resend the same data. The WMS still
-renders nothing itself. Step 5 (batch pick and sort, production orders,
-transfers) is next.
+Status: **build step 5 (more work) done** at the API. On top of steps 1 to 4:
+transfers between warehouses with a real in-transit bucket, production orders
+that issue components to the line and take finished goods back pallet by
+pallet, and batch picking that collapses several orders into one walk sorted
+into totes. The step 5 screens are being built. Step 6 (containers and SSCC,
+multiple owners, reports) is next.
 
 ## What is in this repo
 

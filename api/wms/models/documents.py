@@ -287,3 +287,45 @@ class ProductionReceipt(Base):
     created_at: Mapped[datetime] = created_at_column()
 
     order: Mapped[ProductionOrder] = relationship(back_populates="receipts")
+
+
+class PickBatch(Base):
+    """One walk for several orders. Stops collapse; totes keep them apart."""
+
+    __tablename__ = "pick_batch"
+    __table_args__ = (UniqueConstraint("owner", "external_ref"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner: Mapped[str] = mapped_column(String(32), default="DEFAULT")
+    external_ref: Mapped[str] = mapped_column(String(64))
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    # new, picking, picked, cancelled
+    status: Mapped[str] = mapped_column(String(16), default="new", index=True)
+    assigned_to: Mapped[str | None] = mapped_column(String(64))
+    device: Mapped[str | None] = mapped_column(String(64))
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = created_at_column()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    members: Mapped[list[PickBatchMember]] = relationship(
+        back_populates="batch", cascade="all, delete-orphan", order_by="PickBatchMember.tote")
+
+
+class PickBatchMember(Base):
+    """One order in the batch, and the tote its items go in."""
+
+    __tablename__ = "pick_batch_member"
+    __table_args__ = (UniqueConstraint("batch_id", "delivery_id"),
+                      UniqueConstraint("batch_id", "tote"))
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("pick_batch.id"), index=True)
+    delivery_id: Mapped[int] = mapped_column(ForeignKey("delivery.id"), index=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("task.id"))
+    tote: Mapped[str] = mapped_column(String(16))
+
+    batch: Mapped[PickBatch] = relationship(back_populates="members")

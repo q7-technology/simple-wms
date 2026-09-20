@@ -46,8 +46,9 @@ decimals and always carry a unit of measure.
   }]
 }
 ```
-- `pick_mode`: `single`, `batch` or `auto` (WMS decides by order size/zone).
-  Batch picking arrives with build step 5; until then every mode picks singly.
+- `pick_mode`: `single`, `batch` or `auto` (the WMS decides by zone).
+  `batch` and `auto` orders are offered to the batch builder below; a
+  `single` order is never batched.
 - `batch: null` = WMS picks by FIFO. Set it to force a batch.
 - Stock is reserved immediately; the reply says what could not be allocated:
 ```json
@@ -373,6 +374,46 @@ location. This step wants a product." Unknown scans are written to the
 audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
 Custom per-site patterns come later.
+
+## Batch picking
+
+One walk for several orders. Each order keeps its own pick task, its own
+reservations and its own ledger lines, so nothing about a delivery changes
+because it was picked alongside others. The batch decides the order of the
+walk and which tote each order's items go in.
+
+- `GET /v1/pick-batches/suggest?warehouse=` — waiting orders worth walking
+  together, grouped by the zone they mostly sit in, with `lines`, `stops`
+  and `saved` (lines minus stops) so the value is visible before anyone
+  commits. Respects the warehouse's `batch_pick_max_orders`.
+- `POST /v1/pick-batches` — `{ message_id, warehouse, deliveries: ["D1",
+  "D2"], assigned_to, note }` → `BP-0001`. Every order must be waiting and
+  not already in a batch; one that has started picking is a `422`.
+- `GET /v1/pick-batches/{ref}` — the batch with its totes and the stops that
+  are left:
+```json
+{
+  "external_ref": "BP-0001", "status": "picking", "orders": 3, "lines": 4,
+  "done_stops": 1,
+  "totes": [{ "tote": "1", "delivery": "D1", "ship_to": "Repco", "status": "picked", "lines": 1 }],
+  "stops": [{
+    "stop": 1, "location": "PF-01-02-A", "zone": "PICKFACE", "pick_sequence": 120,
+    "sku": "ABC123", "name": "Brake pad set", "batch": null, "qty": "18", "uom": "EA",
+    "picks": [{ "tote": "1", "delivery": "D1", "qty": "6" },
+              { "tote": "2", "delivery": "D2", "qty": "8" }]
+  }]
+}
+```
+- `POST /v1/pick-batches/{ref}/stops/{n}/confirm` — `{ message_id, picks,
+  reason, supervisor_badge, operator, device }`. With no `picks` every tote
+  gets what it asked for. With `picks: [{tote, qty}]` the scanner says what
+  actually went in each tote as it sorts; a tote that gets less is short,
+  which needs a `reason` and a `supervisor_badge` exactly like a single
+  pick, and raises the same count task for that shelf. Stops renumber as
+  they are done, so stop 1 is always the next one.
+- `POST /v1/pick-batches/{ref}/cancel` — only the grouping goes. Every order
+  keeps its task, its reservations and its place in the queue.
+- Statuses: `new`, `picking`, `picked`, `cancelled`.
 
 ## Tasks
 
