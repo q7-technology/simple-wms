@@ -363,7 +363,8 @@ ledger records where it really went.
 }
 ```
 Formats tried in order: GS1 (with or without a symbology prefix such as
-`]Q3` or `]C1`, and Digital Link URLs) → JSON in QR → plain text lookup.
+`]Q3` or `]C1`, and Digital Link URLs) → JSON in QR → the site's own
+patterns → plain text lookup.
 Plain text is matched as a location code or barcode (in `warehouse` if
 given), then a SKU, a product barcode (carton barcodes carry their
 `qty`), an operator badge, a receipt reference, then a task (`T-123`).
@@ -373,7 +374,38 @@ adds `matches_expected` and a friendly `message` such as "That is a
 location. This step wants a product." Unknown scans are written to the
 audit log with their raw text. A production-order QR resolves to
 `{ "type": "production_order", "fields": { "po", "sku", "batch", "qty" } }`.
-Custom per-site patterns come later.
+A scan read by a site pattern says which one in `pattern` and sets
+`format: "custom"`.
+
+### Scan patterns — the labels only your site prints
+A supplier's own carton label is nobody's standard. A pattern is a regular
+expression with named parts, and the names say what the WMS found.
+
+```json
+{ "warehouse": "BAL-WH01", "name": "Supplier Co carton",
+  "pattern": "^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)-(?P<qty>\\d+)$",
+  "type": "product", "order": 100, "active": true }
+```
+- Names the WMS understands: `sku`, `gtin`, `batch`, `qty`, `uom`,
+  `location`, `container_id`, `sscc`, `badge`, `operator`, `ref`, `po`,
+  `serial`. A pattern naming anything else is a `422`, because it would find
+  something nothing could use.
+- `type` says what a match is: `product`, `location`, `container`,
+  `operator`, `receipt`, `delivery`, `production_order` or `task`.
+- `order` decides which is tried first, lowest first, so a tight pattern can
+  sit ahead of a loose one. A null `warehouse` applies everywhere.
+- `POST /v1/scan-patterns` creates or updates by warehouse and name, and
+  compiles the pattern before saving it, so a broken one never reaches a
+  scanner. `POST /v1/scan-patterns/try` — `{ pattern, raw }` → `{ matches,
+  fields }` tries one before it is saved.
+- `GET /v1/scan-patterns?warehouse=`, and
+  `POST /v1/scan-patterns/{id}/deactivate`.
+- `GET /v1/scan-patterns/unknown?warehouse=` lists the scans nothing could
+  read, most seen first, with their raw text. This is what the raw text was
+  kept for: it is where the next pattern comes from.
+
+Writing a pattern needs `master:write`; reading and trying needs
+`stock:read`.
 
 ## Reports
 

@@ -117,3 +117,27 @@ class InboundMessage(Base):
     # how many times the same message_id came back, and when it last did
     duplicates: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_duplicate_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ScanPattern(Base):
+    """A pattern a site writes for its own labels: the parser's third rung,
+    after GS1 and JSON and before the plain lookup."""
+
+    __tablename__ = "scan_pattern"
+    __table_args__ = (UniqueConstraint("warehouse_id", "name", postgresql_nulls_not_distinct=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # null means every warehouse
+    warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    # a Python regular expression with named groups for the fields it finds
+    pattern: Mapped[str] = mapped_column(String(500))
+    # what a match means: product, location, container, operator, receipt,
+    # delivery, production_order, task
+    type: Mapped[str] = mapped_column(String(32), default="product")
+    # lowest first, so a site can put its tightest pattern ahead of a loose one
+    order: Mapped[int] = mapped_column(Integer, default=100)
+    note: Mapped[str | None] = mapped_column(String(500))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = created_at_column()

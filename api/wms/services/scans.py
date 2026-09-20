@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from wms.models import Location, Operator, Product, ProductBarcode, Receipt, Task, Warehouse
+from wms.services.stock import RuleError
 from wms.services import audit
 from wms.services.qty import qstr
 
@@ -101,6 +102,89 @@ def looks_like_gs1(raw: str) -> bool:
     return raw[:2] in ("00", "01", "02") and len(raw) >= 16 and raw[:16].isdigit()
 
 
+# What a custom pattern may name. A pattern that finds something the WMS has
+# no idea what to do with is a typo, not a feature.
+PATTERN_FIELDS = {"sku", "gtin", "batch", "qty", "uom", "location", "container_id", "sscc",
+                  "badge", "operator", "ref", "po", "serial"}
+PATTERN_TYPES = {"product", "location", "container", "operator", "receipt", "delivery",
+                 "production_order", "task"}
+
+
+def check_pattern(pattern: str) -> list[str]:
+    """Compile it and say which fields it finds. Raises RuleError if it will
+    never be any use."""
+    try:
+        compiled = re.compile(pattern)
+    except re.error as exc:
+        raise RuleError("pattern", f"that is not a working pattern: {exc}") from exc
+    fields = list(compiled.groupindex)
+    if not fields:
+        raise RuleError("pattern", "a pattern needs named parts, like (?P<sku>...), "
+                                   "so the WMS knows what it found")
+    unknown = [f for f in fields if f not in PATTERN_FIELDS]
+    if unknown:
+        raise RuleError("pattern", f"the WMS has no use for {', '.join(sorted(unknown))}; "
+                                   f"it knows {', '.join(sorted(PATTERN_FIELDS))}")
+    return fields
+
+
+def site_patterns(db: Session, warehouse: Warehouse | None):
+    from wms.models import ScanPattern
+
+    rows = db.execute(
+        select(ScanPattern).where(ScanPattern.active.is_(True)).order_by(ScanPattern.order, ScanPattern.id)
+    ).scalars().all()
+    return [p for p in rows
+            if p.warehouse_id is None or (warehouse and p.warehouse_id == warehouse.id)]
+
+
+def _from_pattern(db: Session, pattern, fields: dict, owner: str, wh) -> tuple[str, dict | None, str | None]:
+    """Turn what a pattern found into something the WMS knows."""
+    if pattern.type == "product":
+        sku = fields.get("sku")
+        found = None
+        if sku:
+            found = db.execute(select(Product).where(
+                Product.owner == owner, Product.sku == sku)).scalar_one_or_none()
+        if found is None and fields.get("gtin"):
+            got = _by_barcode(db, fields["gtin"], owner)
+            found = got[0] if got else None
+        if found is None:
+            return "product", None, f"No product {sku or fields.get('gtin')}"
+        qty = Decimal(fields["qty"]) if fields.get("qty") else None
+        out = _product_out(found, qty, None)
+        if fields.get("batch"):
+            out["batch"] = fields["batch"]
+        if fields.get("uom"):
+            out["uom"] = fields["uom"]
+        return "product", out, None
+    if pattern.type == "location":
+        code = fields.get("location") or fields.get("ref")
+        q = select(Location).where((Location.code == code) | (Location.barcode == code))
+        if wh:
+            q = q.where(Location.warehouse_id == wh.id)
+        loc = db.execute(q).scalars().first()
+        if loc is None:
+            return "location", None, f"No location {code}"
+        return "location", {"location": loc.code, "zone": loc.zone.code,
+                            "warehouse": loc.warehouse.code}, None
+    if pattern.type == "container":
+        code = fields.get("container_id") or fields.get("sscc") or fields.get("ref")
+        found = _container(db, code or "", owner)
+        return "container", found, (None if found else f"No container {code}")
+    if pattern.type == "operator":
+        badge = fields.get("badge") or fields.get("operator") or fields.get("ref")
+        op = db.execute(select(Operator).where(
+            Operator.badge == badge, Operator.active.is_(True))).scalar_one_or_none()
+        if op is None:
+            return "operator", None, f"No operator with badge {badge}"
+        return "operator", {"operator": op.code, "name": op.name,
+                            "supervisor": "supervisor" in (op.roles or [])}, None
+    # a reference of some kind: hand back what the pattern found
+    ref = fields.get("ref") or fields.get("po")
+    return pattern.type, ({"ref": ref} if ref else None), (None if ref else "Nothing to look up")
+
+
 NOUN = {"product": "a product", "location": "a location", "operator": "an operator badge", "receipt": "a receipt",
         "container": "a container", "production_order": "a production order", "task": "a task", "unknown": "unknown"}
 
@@ -136,7 +220,8 @@ def _by_barcode(db: Session, code: str, owner: str) -> tuple[Product, ProductBar
 def parse(db: Session, raw: str, *, warehouse: str | None, owner: str = "DEFAULT", expecting: str | None = None,
           device: str | None = None) -> dict[str, Any]:
     raw = raw.strip()
-    result: dict[str, Any] = {"raw": raw, "format": "plain", "type": "unknown", "fields": {}, "resolved": None}
+    result: dict[str, Any] = {"raw": raw, "format": "plain", "type": "unknown", "fields": {},
+                              "resolved": None, "pattern": None}
     wh = db.execute(select(Warehouse).where(Warehouse.code == warehouse)).scalar_one_or_none() if warehouse else None
 
     fields = parse_gs1(raw) if looks_like_gs1(raw) else None
@@ -191,6 +276,22 @@ def parse(db: Session, raw: str, *, warehouse: str | None, owner: str = "DEFAULT
                     result["type"] = "product"
                     result["resolved"] = _product_out(p, Decimal(str(data.get("qty"))) if data.get("qty") is not None else None, None)
             return _finish(db, result, expecting, warehouse, device)
+
+    # a pattern the site wrote for its own labels
+    for pattern in site_patterns(db, wh):
+        match = re.match(pattern.pattern, raw)
+        if not match:
+            continue
+        fields = {k: v for k, v in match.groupdict().items() if v is not None}
+        result["format"] = "custom"
+        result["pattern"] = pattern.name
+        result["fields"] = fields
+        kind, resolved, message = _from_pattern(db, pattern, fields, owner, wh)
+        result["type"] = kind
+        result["resolved"] = resolved
+        if message:
+            result["message"] = message
+        return _finish(db, result, expecting, warehouse, device)
 
     # plain text, tried in order
     q = select(Location).where((Location.code == raw) | (Location.barcode == raw))
