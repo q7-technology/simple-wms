@@ -34,6 +34,38 @@ const EVENTS: OutboundEvent[] = [
   { wms_id: "e4", event_id: "0192-aaaa-8a31", event_type: "stock.adjusted", subscriber: "ERP bridge", warehouse: "BAL-WH01", owner: "DEFAULT", external_ref: "L-889201", occurred_at: now, status: "pending", attempts: 0, next_attempt_at: now, last_error: null, delivered_at: null },
 ];
 
+const WAREHOUSES = [{
+  wms_id: "w1", code: "BAL-WH01", site: "BAL", name: "Ballarat", active: true,
+  settings: {
+    erp_counts_gr: true, batch_from_production_order: true, receipt_tolerance_pct: 2, supplier_tolerance_pct: 5,
+    allow_ship_short: false, supervisor_for_short_pick: true, auto_pick_mode: "auto", batch_pick_max_orders: 6,
+    idle_logout_minutes: 15, pin_lockout_tries: 5, known_devices_only: true, queue_offline_confirmations: true,
+    fifo_by_received_date: true, blind_counts: true, decimals_allowed: true, multi_owner: false,
+    gs1_company_prefix: null, sscc_extension_digit: 3, platen_url: null, retry_failed_print_jobs: true,
+    default_copies: 1, ledger_retention_years: 7, duplicate_window_hours: 24, allow_hard_deletes: false,
+  },
+}];
+
+const PATTERNS = [
+  {
+    wms_id: "p1", warehouse: "BAL-WH01", name: "Supplier Co carton",
+    pattern: "^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)-(?P<qty>\\d+)$",
+    type: "product", order: 100, fields: ["sku", "batch", "qty"], note: null, active: true,
+    created_by: "leighton", created_at: now,
+  },
+  {
+    wms_id: "p2", warehouse: null, name: "Old shelf label",
+    pattern: "^SHELF-(?P<location>[A-Z0-9-]+)$",
+    type: "location", order: 200, fields: ["location"], note: null, active: false,
+    created_by: "leighton", created_at: now,
+  },
+];
+
+const UNKNOWN = [
+  { raw: "SUPABC123-B2601-24", seen: 12, last_seen_at: now, expecting: "product" },
+  { raw: "??0099887766", seen: 3, last_seen_at: now, expecting: null },
+];
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/integrations"]}>
@@ -56,7 +88,21 @@ describe("Integrations", () => {
       if (method === "POST") posted.push({ url, body: init.body ? JSON.parse(String(init.body)) : undefined });
       if (url === "/v1/auth/refresh") return jsonResponse(200, { token: "t2", refresh_token: "r2", expires_in: 900 });
       if (url === "/v1/auth/me") return jsonResponse(200, { wms_id: "1", username: "leighton", display_name: "Leighton L.", role: "admin", warehouses: ["*"], scopes: ["*"], kind: "user" });
-      if (url === "/v1/warehouses") return jsonResponse(200, { items: [], total: 0 });
+      if (url === "/v1/warehouses") return jsonResponse(200, { items: WAREHOUSES, total: 1 });
+      if (url.startsWith("/v1/print-points")) return jsonResponse(200, { items: [], total: 0 });
+      if (url.startsWith("/v1/scan-patterns/unknown")) return jsonResponse(200, { items: UNKNOWN, total: UNKNOWN.length });
+      if (url === "/v1/scan-patterns/try" && method === "POST") {
+        const body = JSON.parse(String(init.body)) as { pattern: string; raw: string };
+        if (body.pattern.includes("colour")) {
+          return jsonResponse(422, { errors: [{ field: "pattern", message: "the WMS has no use for colour" }] });
+        }
+        if (body.raw === "SUPABC123-B2601-24" && body.pattern.startsWith("^SUP")) {
+          return jsonResponse(200, { matches: true, fields: { sku: "ABC123", batch: "B2601", qty: "24" } });
+        }
+        return jsonResponse(200, { matches: false, fields: {} });
+      }
+      if (url === "/v1/scan-patterns" && method === "POST") return jsonResponse(201, { ...PATTERNS[0], wms_id: "p9", name: "Supplier Co carton" });
+      if (url.startsWith("/v1/scan-patterns") && method === "GET") return jsonResponse(200, { items: PATTERNS, total: PATTERNS.length });
       if (url === "/v1/api-clients" && method === "GET") return jsonResponse(200, { items: CLIENTS, total: CLIENTS.length });
       if (url === "/v1/api-clients" && method === "POST") {
         return jsonResponse(201, { ...CLIENTS[0], wms_id: "c9", name: "Carrier A", key_prefix: "wms_k_new1", key: "wms_k_new1_SECRETVALUE" });
@@ -146,5 +192,109 @@ describe("Integrations", () => {
     expect(panel.getByText("17")).toBeInTheDocument();
     expect(await panel.findByRole("button", { name: "Rotate key" })).toBeInTheDocument();
     expect(panel.getByRole("button", { name: "Revoke" })).toBeInTheDocument();
+  });
+
+  it("lists the site's scan patterns and the scans nothing could read", async () => {
+    renderPage();
+    expect(await screen.findByText("Supplier Co carton")).toBeInTheDocument();
+    // Reads, sentence-cased; the fields it finds; the expression itself.
+    expect(screen.getByText("Product")).toBeInTheDocument();
+    expect(screen.getByText("sku, batch, qty")).toBeInTheDocument();
+    expect(screen.getByText("^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)-(?P<qty>\\d+)$")).toBeInTheDocument();
+    // A null warehouse applies everywhere, and an inactive pattern is Off.
+    expect(screen.getByText("Old shelf label")).toBeInTheDocument();
+    // The event-queue filter chip is also "All"; the cell is the one that is not a button.
+    expect(screen.getAllByText("All").filter((el) => el.tagName !== "BUTTON")).toHaveLength(1);
+    expect(screen.getByText("On")).toBeInTheDocument();
+    expect(screen.getByText("Off")).toBeInTheDocument();
+    expect(screen.getByText("Tried after GS1 and JSON, before the plain lookup.")).toBeInTheDocument();
+
+    // The unread scans, most seen first, with what the step was expecting.
+    expect(screen.getByText("SUPABC123-B2601-24")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("??0099887766")).toBeInTheDocument();
+
+    // Both lists are asked for by warehouse.
+    expect(fetchMock.mock.calls.some((c) => c[0] === "/v1/scan-patterns?warehouse=BAL-WH01")).toBe(true);
+    expect(fetchMock.mock.calls.some((c) => c[0] === "/v1/scan-patterns/unknown?warehouse=BAL-WH01")).toBe(true);
+  });
+
+  it("opens a pattern from an unread scan with the raw text already in the try box", async () => {
+    renderPage();
+    await screen.findByText("SUPABC123-B2601-24");
+    const user = userEvent.setup();
+    const write = await screen.findAllByRole("button", { name: "Write a pattern" });
+    expect(write).toHaveLength(2);
+    await user.click(write[0]);
+
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+    expect(panel.getByText("Scan pattern")).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Try it against/)).toHaveValue("SUPABC123-B2601-24");
+  });
+
+  it("tries a pattern before it is saved and says what it found", async () => {
+    renderPage();
+    await screen.findByText("SUPABC123-B2601-24");
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole("button", { name: "Write a pattern" }))[0]);
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    expect(panel.getByText("No match yet.")).toBeInTheDocument();
+    await user.click(panel.getByLabelText(/^Pattern/));
+    await user.paste("^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)-(?P<qty>[0-9]+)$");
+    await user.click(panel.getByRole("button", { name: "Try" }));
+
+    expect(await panel.findByText("Matches · sku ABC123 · batch B2601 · qty 24")).toBeInTheDocument();
+    const call = posted.find((p) => p.url === "/v1/scan-patterns/try")!;
+    expect(call.body).toEqual({
+      pattern: "^SUP(?P<sku>[A-Z0-9]+)-(?P<batch>[A-Z0-9]+)-(?P<qty>[0-9]+)$",
+      raw: "SUPABC123-B2601-24",
+    });
+  });
+
+  it("shows the API's complaint under the pattern when it will not do", async () => {
+    renderPage();
+    await screen.findByText("SUPABC123-B2601-24");
+    const user = userEvent.setup();
+    await user.click((await screen.findAllByRole("button", { name: "Write a pattern" }))[0]);
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+    await user.click(panel.getByLabelText(/^Pattern/));
+    await user.paste("^(?P<colour>.+)$");
+    await user.click(panel.getByRole("button", { name: "Try" }));
+    expect(await panel.findByText("the WMS has no use for colour")).toBeInTheDocument();
+  });
+
+  it("saves a new pattern for the current warehouse", async () => {
+    renderPage();
+    await screen.findByText("SUPABC123-B2601-24");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "New pattern" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    await user.type(panel.getByLabelText(/^Name/), "Supplier Co carton");
+    await user.click(panel.getByLabelText(/^Pattern/));
+    await user.paste("^SUP(?P<sku>[A-Z0-9]+)$");
+    await user.selectOptions(panel.getByLabelText(/^Reads/), "product");
+    await user.click(panel.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(posted.some((p) => p.url === "/v1/scan-patterns")).toBe(true));
+    const call = posted.find((p) => p.url === "/v1/scan-patterns")!;
+    expect(call.body).toEqual({
+      warehouse: "BAL-WH01", name: "Supplier Co carton", pattern: "^SUP(?P<sku>[A-Z0-9]+)$",
+      type: "product", order: 100, note: null, active: true,
+    });
+  });
+
+  it("selects a pattern from the table into the form", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Old shelf label"));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+    expect(panel.getByLabelText(/^Name/)).toHaveValue("Old shelf label");
+    expect(panel.getByLabelText(/^Reads/)).toHaveValue("location");
+    expect(panel.getByLabelText(/^Warehouse/)).toHaveValue("");
+    expect(panel.getByLabelText(/^Order/)).toHaveValue(200);
+    // It is off already, so there is nothing to turn off.
+    expect(panel.queryByRole("button", { name: "Turn off" })).not.toBeInTheDocument();
   });
 });

@@ -467,6 +467,7 @@ export function Integrations() {
   // Rows handed back by create, kept until the list catches up.
   const [freshKey, setFreshKey] = useState<ApiClientRow | null>(null);
   const [freshSub, setFreshSub] = useState<Subscriber | null>(null);
+  const [freshPattern, setFreshPattern] = useState<ScanPattern | null>(null);
   const [filter, setFilter] = useState<EventFilter>("all");
   const retry = useAction();
 
@@ -573,7 +574,8 @@ export function Integrations() {
     ? subscribers.data?.items.find((s) => s.wms_id === selection.id) ?? (freshSub?.wms_id === selection.id ? freshSub : null)
     : null;
   const selectedPattern = selection.kind === "pattern"
-    ? patterns.data?.items.find((p) => p.wms_id === selection.id) ?? null
+    ? patterns.data?.items.find((p) => p.wms_id === selection.id)
+      ?? (freshPattern?.wms_id === selection.id ? freshPattern : null)
     : null;
   const selectedRowKey =
     selection.kind === "key" || selection.kind === "subscriber" || selection.kind === "pattern"
@@ -586,10 +588,13 @@ export function Integrations() {
           eyebrow="API in, events out"
           accent="Integrations"
           title="and printing"
-          actions={admin ? <>
-            <Button onClick={() => select({ kind: "new-subscriber" })}>Add subscriber</Button>
-            <Button variant="primary" onClick={() => select({ kind: "new-key" })}>Create API key</Button>
-          </> : undefined}
+          actions={<>
+            {writesMaster && <Button onClick={() => select({ kind: "new-pattern", raw: "" })}>New pattern</Button>}
+            {admin && <>
+              <Button onClick={() => select({ kind: "new-subscriber" })}>Add subscriber</Button>
+              <Button variant="primary" onClick={() => select({ kind: "new-key" })}>Create API key</Button>
+            </>}
+          </>}
         />
 
         <Section title="API keys (who may call in)">
@@ -631,6 +636,29 @@ export function Integrations() {
           <Muted className="text-xs leading-4">
             Manage them on the <Link to="/printing">Printing screen</Link>.
           </Muted>
+        </Section>
+
+        <Section title="Scan patterns (the labels only your site prints)">
+          {patterns.error && <Notice tone="gold">{patterns.error}</Notice>}
+          <Table
+            columns={patternColumns}
+            rows={patterns.data?.items ?? []}
+            rowKey={(r) => r.wms_id}
+            onRowClick={(r) => select({ kind: "pattern", id: r.wms_id })}
+            selectedKey={selectedRowKey}
+            empty={patterns.loading ? "Loading…" : "No patterns yet. Every scan the WMS cannot read is listed below; that is where a pattern comes from."}
+          />
+          <Muted className="text-xs leading-4">Tried after GS1 and JSON, before the plain lookup.</Muted>
+        </Section>
+
+        <Section title="Scans nothing could read">
+          {unknown.error && <Notice tone="gold">{unknown.error}</Notice>}
+          <Table
+            columns={unknownColumns}
+            rows={unknown.data?.items ?? []}
+            rowKey={(r) => r.raw}
+            empty={unknown.loading ? "Loading…" : "Nothing unread. Every scan so far has been understood."}
+          />
         </Section>
 
         <Section
@@ -698,7 +726,27 @@ export function Integrations() {
             reload={subscribers.reload}
           />
         )}
-        {(selection.kind === "none" || (selection.kind === "key" && !selectedKey) || (selection.kind === "subscriber" && !selectedSub)) && (
+        {selection.kind === "new-pattern" && (
+          <PatternForm
+            key={`new-pattern:${selection.raw}`}
+            row={null}
+            startRaw={selection.raw}
+            onCancel={() => select({ kind: "none" })}
+            onSaved={(row) => { setFreshPattern(row); setSelection({ kind: "pattern", id: row.wms_id }); }}
+            reload={patterns.reload}
+          />
+        )}
+        {selection.kind === "pattern" && selectedPattern && (
+          <PatternForm
+            key={selectedPattern.wms_id}
+            row={selectedPattern}
+            startRaw=""
+            onCancel={() => select({ kind: "none" })}
+            onSaved={(row) => setFreshPattern(row)}
+            reload={patterns.reload}
+          />
+        )}
+        {(selection.kind === "none" || (selection.kind === "key" && !selectedKey) || (selection.kind === "subscriber" && !selectedSub) || (selection.kind === "pattern" && !selectedPattern)) && (
           <DetailHeader eyebrow="Integrations" title="—" subtitle="Pick a key or a subscriber to see its details. Other systems only ever talk to the API." />
         )}
       </DetailPanel>

@@ -79,7 +79,7 @@ export function Shell() {
         <div className="flex items-center gap-2 text-sm leading-5">
           {warnIdle && (
             <span className="inline-flex items-center gap-2 rounded-full border border-gold-line px-2.5 py-0.5 text-xs leading-4 font-semibold text-gold whitespace-nowrap">
-              Signing out in {countdown(idleLeftSeconds)}
+              <span>Signing out in {countdown(idleLeftSeconds)}</span>
               <button type="button" onClick={touch} className="text-gold underline cursor-pointer bg-transparent border-0 p-0 text-xs font-semibold">
                 Stay signed in
               </button>
