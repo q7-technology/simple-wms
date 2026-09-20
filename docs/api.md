@@ -121,10 +121,23 @@ Events: `receipt.confirmed` (per put-away), `receipt.closed`.
   }]
 }
 ```
-- Reserves components and creates pick tasks; last step is "drop at
-  `deliver_to`". Short issue allowed; remainder stays open.
-- `output.batch` is optional. If present it must match the batch read from
-  the production order's QR at receipt time.
+- Reserves the components and raises one `production_issue` task that walks
+  the shelves and drops each line at its `deliver_to`, which must be a real
+  location in that warehouse. The reply carries an `allocation` list.
+- A short issue is allowed: close the task and the event reports what went.
+  The shortfall shows on the order as `short` per component.
+- Components sit at the line-side location until the line consumes them.
+  The line is outside the WMS, so the WMS never guesses what was used; a
+  count or an ERP adjustment squares it up. Stock in a `line_side` zone is
+  on hand but never promised to an order.
+- `output.batch` is optional. If it is set, a pallet coming back must carry
+  that batch, which is what the production order's QR gives the scanner.
+  Without it, a batch-tracked product still needs a batch scanned.
+- `GET /v1/production-orders?warehouse=&status=` lists;
+  `GET /v1/production-orders/{ref}` returns the order with its components,
+  its pallets and the issue task. `POST /v1/production-orders/{ref}/cancel`
+  gives the components back, and is refused once finished goods exist.
+- Statuses: `new`, `issuing`, `in_production`, `complete`, `cancelled`.
 - Events: `production.components_issued`, `production.received`.
 
 ### POST /v1/production-orders/{ref}/receipts — finished goods, one call per pallet
@@ -142,8 +155,14 @@ Events: `receipt.confirmed` (per put-away), `receipt.closed`.
   "device_id": "SCN-BAL-07"
 }
 ```
-Running total against `output.qty`; over-receipt beyond tolerance needs a
-supervisor. If the warehouse setting "ERP counted GR" is on, no event fires.
+One pallet per call. The reply carries `received_total`, `expected`,
+`complete` and `event_sent`. The running total is kept against `output.qty`;
+going over the warehouse's receipt tolerance is `409 needs_supervisor` until
+a `supervisor_badge` is scanned. A wrong `sku` or `batch` is a `422`.
+
+If the warehouse setting `erp_counts_gr` is on, the WMS assigns the bin and
+writes the ledger line but sends no `production.received`, because the ERP
+has already counted the stock. The reply says `event_sent: false`.
 
 ### POST /v1/replenishments
 ```json
@@ -308,6 +327,9 @@ line cannot hold more than was picked for that delivery line.
 ```
 Omit `warehouse` to search every site. Locations come back oldest receipt
 first (FIFO order). Quantities are decimal strings so nothing rounds them.
+`available` means what could still be promised to an order: stock on a
+packing bench, at the line or in an in-transit bucket is `on_hand` but
+`available: "0"`, because it is already spoken for or not there yet.
 `GET /v1/locations/{id}/stock` is the reverse: what is on a shelf. Filters:
 `batch`, `owner`.
 
@@ -698,8 +720,8 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 | `delivery.cancelled` | delivery_ref, reason | ERP |
 | `transfer.shipped` | transfer_ref, from/to warehouse, lines qty_requested/qty_shipped, packages | ERP |
 | `transfer.received` | transfer_ref, complete, lines qty_shipped/qty_received/variance | ERP |
-| `production.components_issued` | po_ref, lines qty_requested/qty_issued, deliver_to | ERP |
-| `production.received` | po_ref, sku, batch, qty, location | ERP (unless ERP already counted GR) |
+| `production.components_issued` | po_ref, complete, lines qty_requested/qty_issued, deliver_to | ERP |
+| `production.received` | po_ref, sku, batch, qty, uom, location, container_id, operator, received_total, expected, complete | ERP (unless ERP already counted GR) |
 
 ### `delivery.shipped` data
 ```json

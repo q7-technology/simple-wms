@@ -211,3 +211,79 @@ class TransferLine(Base):
     uom: Mapped[str] = mapped_column(String(16))
 
     transfer: Mapped[Transfer] = relationship(back_populates="lines")
+
+
+class ProductionOrder(Base):
+    """Make something: issue the components, take the finished goods back."""
+
+    __tablename__ = "production_order"
+    __table_args__ = (UniqueConstraint("owner", "external_ref"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner: Mapped[str] = mapped_column(String(32), default="DEFAULT")
+    external_ref: Mapped[str] = mapped_column(String(64))
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouse.id"), index=True)
+    required_by: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    priority: Mapped[str] = mapped_column(String(16), default="normal")
+    # what comes out
+    output_product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    output_batch: Mapped[str | None] = mapped_column(String(64))
+    output_qty: Mapped[Qty]
+    output_received: Mapped[Qty]
+    output_uom: Mapped[str] = mapped_column(String(16))
+    # new, issuing, in_production, complete, cancelled
+    status: Mapped[str] = mapped_column(String(16), default="new", index=True)
+    issue_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = created_at_column()
+    issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    components: Mapped[list[ProductionComponent]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", order_by="ProductionComponent.line_no")
+    receipts: Mapped[list[ProductionReceipt]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", order_by="ProductionReceipt.id")
+
+
+class ProductionComponent(Base):
+    __tablename__ = "production_component"
+    __table_args__ = (UniqueConstraint("order_id", "line_no"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("production_order.id"), index=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    batch: Mapped[str | None] = mapped_column(String(64))
+    qty_requested: Mapped[Qty]
+    qty_issued: Mapped[Qty]
+    uom: Mapped[str] = mapped_column(String(16))
+    # the line-side location the components are dropped at
+    deliver_to_id: Mapped[int] = mapped_column(ForeignKey("location.id"))
+
+    order: Mapped[ProductionOrder] = relationship(back_populates="components")
+
+
+class ProductionReceipt(Base):
+    """One pallet of finished goods coming back off the line."""
+
+    __tablename__ = "production_receipt"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("production_order.id"), index=True)
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    batch: Mapped[str | None] = mapped_column(String(64))
+    qty: Mapped[Qty]
+    uom: Mapped[str] = mapped_column(String(16))
+    location_id: Mapped[int] = mapped_column(ForeignKey("location.id"))
+    container_id: Mapped[str | None] = mapped_column(String(64))
+    ledger_id: Mapped[int | None] = mapped_column(ForeignKey("stock_ledger.id"))
+    operator: Mapped[str | None] = mapped_column(String(64))
+    device: Mapped[str | None] = mapped_column(String(64))
+    supervisor: Mapped[str | None] = mapped_column(String(64))
+    event_sent: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = created_at_column()
+
+    order: Mapped[ProductionOrder] = relationship(back_populates="receipts")

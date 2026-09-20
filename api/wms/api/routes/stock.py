@@ -15,6 +15,16 @@ from wms.models import Location, Product, StockBalance, Warehouse
 router = APIRouter(tags=["stock"])
 
 
+def promisable_qty(balance) -> Decimal:
+    """What could still be promised to an order. Stock on a packing bench, at
+    the line or in transit is on hand, but none of it is free."""
+    from wms.services.reservations import promisable
+
+    if not promisable(balance.location.zone.kind):
+        return Decimal(0)
+    return balance.on_hand - balance.reserved
+
+
 @router.get("/stock", response_model=StockBySku)
 def where_is_it(
     db: DB, sku: str = Query(), warehouse: str | None = None, batch: str | None = None,
@@ -45,7 +55,7 @@ def where_is_it(
         StockAtLocation(
             warehouse=r.location.warehouse.code, location=r.location.code,
             zone=r.location.zone.code, batch=r.batch, owner=r.owner,
-            on_hand=r.on_hand, reserved=r.reserved, available=r.on_hand - r.reserved,
+            on_hand=r.on_hand, reserved=r.reserved, available=promisable_qty(r),
             received_at=r.received_at,
         )
         for r in rows
@@ -99,7 +109,7 @@ def what_is_here(
         stock=[
             StockLine(
                 sku=r.product.sku, name=r.product.name, batch=r.batch, owner=r.owner,
-                on_hand=r.on_hand, reserved=r.reserved, available=r.on_hand - r.reserved,
+                on_hand=r.on_hand, reserved=r.reserved, available=promisable_qty(r),
                 uom=r.uom, received_at=r.received_at,
             )
             for r in rows

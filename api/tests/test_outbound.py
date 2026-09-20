@@ -245,9 +245,14 @@ def test_short_pick_needs_a_reason_and_a_supervisor_and_raises_a_count(client, d
     assert line["reason"] == "not_found"
     assert r.json()["task"]["status"] == "done"
 
-    # six moved, the rest of the reservation is released
+    # six moved to the bench, and the rest of the reservation is released
     assert reserved_at(db, s.bk1.id, s.abc.id) == Decimal("0")
-    assert client.get("/v1/stock", headers=headers, params={"sku": "ABC123"}).json()["total_available"] == "10"
+    stock_now = client.get("/v1/stock", headers=headers, params={"sku": "ABC123"}).json()
+    assert stock_now["total_on_hand"] == "10"
+    # only the four still on the shelf can be promised; the six are on the bench
+    assert stock_now["total_available"] == "4"
+    assert {(l["location"], l["on_hand"], l["available"]) for l in stock_now["locations"]} == {
+        ("BK-04-01-C", "4", "4"), ("PACK-01", "6", "0")}
 
     # a count task for that shelf, so the discrepancy is chased
     counts = client.get("/v1/tasks", headers=headers, params={"warehouse": "BAL-WH01", "type": "count"}).json()

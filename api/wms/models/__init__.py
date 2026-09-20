@@ -6,11 +6,12 @@ from wms.models.task import Task, TaskLine
 from wms.models.access import ApiClient, AuditLog, Device, Operator, User, UserSession
 from wms.models.integration import InboundMessage, OutboundEvent, PrintJob, PrintPoint, Subscriber
 from wms.models.documents import (
-    Delivery, DeliveryLine, Package, PackageLine, Receipt, ReceiptLine, Transfer, TransferLine,
+    Delivery, DeliveryLine, Package, PackageLine, ProductionComponent, ProductionOrder,
+    ProductionReceipt, Receipt, ReceiptLine, Transfer, TransferLine,
 )
 
 __all__ = [
     "Base", "Site", "Warehouse", "Zone", "Location", "Product", "ProductBarcode",
     "StockLedger", "StockBalance", "Task", "TaskLine", "User", "Operator", "Device",
-    "ApiClient", "AuditLog", "UserSession", "Subscriber", "OutboundEvent", "PrintJob", "PrintPoint", "InboundMessage", "Receipt", "ReceiptLine", "Delivery", "DeliveryLine", "Package", "PackageLine", "Transfer", "TransferLine",
+    "ApiClient", "AuditLog", "UserSession", "Subscriber", "OutboundEvent", "PrintJob", "PrintPoint", "InboundMessage", "Receipt", "ReceiptLine", "Delivery", "DeliveryLine", "Package", "PackageLine", "Transfer", "TransferLine", "ProductionOrder", "ProductionComponent", "ProductionReceipt",
 ]

@@ -15,6 +15,14 @@ from wms.services import stock
 RESERVING_TYPES = ("pick", "transfer_pick", "production_issue")
 OPEN_STATUSES = ("open", "variance")
 
+# Stock in these zones is on hand somewhere real, but it is not free to
+# promise: it is on a bench, at the line, or on its way to another warehouse.
+HELD_ZONE_KINDS = ("packing", "staging", "in_transit", "line_side")
+
+
+def promisable(zone_kind: str) -> bool:
+    return zone_kind not in HELD_ZONE_KINDS
+
 
 @dataclass(slots=True)
 class Reservation:
@@ -45,8 +53,8 @@ def allocate(db: Session, *, warehouse: Warehouse, product: Product, qty: Decima
     for balance, location in db.execute(q).all():
         if left <= 0:
             break
-        if location.zone.kind in ("packing", "staging", "in_transit"):
-            continue  # already promised to another order, or on its way somewhere
+        if not promisable(location.zone.kind):
+            continue  # on a bench, at the line, or on its way somewhere
         available = balance.on_hand - balance.reserved
         take = min(available, left)
         if take <= 0:

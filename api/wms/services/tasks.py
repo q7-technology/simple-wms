@@ -21,7 +21,8 @@ OPEN_LINE = ("open", "variance")
 FINISHED_LINE = ("done", "short", "cancelled")
 
 # what a confirmed line of each task type is called in the ledger
-MOVEMENT_TYPES = {"replenish": "replenish", "transfer_receive": "transfer_in"}
+MOVEMENT_TYPES = {"pick": "pick", "transfer_pick": "pick", "replenish": "replenish",
+                  "transfer_receive": "transfer_in", "production_issue": "production_issue"}
 
 TITLES = {
     "receive": "Receive", "putaway": "Put away", "pick": "Pick", "pack": "Pack", "ship": "Ship",
@@ -218,7 +219,7 @@ def confirm(db: Session, task: Task, line: TaskLine, *, qty: Decimal, uom: str |
         _confirm_receive(db, task, line, product, qty, batch, to_location, container_id, actor, note, received_at)
     elif task.type in ("move", "replenish", "putaway", "transfer_receive"):
         _confirm_move(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
-    elif task.type in ("pick", "transfer_pick"):
+    elif task.type in ("pick", "transfer_pick", "production_issue"):
         _confirm_pick(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
     elif task.type == "count":
         _confirm_count(db, task, line, product, qty, actor, reason, note)
@@ -340,7 +341,8 @@ def _confirm_pick(db, task, line, product, qty, batch, from_code, to_code, conta
     reservations.release(db, location_id=src.id, product_id=product.id, batch=batch,
                          owner=task.owner, qty=qty)
     common = dict(product_id=product.id, uom=line.uom, batch=batch, owner=task.owner,
-                  container_id=container_id or line.container_id, movement_type="pick", task_id=task.id,
+                  container_id=container_id or line.container_id,
+                  movement_type=MOVEMENT_TYPES.get(task.type, "pick"), task_id=task.id,
                   task_line_id=line.id, received_at=received_at, actor=actor.name, device=actor.device,
                   api_client_id=actor.api_client_id, external_ref=task.source_ref, reason=reason, note=note)
     post(db, [LedgerLine(location_id=src.id, qty_change=-qty, **common),
@@ -368,7 +370,7 @@ def short_pick(db: Session, task: Task, line: TaskLine, *, qty: Decimal, reason:
     _must_be_open(task)
     if line.status in FINISHED_LINE:
         raise TaskError("line_finished", f"line {line.line_no} is already {line.status}")
-    if task.type not in ("pick", "transfer_pick"):
+    if task.type not in ("pick", "transfer_pick", "production_issue"):
         raise TaskError("not_supported", "only a pick line can be short")
     if not actor.supervisor:
         raise NeedsSupervisor("a short pick needs a supervisor badge")
