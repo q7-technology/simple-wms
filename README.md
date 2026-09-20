@@ -7,15 +7,16 @@ and outputs, so it connects to any ERP, web store, carrier or print service.
 - **Everything is a task** — receive, put away, pick, pack, ship, move, count, replenish, transfer, production
 - **Scanner PWA** — installs from the browser on Android handhelds, works through Wi-Fi drops
 - **One API, one event envelope** — signed, queued, retried
-- **Multi-warehouse from day one** — transfers with an in-transit bucket
+- **Multi-warehouse from day one** — transfers with a real in-transit bucket
+- **Containers and owners** — pallets, cartons and SSCC; one owner or many
+- **Reports from the ledger** — stock, movements, pick rate, variances, shipped
 - **Prints nothing itself** — versioned template + JSON to Platen or any print service
 
-Status: **build step 5 (more work) done**. On top of steps 1 to 4: transfers
-between warehouses with a real in-transit bucket, production orders that
-issue components to the line and take finished goods back pallet by pallet,
-and batch picking that collapses several orders into one walk sorted into
-totes, with the desktop and scanner screens for all three. Step 6
-(containers and SSCC, multiple owners, reports) is next.
+Status: **every build step in the brief is done**. Step 6 finishes it:
+containers and SSCC with nested cartons on pallets, more than one owner for
+third-party warehousing, and reports that come straight out of the ledger.
+Steps 1 to 5 built the skeleton, inbound, outbound, printing through Platen,
+and transfers, production and batch picking.
 
 ## What is in this repo
 

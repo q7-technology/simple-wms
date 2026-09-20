@@ -255,3 +255,34 @@ export interface BatchSuggestion {
 export interface StopConfirmed extends Accepted {
   picked: string; picks: BatchPick[]; batch_status: string; stops_left: number;
 }
+
+/* --- step 6: containers, owners, reports -------------------------------- */
+
+export type ContainerType = "pallet" | "carton" | "tote" | "cage";
+export interface ContainerContent {
+  sku: string; name: string; batch: string | null; qty: string; uom: string;
+  container_id: string; received_at: string | null;
+}
+export interface ContainerChild {
+  container_id: string; type: ContainerType; sscc: string | null; status: string;
+}
+export interface Container {
+  wms_id: string; container_id: string; sscc: string | null; owner: string; type: ContainerType;
+  warehouse: string; location: string | null; parent: string | null;
+  status: "open" | "closed" | "shipped" | "retired"; weight_kg: string | null; note: string | null;
+  created_at: string; closed_at: string | null; children: ContainerChild[];
+  contents: ContainerContent[]; total_qty: string;
+}
+
+export interface Owner {
+  wms_id: string; code: string; name: string; contact: string | null; email: string | null;
+  phone: string | null; settings: Record<string, unknown>; note: string | null; active: boolean;
+  created_at: string;
+}
+
+export interface ReportListing { report: string; describe: string; filters: string[] }
+export interface ReportResult {
+  report: string; warehouse: string; owner: string; from: string | null; to: string | null;
+  describe: string; columns: string[]; rows: Record<string, string | number | null>[];
+  totals: Record<string, string | number>;
+}
