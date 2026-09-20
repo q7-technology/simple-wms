@@ -77,10 +77,24 @@ export interface ApiClientRow {
   ip_allowlist: string[]; active: boolean; created_at: string; rotated_at: string | null;
   last_used_at: string | null; duplicates_24h: number; last_duplicate_at: string | null; key?: string;
 }
+/** How the worker reaches a subscriber: an HTTP post, or SAP over RFC. */
+export type SubscriberTransport = "http" | "sap_rfc";
+/** The password itself is never stored: passwd_env names a variable on the worker host. */
+export interface SapConnection {
+  ashost: string; sysnr: string; client: string; user: string; passwd_env: string;
+}
+/** Empty for HTTP. For SAP it says which plant each warehouse posts to. */
+export interface SubscriberSettings {
+  connection?: SapConnection;
+  plant_by_warehouse?: Record<string, string>;
+  storage_location?: string;
+  movement_types?: Record<string, string>;
+}
 export interface Subscriber {
   wms_id: string; name: string; url: string; event_types: string[]; warehouses: string[]; owner: string;
   active: boolean; created_at: string; status: "idle" | "ok" | "retrying" | "failed";
   last_delivery_at: string | null; pending: number; failed: number; secret?: string;
+  transport?: SubscriberTransport; settings?: SubscriberSettings;
 }
 export interface OutboundEvent {
   wms_id: string; event_id: string; event_type: string; subscriber: string; warehouse: string | null;

@@ -1080,7 +1080,10 @@ other end.
 
 The password is never stored. `passwd_env` names an environment variable and
 the worker reads it from the host, beside every other secret. A body that
-puts `passwd` in `connection` is refused with a `422`.
+puts `passwd` in `connection` is refused with a `422` against
+`settings.connection.passwd_env`, and one with no plants against
+`settings.plant_by_warehouse`, so a form can put the message under the field
+it is about.
 
 Each event becomes one `BAPI_GOODSMVT_CREATE`, committed with
 `BAPI_TRANSACTION_COMMIT`, or rolled back and retried:

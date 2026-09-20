@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { ApiClientRow, OutboundEvent, Page, PrintPoint, Subscriber } from "../api/types";
+import type {
+  ApiClientRow, OutboundEvent, Page, PrintPoint, Subscriber, SubscriberSettings, SubscriberTransport, Warehouse,
+} from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { fmtDate, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
@@ -74,6 +76,144 @@ function subscriberSentence(s: Subscriber): string {
     case "failed": return `Failed · ${plural(s.failed, "event")} given up, ${s.pending} pending`;
     default: return "Idle · nothing sent yet";
   }
+}
+
+/* --- transport ------------------------------------------------------------
+ * A subscriber is reached by HTTP or by SAP RFC. Everything else about it —
+ * the queue, the backoff, this page — is the same either way. */
+
+const TRANSPORTS: { value: SubscriberTransport; label: string }[] = [
+  { value: "http", label: "HTTP webhook" },
+  { value: "sap_rfc", label: "SAP (RFC)" },
+];
+
+const SAP_QUEUE_NOTE =
+  "Events reach SAP on the same queue and the same retries as any other subscriber "
+  + "(1 min, 5, 30, 2 h). Each one becomes a goods movement posting.";
+
+function transportOf(s: Subscriber): SubscriberTransport {
+  return s.transport === "sap_rfc" ? "sap_rfc" : "http";
+}
+
+function transportCell(s: Subscriber) {
+  return transportOf(s) === "sap_rfc" ? <Pill tone="info">SAP</Pill> : <Muted>HTTP</Muted>;
+}
+
+/** What the SAP half of the form holds. The password is never one of them. */
+interface SapForm {
+  ashost: string; sysnr: string; client: string; user: string; passwd_env: string;
+  plants: Record<string, string>; storage_location: string;
+}
+
+function sapFromSettings(settings?: SubscriberSettings | null): SapForm {
+  const c = settings?.connection;
+  return {
+    ashost: c?.ashost ?? "", sysnr: c?.sysnr ?? "", client: c?.client ?? "", user: c?.user ?? "",
+    passwd_env: c?.passwd_env ?? "",
+    plants: { ...(settings?.plant_by_warehouse ?? {}) },
+    storage_location: settings?.storage_location ?? "",
+  };
+}
+
+/** The settings body the API expects. Only the plants someone filled in are sent. */
+function sapSettings(sap: SapForm, keep?: SubscriberSettings | null): SubscriberSettings {
+  const plant_by_warehouse: Record<string, string> = {};
+  for (const [code, plant] of Object.entries(sap.plants)) {
+    if (plant.trim()) plant_by_warehouse[code] = plant.trim();
+  }
+  const settings: SubscriberSettings = {
+    connection: {
+      ashost: sap.ashost.trim(), sysnr: sap.sysnr.trim(), client: sap.client.trim(),
+      user: sap.user.trim(), passwd_env: sap.passwd_env.trim(),
+    },
+    plant_by_warehouse,
+    storage_location: sap.storage_location.trim(),
+  };
+  // Movement type overrides are a site's own numbering; keep what is there.
+  if (keep?.movement_types) settings.movement_types = keep.movement_types;
+  return settings;
+}
+
+/** Pydantic says "Value error, ..." before its own sentence; the sentence is the message. */
+function plainMessage(message: string): string {
+  return message.replace(/^Value error,\s*/, "");
+}
+
+/** The API refuses an SAP body on the whole body, not on one field. Land the
+ * refusal under the input the reader has to change, rather than lose it. */
+function sapError(errors: Record<string, string>, which: "passwd_env" | "plants"): string | undefined {
+  const direct = which === "passwd_env"
+    ? errors["settings.connection.passwd_env"]
+    : errors["settings.plant_by_warehouse"];
+  if (direct) return direct;
+  const body = errors.body;
+  if (!body) return undefined;
+  if (which === "passwd_env" && body.includes("passwd")) return plainMessage(body);
+  if (which === "plants" && body.includes("plant_by_warehouse")) return plainMessage(body);
+  return undefined;
+}
+
+/** True when the body-level refusal is already shown under a field. */
+function sapErrorShown(errors: Record<string, string>): boolean {
+  return Boolean(sapError(errors, "passwd_env") ?? sapError(errors, "plants"));
+}
+
+function SapFields({ sap, onChange, warehouses, fieldErrors, readOnly }: {
+  sap: SapForm; onChange: (next: SapForm) => void; warehouses: Warehouse[];
+  fieldErrors: Record<string, string>; readOnly?: boolean;
+}) {
+  const set = (patch: Partial<SapForm>) => onChange({ ...sap, ...patch });
+  const plantsError = sapError(fieldErrors, "plants");
+  return (
+    <>
+      <Field label="Application server host" hint="The SAP host the worker dials, e.g. sap.example">
+        <Input value={sap.ashost} onChange={(e) => set({ ashost: e.target.value })} readOnly={readOnly} placeholder="sap.example" />
+      </Field>
+      <div className="flex gap-3">
+        <Field label="System number" className="grow">
+          <Input value={sap.sysnr} onChange={(e) => set({ sysnr: e.target.value })} readOnly={readOnly} placeholder="00" />
+        </Field>
+        <Field label="Client" className="grow">
+          <Input value={sap.client} onChange={(e) => set({ client: e.target.value })} readOnly={readOnly} placeholder="100" />
+        </Field>
+      </div>
+      <Field label="User" hint="The SAP user that posts the movement">
+        <Input value={sap.user} onChange={(e) => set({ user: e.target.value })} readOnly={readOnly} placeholder="WMS" />
+      </Field>
+      <Field
+        label="Password from environment variable"
+        hint="The name of a variable, such as SAP_PASSWORD. The password itself is set on the worker host and is never stored here."
+        error={sapError(fieldErrors, "passwd_env")}
+      >
+        <Input value={sap.passwd_env} onChange={(e) => set({ passwd_env: e.target.value })} readOnly={readOnly} placeholder="SAP_PASSWORD" />
+      </Field>
+      <div className="flex flex-col gap-1.5 min-w-0">
+        <span className="text-xs leading-4 text-muted">Plant per warehouse</span>
+        {warehouses.length === 0
+          ? <Muted className="text-sm">No warehouses to map yet.</Muted>
+          : warehouses.map((w) => (
+            <label key={w.code} className="flex items-center gap-3 min-w-0">
+              <span className="text-sm leading-5 text-ink grow min-w-0 truncate">{w.code} · {w.name}</span>
+              <Input
+                className="w-24"
+                aria-label={`Plant for ${w.code}`}
+                value={sap.plants[w.code] ?? ""}
+                onChange={(e) => set({ plants: { ...sap.plants, [w.code]: e.target.value } })}
+                readOnly={readOnly}
+                placeholder="1000"
+              />
+            </label>
+          ))}
+        {plantsError
+          ? <span className="text-xs leading-4 text-gold">{plantsError}</span>
+          : <span className="text-xs leading-4 text-muted">Only the warehouses you fill in are sent.</span>}
+      </div>
+      <Field label="Default storage location" hint="Sent with every posting, e.g. 0001. Which shelf a thing sits on stays in the WMS.">
+        <Input value={sap.storage_location} onChange={(e) => set({ storage_location: e.target.value })} readOnly={readOnly} placeholder="0001" />
+      </Field>
+      <Muted className="text-xs leading-4">{SAP_QUEUE_NOTE}</Muted>
+    </>
+  );
 }
 
 function eventPill(e: OutboundEvent) {
@@ -168,19 +308,25 @@ function KeyDetail({ row, admin, revealed, onRevealed, reload }: {
 function SubscriberDetail({ sub, admin, revealed, reload }: {
   sub: Subscriber; admin: boolean; revealed: string | null; reload: () => Promise<void>;
 }) {
+  const { warehouses: sites } = useAuth();
   const action = useAction();
   const [url, setUrl] = useState(sub.url);
   const [events, setEvents] = useState(sub.event_types.join(", "));
   const [warehouses, setWarehouses] = useState(sub.warehouses.join(", "));
   const [active, setActive] = useState(sub.active);
+  const [transport, setTransport] = useState<SubscriberTransport>(transportOf(sub));
+  const [sap, setSap] = useState<SapForm>(() => sapFromSettings(sub.settings));
   const [saved, setSaved] = useState(false);
+  const isSap = transport === "sap_rfc";
 
   const save = async () => {
     setSaved(false);
-    const out = await action.run(() => api.post<Subscriber>("/v1/subscribers", {
+    const body: Record<string, unknown> = {
       name: sub.name, url: url.trim(), event_types: splitList(events), warehouses: splitList(warehouses),
-      owner: sub.owner, active,
-    }));
+      owner: sub.owner, transport, active,
+    };
+    if (isSap) body.settings = sapSettings(sap, sub.settings);
+    const out = await action.run(() => api.post<Subscriber>("/v1/subscribers", body));
     if (out) { setSaved(true); await reload(); }
   };
 
@@ -188,11 +334,27 @@ function SubscriberDetail({ sub, admin, revealed, reload }: {
     <>
       <DetailHeader eyebrow="Subscriber" title={sub.name} subtitle={subscriberSentence(sub)} />
       {revealed && <Reveal label="secret" value={revealed} />}
-      <Section title="Webhook">
+      <Section title={isSap ? "SAP RFC" : "Webhook"}>
         <div className="flex flex-col gap-3">
-          <Field label="URL" error={action.fieldErrors.url}>
+          <Field label="Transport" hint="How the worker reaches it" error={action.fieldErrors.transport}>
+            <Select
+              value={transport}
+              onChange={(e) => setTransport(e.target.value as SubscriberTransport)}
+              disabled={!admin}
+            >
+              {TRANSPORTS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </Select>
+          </Field>
+          <Field
+            label="URL"
+            hint={isSap ? "A label for people, such as rfc://PRD. Nothing fetches it." : undefined}
+            error={action.fieldErrors.url}
+          >
             <Input value={url} onChange={(e) => setUrl(e.target.value)} readOnly={!admin} />
           </Field>
+          {isSap && (
+            <SapFields sap={sap} onChange={setSap} warehouses={sites} fieldErrors={action.fieldErrors} readOnly={!admin} />
+          )}
           <Field label="HMAC secret" hint="Set on create; send a new one to replace it">
             <Input value="••••••••" readOnly aria-label="HMAC secret" />
           </Field>
@@ -209,7 +371,7 @@ function SubscriberDetail({ sub, admin, revealed, reload }: {
         { label: "Owner", value: sub.owner },
         { label: "Queue", value: `${sub.pending} pending · ${sub.failed} failed` },
       ]} />
-      {action.error && <Notice tone="gold">{action.error}</Notice>}
+      {action.error && !sapErrorShown(action.fieldErrors) && <Notice tone="gold">{action.error}</Notice>}
       {saved && !action.error && <Notice tone="ok">Saved.</Notice>}
       {admin && (
         <>
@@ -278,6 +440,7 @@ function NewKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
 }
 
 function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (row: Subscriber) => void }) {
+  const { warehouses: sites } = useAuth();
   const action = useAction();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -285,13 +448,17 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
   const [warehouses, setWarehouses] = useState("*");
   const [owner, setOwner] = useState("*");
   const [secret, setSecret] = useState("");
+  const [transport, setTransport] = useState<SubscriberTransport>("http");
+  const [sap, setSap] = useState<SapForm>(() => sapFromSettings(null));
   const secretShort = secret.length > 0 && secret.length < 16;
+  const isSap = transport === "sap_rfc";
 
   const create = async () => {
     const body: Record<string, unknown> = {
       name: name.trim(), url: url.trim(), event_types: splitList(events), warehouses: splitList(warehouses),
-      owner: owner.trim(), active: true,
+      owner: owner.trim(), transport, active: true,
     };
+    if (isSap) body.settings = sapSettings(sap);
     if (secret) body.secret = secret;
     const out = await action.run(() => api.post<Subscriber>("/v1/subscribers", body));
     if (out) onCreated(out);
@@ -299,14 +466,32 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
 
   return (
     <>
-      <DetailHeader eyebrow="Subscriber" title="New subscriber" subtitle="Events matching the types below are queued for this URL and retried until answered." />
+      <DetailHeader
+        eyebrow="Subscriber"
+        title="New subscriber"
+        subtitle={isSap
+          ? "Events matching the types below are queued for SAP and retried until they post."
+          : "Events matching the types below are queued for this URL and retried until answered."}
+      />
       <div className="flex flex-col gap-3">
         <Field label="Name" hint="Creating with an existing name updates it" error={action.fieldErrors.name}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
-        <Field label="URL" error={action.fieldErrors.url}>
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
+        <Field label="Transport" hint="How the worker reaches it" error={action.fieldErrors.transport}>
+          <Select value={transport} onChange={(e) => setTransport(e.target.value as SubscriberTransport)}>
+            {TRANSPORTS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </Select>
         </Field>
+        <Field
+          label="URL"
+          hint={isSap ? "A label for people, such as rfc://PRD. Nothing fetches it." : undefined}
+          error={action.fieldErrors.url}
+        >
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={isSap ? "rfc://PRD" : "https://"} />
+        </Field>
+        {isSap && (
+          <SapFields sap={sap} onChange={setSap} warehouses={sites} fieldErrors={action.fieldErrors} />
+        )}
         <Field label="Event types" hint="Comma separated, e.g. delivery.shipped, transfer.*" error={action.fieldErrors.event_types}>
           <Input value={events} onChange={(e) => setEvents(e.target.value)} />
         </Field>
@@ -320,7 +505,7 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
           <Input value={secret} onChange={(e) => setSecret(e.target.value)} />
         </Field>
       </div>
-      {action.error && <Notice tone="gold">{action.error}</Notice>}
+      {action.error && !sapErrorShown(action.fieldErrors) && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
       <div className="flex gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
@@ -511,6 +696,7 @@ export function Integrations() {
   const subscriberColumns: Column<Subscriber>[] = [
     { key: "name", header: "Name", width: "140px", render: (r) => <b>{r.name}</b> },
     { key: "events", header: "Events", render: (r) => r.event_types.join(", ") },
+    { key: "transport", header: "Transport", width: "90px", render: transportCell },
     { key: "last", header: "Last", width: "110px", render: (r) => <Muted>{fmtWhen(r.last_delivery_at)}</Muted> },
     { key: "status", header: "Status", width: "90px", render: subscriberPill },
   ];

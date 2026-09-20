@@ -297,6 +297,8 @@ def test_an_sap_subscriber_is_made_like_any_other(client, headers, db):
 
 
 def test_an_sap_subscriber_may_not_hide_a_password_in_the_database(client, headers):
+    """And the refusal names the field it is about, so a form can put the
+    message where the person is looking rather than at the top of the page."""
     r = client.post("/v1/subscribers", headers=headers, json={
         "name": "sap-bad", "url": "rfc://PRD", "transport": "sap_rfc",
         "event_types": ["receipt.confirmed"],
@@ -304,10 +306,24 @@ def test_an_sap_subscriber_may_not_hide_a_password_in_the_database(client, heade
                      "plant_by_warehouse": {"BAL-WH01": "1000"}},
     })
     assert r.status_code == 422
-    assert "passwd_env" in r.text
+    errors = {e["field"]: e["message"] for e in r.json()["errors"]}
+    assert "settings.connection.passwd_env" in errors
+    assert "passwd_env" in errors["settings.connection.passwd_env"]
+
+
+def test_an_sap_subscriber_without_a_plant_says_which_field(client, headers):
+    r = client.post("/v1/subscribers", headers=headers, json={
+        "name": "sap-noplant", "url": "rfc://PRD", "transport": "sap_rfc",
+        "event_types": ["receipt.confirmed"],
+        "settings": {"connection": {"ashost": "sap.example", "passwd_env": "SAP_PASSWORD"}},
+    })
+    assert r.status_code == 422
+    errors = {e["field"]: e["message"] for e in r.json()["errors"]}
+    assert "settings.plant_by_warehouse" in errors
 
 
 def test_an_http_subscriber_still_needs_an_http_url(client, headers):
     r = client.post("/v1/subscribers", headers=headers, json={
         "name": "nope", "url": "rfc://PRD", "event_types": ["receipt.confirmed"]})
     assert r.status_code == 422
+    assert [e["field"] for e in r.json()["errors"]] == ["url"]

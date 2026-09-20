@@ -27,6 +27,23 @@ const SUBSCRIBERS: Subscriber[] = [
   { wms_id: "s4", name: "Platen", url: "https://platen/hook", event_types: ["print.*"], warehouses: ["*"], owner: "*", active: true, created_at: now, status: "idle", last_delivery_at: null, pending: 0, failed: 0 },
 ];
 
+/** Reached by RFC, not by URL. Not in SUBSCRIBERS: the tests that want it layer it on. */
+const SAP_SUBSCRIBER: Subscriber = {
+  wms_id: "s5", name: "sap-erp", url: "rfc://PRD", transport: "sap_rfc",
+  settings: {
+    connection: { ashost: "sap.example", sysnr: "00", client: "100", user: "WMS", passwd_env: "SAP_PASSWORD" },
+    plant_by_warehouse: { "BAL-WH01": "1000" },
+    storage_location: "0001",
+    movement_types: { "delivery.shipped": "601" },
+  },
+  event_types: ["receipt.confirmed", "delivery.shipped"], warehouses: ["*"], owner: "*", active: true,
+  created_at: now, status: "ok", last_delivery_at: now, pending: 0, failed: 0,
+};
+
+const PASSWD_REFUSAL =
+  "an SAP password does not belong in the database; name an environment variable with "
+  + "passwd_env and set it on the host";
+
 const EVENTS: OutboundEvent[] = [
   { wms_id: "e1", event_id: "0192-aaaa-8a21", event_type: "delivery.shipped", subscriber: "ERP bridge", warehouse: "BAL-WH01", owner: "DEFAULT", external_ref: "0080012340", occurred_at: now, status: "pending", attempts: 4, next_attempt_at: now, last_error: "503 from listener", delivered_at: null },
   { wms_id: "e2", event_id: "0192-aaaa-8a19", event_type: "delivery.packed", subscriber: "Carrier A", warehouse: "BAL-WH01", owner: "DEFAULT", external_ref: "0080012338", occurred_at: now, status: "delivered", attempts: 1, next_attempt_at: null, last_error: null, delivered_at: now },
@@ -45,6 +62,8 @@ const WAREHOUSES = [{
     default_copies: 1, ledger_retention_years: 7, duplicate_window_hours: 24, allow_hard_deletes: false,
   },
 }];
+
+const MELBOURNE = { ...WAREHOUSES[0], wms_id: "w2", code: "MEL-WH01", site: "MEL", name: "Melbourne" };
 
 const PATTERNS = [
   {
@@ -118,6 +137,38 @@ describe("Integrations", () => {
     vi.unstubAllGlobals();
     api.setSession(null);
   });
+
+  /** Layer a few replies over the base mock; anything it does not answer falls through. */
+  function layer(over: (url: string, init: RequestInit) => Response | undefined) {
+    const base = fetchMock;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      const mine = over(url, init);
+      if (mine) {
+        if ((init?.method ?? "GET") === "POST") {
+          posted.push({ url, body: init.body ? JSON.parse(String(init.body)) : undefined });
+        }
+        return mine;
+      }
+      return base(url, init);
+    }));
+  }
+
+  /** Two warehouses, so a plant left blank can be told from one that is filled in. */
+  function twoWarehouses(url: string) {
+    return url === "/v1/warehouses"
+      ? jsonResponse(200, { items: [WAREHOUSES[0], MELBOURNE], total: 2 })
+      : undefined;
+  }
+
+  /** Fill in the SAP connection of whichever subscriber form is open. */
+  async function fillSapConnection(user: ReturnType<typeof userEvent.setup>, panel: ReturnType<typeof within>) {
+    await user.type(panel.getByLabelText(/^Application server host/), "sap.example");
+    await user.type(panel.getByLabelText(/^System number/), "00");
+    await user.type(panel.getByLabelText(/^Client/), "100");
+    await user.type(panel.getByLabelText(/^User/), "WMS");
+    await user.type(panel.getByLabelText(/^Password from environment variable/), "SAP_PASSWORD");
+    await user.type(panel.getByLabelText(/^Default storage location/), "0001");
+  }
 
   it("renders subscribers and events with the right pills", async () => {
     renderPage();
@@ -296,5 +347,184 @@ describe("Integrations", () => {
     expect(panel.getByLabelText(/^Order/)).toHaveValue(200);
     // It is off already, so there is nothing to turn off.
     expect(panel.queryByRole("button", { name: "Turn off" })).not.toBeInTheDocument();
+  });
+
+  /* --- SAP ---------------------------------------------------------------- */
+
+  it("marks the SAP subscriber in the list and leaves the HTTP ones quiet", async () => {
+    layer((url, init) => (url === "/v1/subscribers" && (init?.method ?? "GET") === "GET"
+      ? jsonResponse(200, { items: [...SUBSCRIBERS, SAP_SUBSCRIBER], total: SUBSCRIBERS.length + 1 })
+      : undefined));
+    renderPage();
+
+    expect(await screen.findByText("sap-erp")).toBeInTheDocument();
+    expect(screen.getAllByText("SAP")).toHaveLength(1);
+    // The other four say so quietly.
+    expect(screen.getAllByText("HTTP")).toHaveLength(SUBSCRIBERS.length);
+  });
+
+  it("reveals the SAP connection fields without taking away what HTTP needs", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Add subscriber" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    // Nothing SAP until it is chosen.
+    expect(panel.queryByLabelText(/^Application server host/)).not.toBeInTheDocument();
+    await user.selectOptions(panel.getByLabelText(/^Transport/), "sap_rfc");
+
+    expect(panel.getByLabelText(/^Application server host/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^System number/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Client/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^User/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Password from environment variable/)).toBeInTheDocument();
+    expect(panel.getByLabelText("Plant for BAL-WH01")).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Default storage location/)).toBeInTheDocument();
+
+    // The password is named, never kept.
+    expect(panel.getByText(/The password itself is set on the worker host and is never stored here\./)).toBeInTheDocument();
+    // The URL is a label for people now, not something the worker fetches.
+    expect(panel.getByText("A label for people, such as rfc://PRD. Nothing fetches it.")).toBeInTheDocument();
+    // Same queue, same retries, one goods movement each.
+    expect(panel.getByText(/same queue and the same retries as any other subscriber/)).toBeInTheDocument();
+    expect(panel.getByText(/becomes a goods movement posting/)).toBeInTheDocument();
+
+    // Everything HTTP needed is still here.
+    expect(panel.getByLabelText(/^Name/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^URL/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Event types/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Warehouses/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Owner/)).toBeInTheDocument();
+    expect(panel.getByLabelText(/^Secret/)).toBeInTheDocument();
+  });
+
+  it("posts an SAP subscriber with its settings, and only the plants that were filled in", async () => {
+    layer((url) => twoWarehouses(url));
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Add subscriber" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    await user.type(panel.getByLabelText(/^Name/), "sap-erp");
+    await user.selectOptions(panel.getByLabelText(/^Transport/), "sap_rfc");
+    await user.type(panel.getByLabelText(/^URL/), "rfc://PRD");
+    await user.type(panel.getByLabelText(/^Event types/), "receipt.confirmed, delivery.shipped");
+    await fillSapConnection(user, panel);
+    // Ballarat posts to plant 1000; Melbourne is not in SAP yet.
+    await user.type(panel.getByLabelText("Plant for BAL-WH01"), "1000");
+    expect(panel.getByLabelText("Plant for MEL-WH01")).toHaveValue("");
+    await user.click(panel.getByRole("button", { name: "Add subscriber" }));
+
+    await waitFor(() => expect(posted.some((p) => p.url === "/v1/subscribers")).toBe(true));
+    const call = posted.find((p) => p.url === "/v1/subscribers")!;
+    expect(call.body).toEqual({
+      name: "sap-erp", url: "rfc://PRD", event_types: ["receipt.confirmed", "delivery.shipped"],
+      warehouses: ["*"], owner: "*", transport: "sap_rfc", active: true,
+      settings: {
+        connection: { ashost: "sap.example", sysnr: "00", client: "100", user: "WMS", passwd_env: "SAP_PASSWORD" },
+        plant_by_warehouse: { "BAL-WH01": "1000" },
+        storage_location: "0001",
+      },
+    });
+  });
+
+  it("posts an HTTP subscriber the way it always did", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Add subscriber" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    await user.type(panel.getByLabelText(/^Name/), "Carrier B");
+    await user.type(panel.getByLabelText(/^URL/), "https://carrier-b/hook");
+    await user.type(panel.getByLabelText(/^Event types/), "delivery.packed");
+    await user.click(panel.getByRole("button", { name: "Add subscriber" }));
+
+    await waitFor(() => expect(posted.some((p) => p.url === "/v1/subscribers")).toBe(true));
+    const call = posted.find((p) => p.url === "/v1/subscribers")!;
+    expect(call.body).toEqual({
+      name: "Carrier B", url: "https://carrier-b/hook", event_types: ["delivery.packed"],
+      warehouses: ["*"], owner: "*", transport: "http", active: true,
+    });
+    expect(call.body as Record<string, unknown>).not.toHaveProperty("settings");
+  });
+
+  it("opens an existing SAP subscriber with its settings and saves them back", async () => {
+    layer((url, init) => {
+      if (url === "/v1/subscribers" && (init?.method ?? "GET") === "GET") {
+        return jsonResponse(200, { items: [...SUBSCRIBERS, SAP_SUBSCRIBER], total: SUBSCRIBERS.length + 1 });
+      }
+      if (url === "/v1/subscribers" && init?.method === "POST") return jsonResponse(200, SAP_SUBSCRIBER);
+      return twoWarehouses(url);
+    });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("sap-erp"));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    expect(panel.getByLabelText(/^Transport/)).toHaveValue("sap_rfc");
+    expect(panel.getByLabelText(/^Application server host/)).toHaveValue("sap.example");
+    expect(panel.getByLabelText(/^Password from environment variable/)).toHaveValue("SAP_PASSWORD");
+    expect(panel.getByLabelText("Plant for BAL-WH01")).toHaveValue("1000");
+    expect(panel.getByLabelText("Plant for MEL-WH01")).toHaveValue("");
+
+    await user.type(panel.getByLabelText("Plant for MEL-WH01"), "2000");
+    await user.click(panel.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(posted.some((p) => p.url === "/v1/subscribers")).toBe(true));
+    const call = posted.find((p) => p.url === "/v1/subscribers")!;
+    expect(call.body).toEqual({
+      name: "sap-erp", url: "rfc://PRD", event_types: ["receipt.confirmed", "delivery.shipped"],
+      warehouses: ["*"], owner: "*", transport: "sap_rfc", active: true,
+      settings: {
+        connection: { ashost: "sap.example", sysnr: "00", client: "100", user: "WMS", passwd_env: "SAP_PASSWORD" },
+        plant_by_warehouse: { "BAL-WH01": "1000", "MEL-WH01": "2000" },
+        storage_location: "0001",
+        // A site's own numbering is kept, not dropped by a save from here.
+        movement_types: { "delivery.shipped": "601" },
+      },
+    });
+  });
+
+  it("shows the API's refusal about the password under the password field", async () => {
+    layer((url, init) => (url === "/v1/subscribers" && init?.method === "POST"
+      ? jsonResponse(422, { errors: [{ field: "body", message: `Value error, ${PASSWD_REFUSAL}` }] })
+      : undefined));
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Add subscriber" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    await user.type(panel.getByLabelText(/^Name/), "sap-bad");
+    await user.selectOptions(panel.getByLabelText(/^Transport/), "sap_rfc");
+    await user.type(panel.getByLabelText(/^URL/), "rfc://PRD");
+    await user.type(panel.getByLabelText(/^Event types/), "receipt.confirmed");
+    await user.type(panel.getByLabelText("Plant for BAL-WH01"), "1000");
+    await user.click(panel.getByRole("button", { name: "Add subscriber" }));
+
+    expect(await panel.findByText(PASSWD_REFUSAL)).toBeInTheDocument();
+    // Under the field the reader has to change, in the API's own words.
+    expect(panel.getByLabelText(/passwd_env and set it on the host/))
+      .toBe(panel.getByLabelText(/^Password from environment variable/));
+    // Not repeated as a raw "body: ..." notice.
+    expect(panel.queryByText(/^body:/)).not.toBeInTheDocument();
+  });
+
+  it("shows the API's refusal about the plants with the warehouse rows", async () => {
+    layer((url, init) => (url === "/v1/subscribers" && init?.method === "POST"
+      ? jsonResponse(422, { errors: [{ field: "body", message: "Value error, an SAP subscriber needs plant_by_warehouse in its settings" }] })
+      : undefined));
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Add subscriber" }));
+    const panel = within(screen.getByRole("complementary", { name: "Detail" }));
+
+    await user.type(panel.getByLabelText(/^Name/), "sap-bad");
+    await user.selectOptions(panel.getByLabelText(/^Transport/), "sap_rfc");
+    await user.type(panel.getByLabelText(/^URL/), "rfc://PRD");
+    await user.type(panel.getByLabelText(/^Event types/), "receipt.confirmed");
+    await user.click(panel.getByRole("button", { name: "Add subscriber" }));
+
+    expect(await panel.findByText("an SAP subscriber needs plant_by_warehouse in its settings")).toBeInTheDocument();
+    expect(panel.queryByText("Only the warehouses you fill in are sent.")).not.toBeInTheDocument();
   });
 });

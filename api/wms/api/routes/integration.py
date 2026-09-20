@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 
 from wms.api.deps import DB, Principal, require
@@ -138,20 +138,24 @@ class SubscriberIn(BaseModel):
     settings: dict = Field(default_factory=dict)
     active: bool = True
 
-    @model_validator(mode="after")
-    def check_transport(self) -> "SubscriberIn":
-        if self.transport == "http":
-            if not re.match(r"^https?://", self.url):
-                raise ValueError("an http subscriber needs an http:// or https:// url")
-            return self
-        connection = (self.settings or {}).get("connection") or {}
-        if "passwd" in connection:
-            raise ValueError(
-                "an SAP password does not belong in the database; name an environment "
-                "variable with passwd_env and set it on the host")
-        if not (self.settings or {}).get("plant_by_warehouse"):
-            raise ValueError("an SAP subscriber needs plant_by_warehouse in its settings")
-        return self
+
+def check_transport(body: SubscriberIn) -> None:
+    """Refuse a subscriber that could not work, naming the field it is about
+    so a form can put the message where the person is looking. A model-level
+    validator would answer `body`, which is no help to anybody."""
+    if body.transport == "http":
+        if not re.match(r"^https?://", body.url):
+            raise FieldError("url", "an http subscriber needs an http:// or https:// url")
+        return
+    connection = (body.settings or {}).get("connection") or {}
+    if "passwd" in connection:
+        raise FieldError(
+            "settings.connection.passwd_env",
+            "an SAP password does not belong in the database; name an environment "
+            "variable with passwd_env and set it on the host")
+    if not (body.settings or {}).get("plant_by_warehouse"):
+        raise FieldError("settings.plant_by_warehouse",
+                         "an SAP subscriber needs a plant for the warehouses it will see")
 
 
 class SubscriberOut(BaseModel):
@@ -214,6 +218,8 @@ def subscriber_out(db, s: Subscriber, secret: str | None = None) -> SubscriberOu
              responses={201: {"model": SubscriberWithSecret}})
 def upsert_subscriber(body: SubscriberIn, db: DB, who: Principal = require("integration:admin")):
     from fastapi.responses import JSONResponse
+
+    check_transport(body)
 
     sub = db.execute(select(Subscriber).where(Subscriber.name == body.name)).scalar_one_or_none()
     data = body.model_dump(exclude_unset=True, exclude={"secret"})
