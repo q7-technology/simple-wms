@@ -13,6 +13,7 @@ Vite + React 19 + TypeScript + Tailwind v4. Screens follow
 cd apps/desktop
 npm install
 npm run dev          # http://localhost:5173, proxies /v1 to http://127.0.0.1:8000
+WMS_API_URL=http://127.0.0.1:8011 npm run dev   # proxy to the API elsewhere
 npm test             # Vitest
 npm run build        # dist/, which Caddy serves at / in docker compose
 ```
