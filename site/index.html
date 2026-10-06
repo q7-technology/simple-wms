@@ -4,167 +4,553 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simple WMS · open source warehouse management by Q7 Technology</title>
-<meta name="description" content="Simple WMS is an open source, self-hosted warehouse management system with a scanner PWA, an append-only stock ledger and one API and event envelope for connecting to any ERP, carrier or print service.">
+<meta name="description" content="Simple WMS is open source, self-hosted warehouse software you run like a strategy game: a live map of your warehouse, a big-button scanner app, an append-only stock ledger, and one API and event envelope for any ERP, carrier or print service.">
+<meta name="theme-color" content="#F3F6FD">
 <link rel="icon" href="assets/q7-logo-128.png">
 <style>
-  html,body{margin:0;background:#0d1117;color:#ccd6f6;font-family:ui-sans-serif, system-ui, sans-serif}
-  a{color:#29abe2} a:hover{color:#64ffda}
-  html{scroll-behavior:smooth}
-  @media (max-width: 960px){
-    [style*="grid-template-columns: repeat(4"]{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
-    [style*="grid-template-columns: repeat(3"]{grid-template-columns:1fr !important}
-    [style*="grid-template-columns: repeat(2"]{grid-template-columns:1fr !important}
-    .hero-row{flex-direction:column !important;align-items:stretch !important;gap:32px !important}
-    header nav{display:none !important}
-    h1{font-size:44px !important}
-    section, footer, header{padding-left:16px !important;padding-right:16px !important}
+  @font-face{font-family:Manrope;font-style:normal;font-weight:500;font-display:swap;src:url(assets/manrope-latin-500-normal.woff2) format("woff2")}
+  @font-face{font-family:Manrope;font-style:normal;font-weight:700;font-display:swap;src:url(assets/manrope-latin-700-normal.woff2) format("woff2")}
+  @font-face{font-family:Manrope;font-style:normal;font-weight:800;font-display:swap;src:url(assets/manrope-latin-800-normal.woff2) format("woff2")}
+
+  :root{
+    --page:#F3F6FD; --card:#FFFFFF; --ink:#18233D; --ink-2:#4A5672; --muted:#5A6785;
+    --blue:#2F6FE4; --blue-dark:#2148A8; --blue-tint:#EEF3FF; --line:#DDE5F5; --line-2:#E6EDFB;
+    --arr-bg:#D8E5FF; --arr-ink:#1F4FB0; --sto-bg:#D3EFE8; --sto-ink:#0F5F59; --lea-bg:#FDE6D2; --lea-ink:#8E4A0E;
+    --ok-bg:#E3F5EA; --ok-ink:#145A31; --warn:#A8560F; --warn-tint:#FFF1E3;
+    --navy:#18233D; --shadow:0 6px 20px rgba(24,35,61,.08); --shadow-lg:0 24px 60px rgba(24,35,61,.16);
   }
-  @media (max-width: 600px){
-    [style*="grid-template-columns: repeat(4"]{grid-template-columns:1fr !important}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-weight:500;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue-dark)} a:hover{color:var(--ink)}
+  img{display:block;max-width:100%;height:auto}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .eyebrow{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+  h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.12}
+  h1{font-size:60px;font-weight:800}
+  h2{font-size:40px;font-weight:800}
+  h3{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .lead{font-size:19px;color:var(--ink-2);margin:0}
+  .muted{color:var(--muted)}
+  section{padding:96px 0}
+  .head{display:flex;flex-direction:column;gap:14px;max-width:860px;margin-bottom:48px}
+  h1,h2{text-wrap:balance}
+  .head p{margin:0}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 20px;border-radius:14px;font-weight:800;font-size:16px;text-decoration:none;border:1.5px solid transparent;transition:transform .15s ease, box-shadow .15s ease}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(47,111,228,.28)}
+  .btn-primary:hover{color:#fff;background:#2563D6}
+  .btn-quiet{background:var(--card);color:var(--ink);border-color:var(--line)}
+  .btn-quiet:hover{color:var(--ink);border-color:var(--blue)}
+  .btn-dark{background:var(--navy);color:#fff}
+  .btn-dark:hover{color:#fff;background:#24304F}
+  @media (prefers-reduced-motion: reduce){.btn{transition:none}.btn:hover{transform:none}}
+
+  /* chips */
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:800}
+  .chip-arr{background:var(--arr-bg);color:var(--arr-ink)} .chip-sto{background:var(--sto-bg);color:var(--sto-ink)} .chip-lea{background:var(--lea-bg);color:var(--lea-ink)}
+  .chip-plain{background:var(--card);color:var(--ink-2);border:1px solid var(--line)}
+
+  /* header */
+  .site-head{position:sticky;top:0;z-index:20;background:rgba(243,246,253,.86);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line-2)}
+  .site-head .wrap{display:flex;align-items:center;gap:28px;height:68px}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:800;font-size:19px}
+  .brand:hover{color:var(--ink)}
+  .site-head nav{display:flex;gap:4px;margin-left:8px}
+  .site-head nav a{padding:8px 12px;border-radius:10px;color:var(--ink-2);text-decoration:none;font-weight:700;font-size:15px}
+  .site-head nav a:hover{background:var(--card);color:var(--ink)}
+  .grow{flex:1}
+
+  /* hero */
+  .hero{padding:72px 0 0;overflow:hidden}
+  .hero .wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
+  .hero .tags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .hero h1{max-width:900px}
+  .hero h1 em{font-style:normal;color:var(--blue)}
+  .hero .lead{max-width:720px}
+  .hero .cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+  .hero .small{font-size:14px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .stage{position:relative;margin-top:44px;width:100%;max-width:1180px}
+  .frame{border-radius:18px;background:var(--card);box-shadow:var(--shadow-lg);border:1px solid var(--line);overflow:hidden}
+  .frame-bar{display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;background:#fff;border-bottom:1px solid var(--line-2)}
+  .frame-bar i{width:10px;height:10px;border-radius:50%;background:#DDE5F5}
+  .frame-bar span{margin-left:10px;font-size:12px;color:var(--muted);font-weight:700}
+  .phone{position:absolute;right:-40px;bottom:-110px;width:250px;border-radius:30px;padding:9px;background:var(--navy);box-shadow:var(--shadow-lg)}
+  .phone img{border-radius:22px}
+  .hero-fade{height:120px;background:linear-gradient(to bottom, rgba(243,246,253,0), var(--page))}
+
+  /* game mode */
+  .tour{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .tile{background:var(--card);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .tile .shot{background:var(--page);border-bottom:1px solid var(--line-2);aspect-ratio:16/11;overflow:hidden}
+  .tile .shot img{width:100%;height:100%;object-fit:cover;object-position:top left}
+  .tile .shot.tall{display:flex;justify-content:center;align-items:flex-start;padding-top:18px}
+  .tile .shot.tall img{width:auto;height:150%;max-width:none;border-radius:16px;box-shadow:var(--shadow)}
+  .tile .shot img.zoom-tl{width:190%;height:auto;max-width:none;object-fit:initial}
+  .tile .shot img.zoom-tr{width:140%;height:auto;max-width:none;object-fit:initial;margin-left:-36%}
+  .tile .body{padding:20px 22px 24px;display:flex;flex-direction:column;gap:8px}
+  .tile .body p{margin:0;color:var(--ink-2)}
+  .touches{margin-top:28px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .touch{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line-2);border-radius:16px;padding:16px}
+  .touch b{display:block;font-size:15px}
+  .touch span{display:block;font-size:14px;color:var(--ink-2)}
+  .ico{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+  .ico-blue{background:var(--arr-bg);color:var(--arr-ink)} .ico-teal{background:var(--sto-bg);color:var(--sto-ink)} .ico-orange{background:var(--lea-bg);color:var(--lea-ink)} .ico-grey{background:var(--blue-tint);color:var(--blue-dark)}
+  .note{margin-top:16px;font-size:15px;color:var(--ink-2)}
+
+  /* surfaces + features */
+  .cards{display:grid;gap:16px}
+  .cards-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cards-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cards-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{background:var(--card);border:1px solid var(--line-2);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 6px rgba(24,35,61,.04)}
+  .card p{margin:0;color:var(--ink-2);font-size:15px}
+  .card .ico{margin-bottom:6px}
+
+  /* zones band */
+  .zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .zone{border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:8px}
+  .zone p{margin:0}
+  .zone-arr{background:var(--arr-bg);color:var(--arr-ink)} .zone-sto{background:var(--sto-bg);color:var(--sto-ink)} .zone-lea{background:var(--lea-bg);color:var(--lea-ink)}
+  .zone .big{font-size:28px;font-weight:800;letter-spacing:-.02em}
+  .zone p:last-child{color:var(--ink)}
+
+  /* api */
+  .api-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:24px;align-items:start}
+  pre{margin:0;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;white-space:pre}
+  .code{background:var(--navy);color:#E6EDFB;border-radius:18px;padding:20px 22px;box-shadow:var(--shadow)}
+  .code .label{display:block;font:800 12px/1 Manrope,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#9FB4E6;margin-bottom:12px}
+  .code + .code{margin-top:16px}
+  .k{color:#9FC2FF} .s{color:#A7E3C2} .c{color:#8C9AB8}
+  .ticks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+  .ticks li{display:flex;gap:12px;color:var(--ink-2);font-size:15px}
+  .ticks svg{flex:none;margin-top:2px;color:var(--ok-ink)}
+  .ticks b{color:var(--ink)}
+  .queue{margin-top:24px;background:var(--card);border:1px solid var(--line-2);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow)}
+  .queue .row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line-2);font-size:14px}
+  .queue .row:first-of-type{border-top:0}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .st{padding:3px 10px;border-radius:999px;font-weight:800;font-size:12px;white-space:nowrap}
+  .st-ok{background:var(--ok-bg);color:var(--ok-ink)} .st-warn{background:var(--warn-tint);color:var(--warn)}
+
+  /* stack */
+  .pills{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+
+  /* start */
+  .start{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:40px;align-items:center}
+  .start .head{margin:0}
+  .start .cta{display:flex;gap:12px;flex-wrap:wrap}
+
+  /* open source + support */
+  .band{background:var(--navy);color:#fff;border-radius:28px;padding:56px;display:flex;flex-direction:column;gap:18px}
+  .band h2{color:#fff}
+  .band p{margin:0;color:#C9D4EE;font-size:18px;max-width:760px}
+  .band .eyebrow{color:#9FC2FF}
+  .band .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .band .btn-quiet{background:transparent;color:#fff;border-color:#44507A}
+  .band .btn-quiet:hover{border-color:#fff;color:#fff}
+  .band .btn-primary{box-shadow:none}
+  .support{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:40px;align-items:start}
+  .support .head{margin:0}
+  .support .cta{display:flex;gap:12px;flex-wrap:wrap}
+
+  footer{border-top:1px solid var(--line);padding:32px 0 44px}
+  footer .wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  footer p{margin:0;color:var(--ink-2);font-size:14px}
+  footer nav{display:flex;gap:18px}
+  footer nav a{font-weight:700;font-size:14px;text-decoration:none}
+
+  .skip{position:absolute;left:-9999px;top:8px;background:var(--card);padding:10px 14px;border-radius:10px;z-index:50}
+  .skip:focus{left:12px}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:8px}
+
+  @media (max-width: 1040px){
+    .tour,.cards-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .touches,.cards-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .api-grid,.start,.support{grid-template-columns:minmax(0,1fr)}
+    .phone{width:200px;right:8px;bottom:-30px}
+  }
+  @media (max-width: 760px){
+    h1{font-size:40px} h2{font-size:30px} .lead{font-size:17px}
+    section{padding:64px 0}
+    .wrap{padding:0 16px}
+    .site-head nav{display:none}
+    .tour,.cards-3,.cards-4,.cards-2,.touches,.zones{grid-template-columns:minmax(0,1fr)}
+    .phone{position:static;width:190px;margin:20px auto 0}
+    .band{padding:32px 22px;border-radius:22px}
+    .hero{padding-top:44px}
   }
 </style>
 </head>
 <body>
-<header style="box-sizing: border-box; height: 80px; padding: 0 64px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6);">
-  <a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #ccd6f6;"><img src="assets/q7-logo-128.png" alt="Q7 Technology" style="width: 32px; height: 32px; object-fit: contain;"><span style="font-size: 18px; font-weight: 700;">Simple WMS</span></a>
-  <div style="flex-grow: 1;"></div>
-  <nav aria-label="Page" style="display: flex; gap: 4px;"><a href="#features" style="font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Features</a><a href="#api" style="font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">API</a><a href="#stack" style="font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Stack</a><a href="#start" style="font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; color: #8892b0; text-decoration: none;">Get started</a><a href="#support" style="font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; color: #f7941d; text-decoration: none;">Support</a></nav>
-  <a href="https://github.com/q7-technology/simple-wms" style="height: 40px; padding: 0 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; text-decoration: none; background: transparent; border: 1px solid #f7941d; color: #f7941d;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7941d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span>GitHub</span></a>
-</header><section id="top" style="box-sizing: border-box; padding: 96px 64px; display: flex; flex-direction: column; gap: 40px;"><div class="hero-row" style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 64px;"><div style="display: flex; flex-direction: column; gap: 24px; flex: 1;">
-  <div style="display: flex; gap: 8px; flex-wrap: wrap;"><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Open source · MIT</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Self-hosted</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Python + React</span></div>
-  <h1 style="margin: 0; font-size: 64px; line-height: 1.1; font-weight: 700; color: #ccd6f6;">A warehouse system that <span style="color: #29abe2;">connects to anything</span></h1>
-  <p style="margin: 0; font-size: 26px; line-height: 1.35; font-weight: 600; color: #f7941d;">Standard inputs. Standard outputs. Your data on your server.</p>
-  <p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">Simple WMS tracks every unit by shelf and batch, turns every job into a scannable task on a handheld PWA, and talks to your ERP, carriers and printers through one API and one event envelope. Multi-warehouse from day one. Nothing to license.</p>
-  <div style="display: flex; gap: 12px; flex-wrap: wrap;"><a href="https://github.com/q7-technology/simple-wms" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; text-decoration: none; background: #29abe2; border: 1px solid #29abe2; color: #0d1117;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span>View on GitHub</span></a><a href="https://github.com/q7-technology/simple-wms#readme" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 500; text-decoration: none; background: transparent; border: 1px solid #f7941d; color: #f7941d;">Read the docs</a></div>
-  <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #8892b0;"><span>MIT licence</span><span>·</span><span>docker compose up</span><span>·</span><span>Built in Ballarat, Australia</span></div>
-</div><div style="display: flex; justify-content: center;"><div style="width: 300px; height: 520px; box-sizing: border-box; border-radius: 24px; border: 1px solid rgba(41,171,226,0.3); background: #0d1117; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden;">
-  <div style="display: flex; justify-content: space-between; align-items: center;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Pick · single</p><span style="font-size: 11px; color: #8892b0;">Sam · BAL</span></div>
-  <div style="height: 4px; border-radius: 9999px; background: rgba(41,171,226,0.2); overflow: hidden;"><div style="width: 50%; height: 100%; background: #29abe2;"></div></div>
-  <div style="box-sizing: border-box; padding: 14px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.3); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 4px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Go to</p><span style="font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: #ccd6f6;">PF-01-02-A</span><span style="font-size: 11px; color: #8892b0;">Pick face · aisle 1, bay 2</span></div>
-  <div style="box-sizing: border-box; padding: 14px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 15px; font-weight: 700; color: #ccd6f6;">ABC123</span><span style="font-size: 11px; color: #8892b0;">Brake pad set · batch B2601</span><div style="display: flex; align-items: baseline; gap: 6px;"><span style="font-size: 26px; font-weight: 700; color: #ccd6f6;">10</span><span style="font-size: 12px; color: #8892b0;">EA to pick</span></div></div>
-  <div style="box-sizing: border-box; padding: 12px; border-radius: 12px; border: 1px dashed rgba(41,171,226,0.3); display: flex; align-items: center; gap: 10px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg><span style="font-size: 12px; color: #ccd6f6;">Scan shelf, then product</span></div>
-  <div style="flex-grow: 1;"></div>
-  <div style="display: flex; gap: 6px;"><span style="flex-grow: 1; height: 40px; border-radius: 6px; border: 1px solid #f7941d; color: #f7941d; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center;">Short</span><span style="flex-grow: 2; height: 40px; border-radius: 6px; background: #29abe2; color: #0d1117; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center;">Confirm pick</span></div>
-</div></div></div></section><section style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 48px;">
-  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 768px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">How it fits together</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">Three surfaces,</span> one backend</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">If the screen can do it, a partner system can too. The desktop and the scanner are ordinary API clients with no back door to the database.</p></div>
-  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px;">
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Desktop = control</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Create, watch, approve, configure. Deliveries, receiving, production, transfers, stock, locations, products, a live task board and an integrations page that shows every event waiting to send.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Scanner = execution</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Pick, pack, receive, put away, move, count, look up. Each screen says what it expects, so scanning a shelf when it wanted a product gives a friendly message, not a wrong entry.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f7941d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">API = the only door</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Deliveries, receipts, production orders, replenishments, moves, transfers and packs go in. Signed events come out. Same message twice does nothing extra.</p></div>
-  </div></div></section><section id="features" style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 48px;">
-  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 768px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Features</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">What it does,</span> and what it refuses to do</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">Small on purpose. Every feature below ends in a ledger line, and every ledger line can become an event.</p></div>
-  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;"><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Append-only stock ledger</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Every change is a new line: who, what, how many, from, to, batch, owner, device, when. Nothing is overwritten. Cancel, never delete.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Scanner PWA</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Installs from the browser on Zebra and Honeywell Android scanners. Big targets, PIN login, keeps the current task through Wi-Fi drops.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Everything is a task</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Receive, put away, pick, pack, ship, move, count, replenish, transfer. One engine, one screen pattern, one audit trail.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Production in and out</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Pick components to the line, then scan the production order to put finished goods away. Batch read straight from the order QR.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">One API, one event envelope</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Standard bodies in. One signed, queued, retried event shape out. The ERP, a carrier and a print service are all just subscribers.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Multi-warehouse from day one</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Transfers between sites with an in-transit bucket, so stock is never lost and never counted twice.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Prints nothing itself</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Sends template name plus JSON to Platen or any print service. Redesign a label without touching the WMS.</p></div><div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Three kinds of key</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">SSO or password on the desktop, badge and PIN on the floor, scoped API keys for systems. Supervisor badge for risky actions.</p></div></div></div></section><section id="api" style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 48px;">
-  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 768px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Integration</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">One shape in,</span> one envelope out</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">Every inbound body carries a message_id, an external_ref, a warehouse and an owner. Every outbound event is HMAC-signed, queued per subscriber and retried with backoff until the listener answers. A subscription list decides who hears what.</p></div>
-  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px;">
-    <div style="display: flex; flex-direction: column; gap: 12px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">API in</p><pre style="margin: 0; box-sizing: border-box; padding: 20px 24px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.6; color: #ccd6f6; overflow: hidden; white-space: pre-wrap;">POST /v1/deliveries
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Simple WMS, back to top">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 28 10 16 17 4 10Z" fill="#6E95F0"/><path d="M4 10 16 17V30L4 23Z" fill="#3E6FE2"/><path d="M28 10 16 17V30L28 23Z" fill="#2B57C2"/></svg>
+      Simple WMS
+    </a>
+    <nav aria-label="Sections">
+      <a href="#game-mode">Game Mode</a>
+      <a href="#features">Features</a>
+      <a href="#api">API</a>
+      <a href="#stack">Stack</a>
+      <a href="#start">Get started</a>
+      <a href="#support">Support</a>
+    </nav>
+    <span class="grow"></span>
+    <a class="btn btn-quiet" href="https://github.com/q7-technology/simple-wms">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49l-.01-1.7c-2.78.62-3.37-1.36-3.37-1.36-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.85.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.76-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.64 1.03 2.76 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9l-.01 2.81c0 .27.18.6.69.49A10.2 10.2 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div class="tags">
+      <span class="chip chip-plain">Open source · MIT</span>
+      <span class="chip chip-plain">Self-hosted</span>
+      <span class="chip chip-plain">Python + React</span>
+    </div>
+    <h1 id="hero-title">Run your warehouse like a <em>strategy game</em></h1>
+    <p class="lead">Simple WMS shows your warehouse as a live map: trucks arriving, stock on the shelves, orders leaving. Click anything to deal with it. Underneath, it's a serious, append-only stock ledger with one API for your ERP, carriers and printers.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#game-mode">See how it works
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+      </a>
+      <a class="btn btn-quiet" href="https://github.com/q7-technology/simple-wms#readme">Read the docs</a>
+    </div>
+    <p class="small"><span>MIT licence</span><span aria-hidden="true">·</span><span>docker compose up</span><span aria-hidden="true">·</span><span>Built in Ballarat, Australia</span></p>
+
+    <div class="stage">
+      <div class="frame">
+        <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>Simple WMS · the warehouse map</span></div>
+        <img src="assets/map.webp" width="1440" height="1000" alt="The Simple WMS desktop: an isometric map of the warehouse with Arriving, Stored and Leaving zones, trucks and forklifts. Cards over the map show 3 arriving, 3 stored and 6 leaving, today's goal of 35 orders with 34 shipped, the next delivery due, and a feed of what just happened.">
+      </div>
+      <div class="phone">
+        <img src="assets/scanner-home.webp" width="390" height="844" alt="The Simple WMS scanner home screen: a big scan box, the worker's tasks, coloured job buttons for pick, pack, receive, move, count and look up, and a Switch worker button." loading="lazy">
+      </div>
+    </div>
+  </div>
+  <div class="hero-fade" aria-hidden="true"></div>
+</section>
+
+<section id="game-mode" aria-labelledby="gm-title">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Game Mode</p>
+      <h2 id="gm-title">Industrial software that doesn't feel like it</h2>
+      <p class="lead">Most warehouse systems are rows of grey tables. Simple WMS gives the manager a picture of the whole warehouse, and gives the floor one clear job at a time.</p>
+    </div>
+
+    <div class="tour">
+      <article class="tile">
+        <div class="shot"><img class="zoom-tl" src="assets/map.webp" width="1440" height="1000" alt="Close-up of the map: Arriving, Stored and Leaving counters above the Today's goal card with its progress bar." loading="lazy"></div>
+        <div class="body">
+          <h3>The map is home</h3>
+          <p>Three zones you can read from across the room: Arriving, Stored and Leaving. Live counts, today's goal with a streak, the next order due and what just happened.</p>
+        </div>
+      </article>
+      <article class="tile">
+        <div class="shot"><img class="zoom-tr" src="assets/orders.webp" width="1440" height="1050" alt="The Deliveries panel open over the map, listing orders with status chips and picking progress." loading="lazy"></div>
+        <div class="body">
+          <h3>Every job slides over the map</h3>
+          <p>Orders, receiving, stock, the task board, reports and settings open as panels on top, like the inventory screen in a game. Close one and you're back at the warehouse.</p>
+        </div>
+      </article>
+      <article class="tile">
+        <div class="shot tall"><img src="assets/scanner-ding.webp" width="390" height="844" alt="The scanner picking screen: go to PF-01-02-A in big white letters on blue, 6 wiper blades to pick, and a green Ding! Picked 6 EA message." loading="lazy"></div>
+        <div class="body">
+          <h3>The scanner says one thing at a time</h3>
+          <p>Go to this shelf. Scan it. Pick six. Ding. Big buttons for gloved hands, badge or PIN sign-in, and a Switch worker button for handing the scanner over mid-shift.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="touches">
+      <div class="touch">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3ZM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
+        <span><b>Trucks and forklifts</b><span>A truck rolls in when stock arrives and drives off when an order ships.</span></span>
+      </div>
+      <div class="touch">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></span>
+        <span><b>Beep and ding</b><span>A soft sound for an arrival and a shipment, with a volume slider.</span></span>
+      </div>
+      <div class="touch">
+        <span class="ico ico-grey" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span>
+        <span><b>Day and night</b><span>The map follows the warehouse's own clock, so late shifts look like late shifts.</span></span>
+      </div>
+      <div class="touch">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/></svg></span>
+        <span><b>A daily goal</b><span>The app suggests a fair target from the last four weeks. The manager can change it.</span></span>
+      </div>
+    </div>
+    <p class="note">Each game touch is a personal setting that switches off in one click, and they respect your device's reduced-motion setting. The numbers underneath never change.</p>
+  </div>
+</section>
+
+<section aria-labelledby="surfaces-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">How it fits together</p>
+      <h2 id="surfaces-title">Three surfaces, one backend</h2>
+      <p class="lead">If the screen can do it, a partner system can too. The desktop and the scanner are ordinary API clients with no back door to the database.</p>
+    </div>
+    <div class="cards cards-3">
+      <div class="card">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+        <h3>Desktop = control</h3>
+        <p>Create, watch, approve, configure. Deliveries, receiving, production, transfers, stock, locations, products, a live task board and an integrations page that shows every event waiting to send.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 6h4M9 11v4M11.5 11v4M14 11v4"/></svg></span>
+        <h3>Scanner = execution</h3>
+        <p>Pick, pack, receive, put away, move, count, look up. Each screen says what it expects, so scanning a shelf when it wanted a product gives a friendly message, not a wrong entry.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h16M4 17h10"/><path d="m17 4 3 3-3 3M17 14l3 3-3 3"/></svg></span>
+        <h3>API = the only door</h3>
+        <p>Deliveries, receipts, production orders, replenishments, moves, transfers and packs go in. Signed events come out. Same message twice does nothing extra.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" aria-labelledby="features-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Features</p>
+      <h2 id="features-title">Fun on the surface, strict underneath</h2>
+      <p class="lead">Small on purpose. Every feature below ends in a ledger line, and every ledger line can become an event.</p>
+    </div>
+    <div class="cards cards-4">
+      <div class="card">
+        <span class="ico ico-grey" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5ZM9 8h6M9 12h6M9 16h3"/></svg></span>
+        <h3>Append-only stock ledger</h3>
+        <p>Every change is a new line: who, what, how many, from, to, batch, owner, device, when. Nothing is overwritten. Cancel, never delete.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></span>
+        <h3>Scanner PWA</h3>
+        <p>Installs from the browser on Zebra and Honeywell Android scanners. Big targets, badge or PIN sign-in, keeps the current task through Wi-Fi drops.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg></span>
+        <h3>Everything is a task</h3>
+        <p>Receive, put away, pick, pack, ship, move, count, replenish, transfer. One engine, one screen pattern, one audit trail.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20V10l6 4V10l6 4V6h6v14ZM3 20h18"/></svg></span>
+        <h3>Production in and out</h3>
+        <p>Pick components to the line, then scan the production order to put finished goods away. Batch read straight from the order QR.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-grey" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4Z"/><path d="m4 7 8 6 8-6"/></svg></span>
+        <h3>One API, one event envelope</h3>
+        <p>Standard bodies in. One signed, queued, retried event shape out. The ERP, a carrier and a print service are all just subscribers.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4 6 4v12M15 21V12l6 3v6M3 21h18"/></svg></span>
+        <h3>Multi-warehouse from day one</h3>
+        <p>Transfers between sites with an in-transit bucket, so stock is never lost and never counted twice.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3"/><path d="M7 14h10v7H7Z"/></svg></span>
+        <h3>Prints nothing itself</h3>
+        <p>Sends a template name plus JSON to Platen or any print service. Redesign a label without touching the WMS.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3M14 9l2 2"/></svg></span>
+        <h3>Three kinds of key</h3>
+        <p>Microsoft or other single sign-on, or a password, on the desktop. Badge or PIN on the floor. Scoped API keys for systems. Supervisor badge for risky actions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="api" aria-labelledby="api-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Integration</p>
+      <h2 id="api-title">One shape in, one envelope out</h2>
+      <p class="lead">Every inbound body carries a <span class="mono">message_id</span>, an <span class="mono">external_ref</span>, a warehouse and an owner. Every outbound event is HMAC-signed, queued per subscriber and retried with backoff until the listener answers.</p>
+    </div>
+    <div class="api-grid">
+      <div>
+        <div class="code">
+          <span class="label">API in</span>
+<pre><span class="k">POST</span> /v1/deliveries
 {
-  "message_id": "uuid",
-  "external_ref": "0080012345",
-  "warehouse": "BAL-WH01",
-  "pick_mode": "auto",
-  "lines": [
-    { "sku": "ABC123", "qty": 10, "uom": "EA" }
+  <span class="k">"message_id"</span>: <span class="s">"uuid"</span>,
+  <span class="k">"external_ref"</span>: <span class="s">"0080012345"</span>,
+  <span class="k">"warehouse"</span>: <span class="s">"BAL-WH01"</span>,
+  <span class="k">"pick_mode"</span>: <span class="s">"auto"</span>,
+  <span class="k">"lines"</span>: [
+    { <span class="k">"sku"</span>: <span class="s">"ABC123"</span>, <span class="k">"qty"</span>: 10, <span class="k">"uom"</span>: <span class="s">"EA"</span> }
   ]
-}</pre></div>
-    <div style="display: flex; flex-direction: column; gap: 12px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Events out</p><pre style="margin: 0; box-sizing: border-box; padding: 20px 24px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.6; color: #ccd6f6; overflow: hidden; white-space: pre-wrap;">{
-  "event_id": "uuid",
-  "event_type": "delivery.shipped",
-  "occurred_at": "2026-09-19T04:12:00Z",
-  "warehouse": "BAL-WH01",
-  "external_ref": "0080012345",
-  "data": { "short": false, "lines": [ ... ] }
-}</pre></div>
+}</pre>
+        </div>
+        <div class="code">
+          <span class="label">Events out</span>
+<pre>{
+  <span class="k">"event_id"</span>: <span class="s">"uuid"</span>,
+  <span class="k">"event_type"</span>: <span class="s">"delivery.shipped"</span>,
+  <span class="k">"occurred_at"</span>: <span class="s">"2026-09-19T04:12:00Z"</span>,
+  <span class="k">"warehouse"</span>: <span class="s">"BAL-WH01"</span>,
+  <span class="k">"external_ref"</span>: <span class="s">"0080012345"</span>,
+  <span class="k">"data"</span>: { <span class="k">"short"</span>: false, <span class="k">"lines"</span>: [ <span class="c">...</span> ] }
+}</pre>
+        </div>
+      </div>
+      <div>
+        <ul class="ticks">
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span><b>Endpoints:</b> deliveries, receipts, production orders, replenishments, moves, transfers, pack, stock lookup, location suggest, scan parse</span></li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span><b>Events:</b> receipt.confirmed, stock.moved, stock.adjusted, delivery.allocated / picked / packed / shipped, transfer.shipped / received, production.components_issued / received</span></li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span><b>Scan parser</b> handles GS1 (QR, DataMatrix, GS1-128, Digital Link), JSON in a QR, custom per-site patterns and plain text</span></li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span><b>Printing:</b> template name + JSON to Platen or your own print service, on the same retry queue</span></li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span><b>CSV import</b> with a preview that names the problem rows before anything commits</span></li>
+        </ul>
+        <div class="queue" role="table" aria-label="Example event queue">
+          <p class="eyebrow" style="margin-bottom:6px">Events · durable queue</p>
+          <div class="row" role="row"><span class="mono" role="cell">delivery.allocated</span><span role="cell">ERP bridge</span><span class="st st-ok" role="cell">Delivered</span></div>
+          <div class="row" role="row"><span class="mono" role="cell">delivery.packed</span><span role="cell">Carrier A</span><span class="st st-ok" role="cell">Delivered</span></div>
+          <div class="row" role="row"><span class="mono" role="cell">print carton-label</span><span role="cell">Platen</span><span class="st st-ok" role="cell">Printed</span></div>
+          <div class="row" role="row"><span class="mono" role="cell">delivery.shipped</span><span role="cell">ERP bridge</span><span class="st st-warn" role="cell">Retrying · 09:46</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: start;">
-    <div style="display: flex; flex-direction: column; gap: 14px;"><div style="display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; color: #ccd6f6;"><span style="display: flex; margin-top: 3px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Endpoints: deliveries, receipts, production orders, replenishments, moves, transfers, pack, stock lookup, location suggest, scan parse</span></div><div style="display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; color: #ccd6f6;"><span style="display: flex; margin-top: 3px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Events: receipt.confirmed, stock.moved, stock.adjusted, delivery.allocated / picked / packed / shipped, transfer.shipped / received, production.components_issued / received</span></div><div style="display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; color: #ccd6f6;"><span style="display: flex; margin-top: 3px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Scan parser handles GS1 (QR, DataMatrix, GS1-128, Digital Link), JSON in a QR, custom per-site patterns and plain text</span></div><div style="display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; color: #ccd6f6;"><span style="display: flex; margin-top: 3px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Printing: template name + JSON to Platen or your own print service, on the same retry queue</span></div><div style="display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.5; color: #ccd6f6;"><span style="display: flex; margin-top: 3px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>CSV import with a preview that names the problem rows before anything commits</span></div></div>
-    <div style="box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; overflow: hidden;"><div style="padding: 12px 16px; border-bottom: 1px solid rgba(41,171,226,0.1);"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8892b0;">Events · durable queue</p></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 13px;"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #ccd6f6;">delivery.allocated</span><span style="color: #8892b0;">ERP bridge</span><span style="color: #8892b0;">delivered</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 13px;"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #ccd6f6;">delivery.packed</span><span style="color: #8892b0;">Carrier A</span><span style="color: #8892b0;">delivered</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 13px;"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #ccd6f6;">print carton-label</span><span style="color: #8892b0;">Platen</span><span style="color: #8892b0;">printed</span></div><div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid rgba(41,171,226,0.1); font-size: 13px;"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #ccd6f6;">delivery.shipped</span><span style="color: #8892b0;">ERP bridge</span><span style="color: #f7941d;">retrying · 09:46</span></div></div>
-  </div></div></section><section id="stack" style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 48px;">
-  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 768px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Stack</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">Boring</span> on purpose</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">Six containers, one database, no message broker until volume says so.</p></div>
-  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">API · Python 3.12 + FastAPI</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Typed with Pydantic, OpenAPI for free. Python so pyrfc is there if an SAP bridge is ever needed. SQLAlchemy 2, Alembic migrations.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">PostgreSQL 16</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Ledger as an append-only table with a trigger that blocks UPDATE and DELETE. Events and print jobs in a durable queue table, drained by a Python worker.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Vite + React + Tailwind</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Desktop app and scanner PWA from one repo, two entry points. Service worker caches the shell so the scanner opens offline.</p></div>
+</section>
+
+<section id="stack" aria-labelledby="stack-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Stack</p>
+      <h2 id="stack-title">Boring on purpose</h2>
+      <p class="lead">The fun lives in the screens. The backend is the dullest, most dependable thing we could build: a handful of containers, one database, no message broker.</p>
+    </div>
+    <div class="cards cards-3">
+      <div class="card">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg></span>
+        <h3>API · Python 3.12 + FastAPI</h3>
+        <p>Typed with Pydantic, OpenAPI for free. Python so pyrfc is there if an SAP bridge is ever needed. SQLAlchemy 2, Alembic migrations.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+        <h3>PostgreSQL 16</h3>
+        <p>Ledger as an append-only table with a trigger that blocks UPDATE and DELETE. Events and print jobs in a durable queue table, drained by a Python worker.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg></span>
+        <h3>Vite + React + Tailwind</h3>
+        <p>Desktop app and scanner PWA from one repo, two entry points. The map is plain SVG, the sounds are made in the browser, and the scanner's service worker caches the shell so it opens offline.</p>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="chip chip-plain">Ubuntu</span><span class="chip chip-plain">Docker Compose</span><span class="chip chip-plain">Caddy · TLS</span><span class="chip chip-plain">pg_dump nightly</span><span class="chip chip-plain">OIDC single sign-on</span><span class="chip chip-plain">HMAC webhooks</span><span class="chip chip-plain">GS1 parser</span><span class="chip chip-plain">PWA</span>
+    </div>
   </div>
-  <div style="display: flex; gap: 8px; flex-wrap: wrap;"><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Ubuntu</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Docker Compose</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">Caddy · TLS</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">pg_dump nightly</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">OIDC single sign-on</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">HMAC webhooks</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">GS1 parser</span><span style="display: inline-block; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; border: 1px solid rgba(41,171,226,0.3); color: #ccd6f6; white-space: nowrap;">PWA</span></div>
-</div></section><section id="start" style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; align-items: center;">
-  <div style="display: flex; flex-direction: column; gap: 20px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Get started</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">Running</span> in four commands</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">Clone it, copy the env file, bring it up. The first sign-in creates the admin. Register a scanner from the desktop and install the PWA from its browser.</p><div style="display: flex; gap: 12px; flex-wrap: wrap;"><a href="https://github.com/q7-technology/simple-wms" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; text-decoration: none; background: #29abe2; border: 1px solid #29abe2; color: #0d1117;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span>View on GitHub</span></a><a href="https://github.com/q7-technology/simple-wms/issues" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 500; text-decoration: none; background: transparent; border: 1px solid #f7941d; color: #f7941d;">Report an issue</a></div></div>
-  <pre style="margin: 0; box-sizing: border-box; padding: 20px 24px; border-radius: 12px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.6; color: #ccd6f6; overflow: hidden; white-space: pre-wrap;">git clone https://github.com/q7-technology/simple-wms
+</section>
+
+<section id="start" aria-labelledby="start-title" style="padding-top:0">
+  <div class="wrap start">
+    <div class="head">
+      <p class="eyebrow">Get started</p>
+      <h2 id="start-title">From clone to warehouse map</h2>
+      <p class="lead">Copy the env file and set two secrets, build the two apps, bring it up, and make your first admin. Then register a scanner on the Users screen and install the PWA from its browser.</p>
+      <div class="cta">
+        <a class="btn btn-dark" href="https://github.com/q7-technology/simple-wms">View on GitHub</a>
+        <a class="btn btn-quiet" href="https://github.com/q7-technology/simple-wms/issues">Report an issue</a>
+      </div>
+    </div>
+    <div class="code">
+      <span class="label">Terminal</span>
+<pre>git clone https://github.com/q7-technology/simple-wms
 cd simple-wms
-cp .env.example .env
+cp .env.example .env     <span class="c"># set POSTGRES_PASSWORD and WMS_SECRET_KEY</span>
+(cd apps/desktop &amp;&amp; npm install &amp;&amp; npm run build)
+(cd apps/scanner &amp;&amp; npm install &amp;&amp; npm run build)
 docker compose up -d
-# desktop  → https://wms.local
-# scanner  → https://wms.local/scanner
-# api docs → https://wms.local/api/docs</pre>
-</div></section><section style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 48px; border-radius: 16px; border: 1px solid rgba(41,171,226,0.3); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 20px;">
-  <p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #f7941d;">Open source</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">MIT licensed.</span> Yours to run, change and ship.</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">No per-seat fees, no vendor lock-in, no phone-home. Fork it for one warehouse or a dozen. Issues and pull requests are welcome, and the roadmap lives in the repo: pallets and SSCC, multiple stock owners for 3PL, an EDI subscriber, an SAP RFC adapter.</p>
-  <div style="display: flex; gap: 12px; flex-wrap: wrap;"><a href="https://github.com/q7-technology/simple-wms" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; text-decoration: none; background: #29abe2; border: 1px solid #29abe2; color: #0d1117;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg><span>Star on GitHub</span></a><a href="https://github.com/q7-technology/simple-wms#roadmap" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 500; text-decoration: none; background: transparent; border: 1px solid #f7941d; color: #f7941d;">Read the roadmap</a></div>
-</div></section><section id="support" style="box-sizing: border-box; padding: 80px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; align-items: start;">
-  <div style="display: flex; flex-direction: column; gap: 20px;"><p style="margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #29abe2;">Paid support</p><h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; color: #ccd6f6;"><span style="color: #29abe2;">Free to run.</span> Help when you want it.</h2><p style="margin: 0; font-size: 18px; line-height: 1.55; color: #8892b0;">The software costs nothing. If you would rather not do the setup, integration or on-call yourself, Q7 Technology supports Simple WMS on a fixed monthly retainer. We built it, so there is nobody closer to the code.</p><div style="display: flex; gap: 12px; flex-wrap: wrap;"><a href="https://q7technology.com.au" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 500; text-decoration: none; background: #29abe2; border: 1px solid #29abe2; color: #0d1117;">Book a discovery call</a><a href="mailto:hello@q7technology.com.au" style="height: 48px; padding: 0 20px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 500; text-decoration: none; background: transparent; border: 1px solid #f7941d; color: #f7941d;">Email us instead</a></div><p style="margin: 0; font-size: 13px; color: #8892b0;">Fixed monthly fee, not hourly. Cancel any time.</p></div>
-  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Setup and hosting</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Install on your server or ours, TLS, backups, monitoring, upgrades applied for you.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Integration</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Connect your ERP, web store, carriers and label printers. SAP RFC adapter available.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Go-live and training</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">Location labels, opening stock load, scanner rollout, train-the-trainer for the floor.</p></div>
-    <div style="box-sizing: border-box; padding: 24px; border-radius: 8px; border: 1px solid rgba(41,171,226,0.2); background: rgba(13,17,23,0.6); display: flex; flex-direction: column; gap: 14px;">
-  <div style="width: 48px; height: 48px; border-radius: 9999px; background: rgba(41,171,226,0.1); display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#29abe2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-  <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; color: #ccd6f6;">Ongoing support</h3>
-  <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #8892b0;">A named contact, a ticket queue and agreed response times. Bug fixes land upstream, so everyone benefits.</p></div>
+docker compose exec api wms create-user --username you --role admin
+
+<span class="c"># desktop  → https://&lt;WMS_DOMAIN&gt;/</span>
+<span class="c"># scanner  → https://&lt;WMS_DOMAIN&gt;/scan/</span>
+<span class="c"># api docs → https://&lt;WMS_DOMAIN&gt;/docs</span></pre>
+    </div>
   </div>
-</div></section><footer style="box-sizing: border-box; padding: 48px 64px; border-top: 1px solid rgba(41,171,226,0.2);"><div style="max-width: 1152px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 16px; font-size: 14px; color: #8892b0;">
-  <div style="display: flex; align-items: center; gap: 10px;"><img src="assets/q7-logo-128.png" alt="Q7 Technology" style="width: 28px; height: 28px; object-fit: contain;"><span style="font-size: 16px; font-weight: 700; color: #ccd6f6;">Q7 Technology</span></div>
-  <span>Simple WMS is an open source project by Q7 Technology, Ballarat. Paid support available.</span>
-  <div style="flex-grow: 1;"></div>
-  <div style="display: flex; gap: 20px;"><a href="https://github.com/q7-technology/simple-wms" style="color: #29abe2; text-decoration: none;">GitHub</a><a href="https://github.com/q7-technology/simple-wms/blob/main/LICENSE" style="color: #29abe2; text-decoration: none;">MIT licence</a><a href="https://q7technology.com.au" style="color: #29abe2; text-decoration: none;">q7technology.com.au</a></div>
-</div></footer>
+</section>
+
+<section aria-labelledby="oss-title" style="padding-top:0">
+  <div class="wrap">
+    <div class="band">
+      <p class="eyebrow">Open source</p>
+      <h2 id="oss-title">MIT licensed. Yours to run, change and ship.</h2>
+      <p>No per-seat fees, no vendor lock-in, no phone-home. Fork it for one warehouse or a dozen. Issues and pull requests are welcome, and the roadmap lives in the repo: pallets and SSCC, multiple stock owners for 3PL, an EDI subscriber, an SAP RFC adapter.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/q7-technology/simple-wms">Star on GitHub</a>
+        <a class="btn btn-quiet" href="https://github.com/q7-technology/simple-wms#roadmap">Read the roadmap</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="support" aria-labelledby="support-title" style="padding-top:0">
+  <div class="wrap support">
+    <div class="head">
+      <p class="eyebrow">Paid support</p>
+      <h2 id="support-title">Free to run. Help when you want it.</h2>
+      <p class="lead">The software costs nothing. If you'd rather not do the setup, integration or on-call yourself, Q7 Technology supports Simple WMS on a fixed monthly retainer. We built it, so there's nobody closer to the code.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://q7technology.com.au">Book a discovery call</a>
+        <a class="btn btn-quiet" href="mailto:hello@q7technology.com.au">Email us instead</a>
+      </div>
+      <p class="muted" style="font-size:14px">Fixed monthly fee, not hourly. Cancel any time.</p>
+    </div>
+    <div class="cards cards-2">
+      <div class="card">
+        <span class="ico ico-blue" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
+        <h3>Setup and hosting</h3>
+        <p>Install on your server or ours, TLS, backups, monitoring, upgrades applied for you.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-teal" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H6a4 4 0 0 0 0 8h3M15 7h3a4 4 0 0 1 0 8h-3M8 11h8"/></svg></span>
+        <h3>Integration</h3>
+        <p>Connect your ERP, web store, carriers and label printers. SAP RFC adapter available.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-orange" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5Z"/><path d="M6 10v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg></span>
+        <h3>Go-live and training</h3>
+        <p>Location labels, opening stock load, scanner rollout, train-the-trainer for the floor.</p>
+      </div>
+      <div class="card">
+        <span class="ico ico-grey" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13h3v6H6a2 2 0 0 1-2-2Z"/></svg></span>
+        <h3>Ongoing support</h3>
+        <p>A named contact, a ticket queue and agreed response times. Bug fixes land upstream, so everyone benefits.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/q7-logo-128.png" width="32" height="32" alt="Q7 Technology">
+    <p>Simple WMS is an open source project by Q7 Technology, Ballarat. Paid support available.</p>
+    <span class="grow"></span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/q7-technology/simple-wms">GitHub</a>
+      <a href="https://github.com/q7-technology/simple-wms/blob/main/LICENSE">MIT licence</a>
+      <a href="https://q7technology.com.au">q7technology.com.au</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>
