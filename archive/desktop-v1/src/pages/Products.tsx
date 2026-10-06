@@ -1,0 +1,635 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api, ApiError } from "../api/client";
+import type { Accepted, Barcode, Batch, Page, Product, StockBySku } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
+import { fmtDate, fmtQty, plural } from "../lib/format";
+import { useAction, useApi } from "../lib/useApi";
+import {
+  Button, Chip, DetailHeader, DetailPanel, Field, Input, Muted, Notice, PageHeader, Pill,
+  SearchInput, Section, SegmentedChoice, Select, Table, Toggle, type Column,
+} from "../ui";
+import { Main } from "../ui/Shell";
+
+/* The printer is asked for once and remembered, not stored per screen. */
+const PRINTER_KEY = "wms.printer";
+function readPrinter(): string {
+  try { return window.localStorage.getItem(PRINTER_KEY) ?? ""; } catch { return ""; }
+}
+function rememberPrinter(name: string) {
+  try { window.localStorage.setItem(PRINTER_KEY, name); } catch { /* private mode */ }
+}
+
+const OWNER = "DEFAULT";
+const UNITS = ["EA", "KG", "L", "M", "CTN"];
+const ZONES = ["PICKFACE", "BULK", "LINE-SIDE"];
+type Kind = Barcode["kind"];
+const KIND_LABEL: Record<Kind, string> = { gtin: "GTIN · GS1", carton: "Carton", supplier: "Supplier label", other: "Other" };
+const KINDS: Kind[] = ["gtin", "carton", "supplier", "other"];
+type Filter = "all" | "batch" | "nobarcode" | "belowmin";
+
+/** How many products with a min we check the pick face for. Enough for the chip, not a full scan. */
+const BELOW_MIN_SAMPLE = 25;
+
+/** A batch this close to its expiry date is worth a second look. */
+const EXPIRY_WARN_DAYS = 30;
+
+/** Whole days from today to a plain YYYY-MM-DD date. Negative once it is past. */
+function daysUntil(date: string, now: Date = new Date()): number {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const then = Date.UTC(y, m - 1, d);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((then - today) / 86_400_000);
+}
+
+/** Expiry reads in gold once it is past, or close enough to plan around. */
+function expiryLabel(b: Batch) {
+  if (!b.expiry_date) return <Muted className="shrink-0">No expiry</Muted>;
+  const days = daysUntil(b.expiry_date);
+  const text = `${days < 0 ? "Expired" : "Expires"} ${fmtDate(b.expiry_date)}`;
+  return <span className={days <= EXPIRY_WARN_DAYS ? "shrink-0 text-gold" : "shrink-0 text-muted"}>{text}</span>;
+}
+
+function pickfaceOnHand(stock: StockBySku): number {
+  return stock.locations.filter((l) => l.zone === "PICKFACE").reduce((n, l) => n + Number(l.on_hand), 0);
+}
+
+function barcodesLabel(p: Product): string {
+  if (p.barcodes.length === 0) return "None";
+  const first = p.barcodes[0].kind.toUpperCase();
+  const extra = p.barcodes.length - 1;
+  return extra > 0 ? `${first} + ${extra}` : first;
+}
+
+function minMax(p: Product): string {
+  return `${p.pickface_min ? fmtQty(p.pickface_min) : "—"} / ${p.pickface_max ? fmtQty(p.pickface_max) : "—"}`;
+}
+
+function kindLabel(b: Barcode): string {
+  if (b.kind === "carton") return Number(b.qty_per) > 1 ? `Carton of ${fmtQty(b.qty_per)}` : "Carton";
+  return KIND_LABEL[b.kind] ?? b.kind;
+}
+
+/** The form's view of a product. Strings throughout so the inputs stay controlled. */
+interface Draft {
+  sku: string;
+  name: string;
+  uom: string;
+  preferred_zone: string;
+  pickface_min: string;
+  pickface_max: string;
+  batch_tracked: boolean;
+  decimals_allowed: boolean;
+  barcodes: Barcode[];
+}
+
+function emptyDraft(): Draft {
+  return { sku: "", name: "", uom: "EA", preferred_zone: "", pickface_min: "", pickface_max: "", batch_tracked: false, decimals_allowed: false, barcodes: [] };
+}
+
+function draftOf(p: Product): Draft {
+  return {
+    sku: p.sku, name: p.name, uom: p.uom, preferred_zone: p.preferred_zone ?? "",
+    pickface_min: p.pickface_min ?? "", pickface_max: p.pickface_max ?? "",
+    batch_tracked: p.batch_tracked, decimals_allowed: p.decimals_allowed,
+    barcodes: p.barcodes.map((b) => ({ ...b })),
+  };
+}
+
+export function Products() {
+  const { warehouse, can } = useAuth();
+  const navigate = useNavigate();
+  const writable = can("master:write");
+
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selected, setSelected] = useState<Product | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [newBarcode, setNewBarcode] = useState<{ barcode: string; kind: Kind; qty_per: string } | null>(null);
+
+  const products = useApi<Page<Product>>(() => api.get<Page<Product>>("/v1/products", { q: q.trim(), owner: OWNER }), [q]);
+  const onHand = useApi<StockBySku>(
+    selected ? () => api.get<StockBySku>("/v1/stock", { sku: selected.sku, owner: OWNER }) : null,
+    [selected?.sku],
+  );
+  const save = useAction();
+
+  /* Batches of the selected product: master data, earliest expiry first. */
+  const canHoldBatch = can("stock:write");
+  const batches = useApi<Page<Batch>>(
+    selected ? () => api.get<Page<Batch>>("/v1/batches", { sku: selected.sku, owner: OWNER }) : null,
+    [selected?.sku],
+  );
+  const batchAction = useAction();
+  const [batchForm, setBatchForm] = useState<{ code: string; hold: boolean; reason: string; note: string } | null>(null);
+  const [batchDone, setBatchDone] = useState<string | null>(null);
+
+  const canPrint = can("printing:write");
+  const [printer, setPrinter] = useState(readPrinter);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printBatch, setPrintBatch] = useState("");
+  const [printQty, setPrintQty] = useState("");
+  const [printBusy, setPrintBusy] = useState(false);
+  const [printed, setPrinted] = useState<{ tone: "ok" | "gold"; text: string } | null>(null);
+
+  useEffect(() => {
+    setSaved(null); setPrintOpen(false); setPrinted(null); setBatchForm(null); setBatchDone(null);
+  }, [selected?.sku, adding]);
+
+  /* Below min needs a stock lookup per product, so it is only done when asked for. */
+  const [belowMin, setBelowMin] = useState<Set<string> | null>(null);
+  const [belowMinBusy, setBelowMinBusy] = useState(false);
+  const withMin = useMemo(
+    () => (products.data?.items ?? []).filter((p) => p.pickface_min),
+    [products.data],
+  );
+  const code = warehouse?.code;
+
+  useEffect(() => { setBelowMin(null); }, [q]);
+
+  const loadBelowMin = useCallback(async () => {
+    const sample = withMin.slice(0, BELOW_MIN_SAMPLE);
+    setBelowMinBusy(true);
+    try {
+      const stock = await Promise.all(
+        sample.map((p) => api.get<StockBySku>("/v1/stock", { sku: p.sku, warehouse: code }).catch(() => null)),
+      );
+      const below = new Set<string>();
+      stock.forEach((s, i) => {
+        if (s && pickfaceOnHand(s) < Number(sample[i].pickface_min)) below.add(sample[i].sku);
+      });
+      setBelowMin(below);
+    } finally {
+      setBelowMinBusy(false);
+    }
+  }, [withMin, code]);
+
+  useEffect(() => {
+    if (filter !== "belowmin" || belowMin !== null || belowMinBusy || products.loading) return;
+    void loadBelowMin();
+  }, [filter, belowMin, belowMinBusy, products.loading, loadBelowMin]);
+
+  const rows = useMemo(() => {
+    const all = products.data?.items ?? [];
+    if (filter === "batch") return all.filter((p) => p.batch_tracked);
+    if (filter === "nobarcode") return all.filter((p) => p.barcodes.length === 0);
+    if (filter === "belowmin") return belowMin === null ? [] : all.filter((p) => belowMin.has(p.sku));
+    return all;
+  }, [products.data, filter, belowMin]);
+
+  function open(p: Product) {
+    setSelected(p); setAdding(false); setDraft(draftOf(p)); setNewBarcode(null); save.clear();
+  }
+  function startAdd() {
+    setSelected(null); setAdding(true); setDraft(emptyDraft()); setNewBarcode(null); save.clear();
+  }
+  function patch(p: Partial<Draft>) { setDraft((d) => (d ? { ...d, ...p } : d)); }
+
+  function addBarcode() {
+    if (!draft || !newBarcode || !newBarcode.barcode.trim()) return;
+    const qty = newBarcode.qty_per.trim() === "" ? "1" : newBarcode.qty_per.trim();
+    patch({ barcodes: [...draft.barcodes, { barcode: newBarcode.barcode.trim(), kind: newBarcode.kind, qty_per: qty }] });
+    setNewBarcode(null);
+  }
+
+  async function onSave() {
+    if (!draft) return;
+    const body = {
+      owner: OWNER,
+      sku: draft.sku.trim(),
+      name: draft.name.trim(),
+      uom: draft.uom,
+      decimals_allowed: draft.decimals_allowed,
+      batch_tracked: draft.batch_tracked,
+      preferred_zone: draft.preferred_zone || null,
+      pickface_min: draft.pickface_min.trim() === "" ? null : draft.pickface_min.trim(),
+      pickface_max: draft.pickface_max.trim() === "" ? null : draft.pickface_max.trim(),
+      barcodes: draft.barcodes.map((b) => ({ barcode: b.barcode, kind: b.kind, qty_per: b.qty_per })),
+      active: true,
+    };
+    const reply = await save.run(() => api.message<{ wms_id: string; status: string }>("/v1/products", body));
+    if (!reply) return;
+    setSaved(reply.status === "created" ? `Added ${body.sku}.` : `Saved ${body.sku}.`);
+    const page = await api.get<Page<Product>>("/v1/products", { q: q.trim(), owner: OWNER });
+    products.setData(page);
+    const fresh = page.items.find((p) => p.sku === body.sku) ?? null;
+    if (fresh) { setSelected(fresh); setAdding(false); setDraft(draftOf(fresh)); }
+  }
+
+  /** Batch and quantity are optional: they only go on the label when filled. */
+  async function sendLabel() {
+    const name = printer.trim();
+    const sku = selected?.sku;
+    if (!name || !sku || !warehouse?.code) return;
+    rememberPrinter(name);
+    setPrintBusy(true);
+    setPrinted(null);
+    try {
+      await api.message("/v1/print-jobs", {
+        warehouse: warehouse.code, template: "product-label", printer: name, copies: 1,
+        reference: {
+          type: "product", ref: sku,
+          ...(printBatch.trim() ? { batch: printBatch.trim() } : {}),
+          ...(printQty.trim() ? { qty: printQty.trim() } : {}),
+        },
+      });
+      setPrintOpen(false);
+      setPrinted({ tone: "ok", text: `Sent the label for ${sku} to ${name}.` });
+    } catch (e) {
+      setPrinted({ tone: "gold", text: e instanceof ApiError ? e.message : "Could not reach the WMS" });
+    } finally {
+      setPrintBusy(false);
+    }
+  }
+
+  /** One form at a time, and the button on the row opens and closes it. */
+  function openBatchForm(b: Batch) {
+    batchAction.clear();
+    setBatchDone(null);
+    setBatchForm((f) => (f && f.code === b.code
+      ? null
+      : { code: b.code, hold: b.status !== "quarantined", reason: "", note: "" }));
+  }
+
+  /** Holding leaves the stock where it is. It is only taken off the table. */
+  async function submitBatch(b: Batch) {
+    const wh = warehouse?.code;
+    if (!batchForm || !wh) return;
+    const hold = batchForm.hold;
+    const reason = batchForm.reason.trim();
+    const note = batchForm.note.trim();
+    if (hold && !reason) return;
+    const path = `/v1/batches/${encodeURIComponent(b.sku)}/${encodeURIComponent(b.code)}/${hold ? "quarantine" : "release"}`;
+    const reply = await batchAction.run(() => api.message<Accepted & { batch: Batch }>(path, {
+      warehouse: wh, owner: OWNER,
+      ...(hold ? { reason } : {}),
+      note: note || null,
+    }));
+    if (!reply) return;
+    setBatchForm(null);
+    setBatchDone(hold
+      ? `Held ${b.code}. It stays on the shelf, but nothing will be promised from it.`
+      : `Released ${b.code}. It can be picked again.`);
+    await batches.reload();
+  }
+
+  const columns: Column<Product>[] = [
+    { key: "sku", header: "SKU", width: "120px", render: (p) => <b>{p.sku}</b> },
+    { key: "name", header: "Name", render: (p) => p.name },
+    { key: "uom", header: "Unit", width: "70px", render: (p) => p.uom },
+    { key: "batch", header: "Batch", width: "70px", render: (p) => (p.batch_tracked ? "Yes" : "No") },
+    { key: "zone", header: "Zone", width: "110px", render: (p) => p.preferred_zone ?? <Muted>—</Muted> },
+    { key: "minmax", header: "Min / max", width: "100px", render: (p) => minMax(p) },
+    { key: "barcodes", header: "Barcodes", width: "110px", render: (p) => (p.barcodes.length ? barcodesLabel(p) : <Muted>None</Muted>) },
+    {
+      key: "onhand", header: "On hand", width: "160px",
+      render: (p) => {
+        if (selected?.sku !== p.sku) return <Muted>—</Muted>;
+        if (onHand.loading) return <Muted>Loading…</Muted>;
+        if (!onHand.data) return <Muted>—</Muted>;
+        const warehouses = new Set(onHand.data.locations.map((l) => l.warehouse)).size;
+        return `${fmtQty(onHand.data.total_on_hand, onHand.data.uom)}${warehouses > 1 ? ` · ${plural(warehouses, "warehouse")}` : ""}`;
+      },
+    },
+  ];
+
+  const panelOpen = draft !== null;
+  const generalError = save.error && Object.keys(save.fieldErrors).length === 0 ? save.error : null;
+  const batchError = batchAction.error && Object.keys(batchAction.fieldErrors).length === 0 ? batchAction.error : null;
+
+  return (
+    <>
+      <Main>
+        <PageHeader
+          eyebrow="Master data"
+          accent="Products"
+          title=""
+          actions={<>
+            <Button variant="gold" onClick={() => navigate("/import")}>Import CSV</Button>
+            {writable && <Button variant="primary" onClick={startAdd}>Add product</Button>}
+          </>}
+        />
+
+        <div className="flex gap-3 items-center flex-wrap">
+          <SearchInput
+            className="w-[300px]"
+            placeholder="SKU or name"
+            aria-label="Find a product"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <div className="flex items-center gap-1 flex-wrap">
+            <Chip active={filter === "all"} onClick={() => setFilter("all")}>All</Chip>
+            <Chip active={filter === "batch"} onClick={() => setFilter("batch")}>Batch tracked</Chip>
+            <Chip active={filter === "belowmin"} onClick={() => setFilter("belowmin")}>
+              Below min{belowMinBusy && filter === "belowmin" ? <Muted> …</Muted> : null}
+            </Chip>
+            <Chip active={filter === "nobarcode"} onClick={() => setFilter("nobarcode")}>No barcode</Chip>
+            <Chip active>Owner: {OWNER}</Chip>
+          </div>
+        </div>
+
+        {products.error && <Notice tone="gold">{products.error}</Notice>}
+        {products.loading && !products.data && <Muted className="text-sm">Loading…</Muted>}
+        {(products.data || !products.loading) && (
+          <>
+            <Table
+              columns={columns}
+              rows={rows}
+              rowKey={(p) => p.sku}
+              onRowClick={open}
+              selectedKey={selected?.sku ?? null}
+              empty={
+                filter === "belowmin"
+                  ? belowMin === null
+                    ? "Checking the pick face…"
+                    : withMin.length === 0
+                      ? "No product has a minimum at the pick face. Set one on a product to see it here."
+                      : "Every pick face is at or above its minimum."
+                  : q.trim()
+                    ? `No product matches "${q.trim()}".`
+                    : filter === "batch"
+                      ? "No batch tracked products. Switch batch tracking on in a product to see it here."
+                      : filter === "nobarcode"
+                        ? "Every product has at least one barcode."
+                        : "No products yet. Add one, or import a CSV."
+              }
+            />
+            {filter === "belowmin" && withMin.length > BELOW_MIN_SAMPLE && (
+              <Muted className="text-xs leading-4">
+                Only the first {BELOW_MIN_SAMPLE} of {withMin.length} products with a minimum were checked.
+              </Muted>
+            )}
+          </>
+        )}
+      </Main>
+
+      <DetailPanel
+        footer={panelOpen ? <>
+          {canPrint && selected && (
+            <Button onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}>Print product label</Button>
+          )}
+          {writable && (
+            <Button variant="primary" onClick={() => void onSave()} disabled={save.busy || !draft?.sku.trim() || !draft?.name.trim()}>
+              {save.busy ? "Saving…" : "Save"}
+            </Button>
+          )}
+        </> : undefined}
+      >
+        {draft ? (
+          <>
+            <DetailHeader
+              eyebrow="Product"
+              title={adding ? "New product" : draft.sku}
+              subtitle={adding ? `Owner ${OWNER}${warehouse ? ` · shared across warehouses` : ""}` : `${draft.name} · owner ${OWNER}`}
+            />
+            {generalError && <Notice tone="gold">{generalError}</Notice>}
+            {saved && <Notice>{saved}</Notice>}
+            {printed && <Notice tone={printed.tone}>{printed.text}</Notice>}
+            {canPrint && printOpen && selected && (
+              <form
+                className="flex flex-col gap-3 rounded-md border border-line p-3"
+                onSubmit={(e) => { e.preventDefault(); void sendLabel(); }}
+              >
+                <Field label="Printer">
+                  <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Batch">
+                    <Input value={printBatch} onChange={(e) => setPrintBatch(e.target.value)} placeholder="Optional" />
+                  </Field>
+                  <Field label="Quantity">
+                    <Input inputMode="decimal" value={printQty} onChange={(e) => setPrintQty(e.target.value)} placeholder="Optional" />
+                  </Field>
+                </div>
+                <div className="flex gap-2 [&>*]:grow">
+                  <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
+                  <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
+                    {printBusy ? "Printing…" : "Print"}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            <Field label="SKU" error={save.fieldErrors.sku} hint={adding ? "Unique per owner. Cannot change once saved." : undefined}>
+              <Input value={draft.sku} onChange={(e) => patch({ sku: e.target.value })} readOnly={!adding} disabled={!writable} placeholder="ABC123" autoFocus={adding} />
+            </Field>
+            <Field label="Name" error={save.fieldErrors.name}>
+              <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} disabled={!writable} placeholder="Brake pad set" />
+            </Field>
+
+            <Field label="Unit" error={save.fieldErrors.uom}>
+              <SegmentedChoice
+                value={draft.uom}
+                options={(UNITS.includes(draft.uom) ? UNITS : [...UNITS, draft.uom]).map((u) => ({ value: u, label: u }))}
+                onChange={(u) => patch({ uom: u })}
+                disabled={!writable}
+              />
+            </Field>
+            <Field label="Preferred zone" error={save.fieldErrors.preferred_zone}>
+              <SegmentedChoice
+                value={draft.preferred_zone}
+                options={[
+                  ...(ZONES.includes(draft.preferred_zone) || !draft.preferred_zone ? ZONES : [...ZONES, draft.preferred_zone]).map((z) => ({ value: z, label: z })),
+                  { value: "", label: "None" },
+                ]}
+                onChange={(z) => patch({ preferred_zone: z })}
+                disabled={!writable}
+              />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Min at pick face" error={save.fieldErrors.pickface_min}>
+                <Input inputMode="decimal" value={draft.pickface_min} onChange={(e) => patch({ pickface_min: e.target.value })} placeholder="—" disabled={!writable} />
+              </Field>
+              <Field label="Max at pick face" error={save.fieldErrors.pickface_max}>
+                <Input inputMode="decimal" value={draft.pickface_max} onChange={(e) => patch({ pickface_max: e.target.value })} placeholder="—" disabled={!writable} />
+              </Field>
+            </div>
+
+            <div className="flex flex-col">
+              <Toggle
+                label="Batch / lot tracking"
+                hint="Every receipt and pick asks for a batch"
+                checked={draft.batch_tracked}
+                onChange={(v) => patch({ batch_tracked: v })}
+                disabled={!writable}
+              />
+              <Toggle
+                label="Decimal quantities"
+                hint="Off for a countable item"
+                checked={draft.decimals_allowed}
+                onChange={(v) => patch({ decimals_allowed: v })}
+                disabled={!writable}
+              />
+            </div>
+
+            <Section
+              title="Barcodes"
+              action={writable && !newBarcode ? (
+                <Button small onClick={() => setNewBarcode({ barcode: "", kind: "gtin", qty_per: "" })}>Add barcode</Button>
+              ) : undefined}
+            >
+              {draft.barcodes.length === 0 && !newBarcode && (
+                <Muted className="text-sm">No barcodes. The scanner will only find this product by SKU.</Muted>
+              )}
+              {draft.barcodes.length > 0 && (
+                <div className="flex flex-col rounded-lg border border-line">
+                  {draft.barcodes.map((b, i) => (
+                    <div key={`${b.barcode}-${i}`} className="flex justify-between items-center gap-3 px-3 py-2.5 text-sm leading-5 row-line last:border-b-0">
+                      <span className="flex flex-col min-w-0">
+                        <span className="mono truncate">{b.barcode}</span>
+                        <Muted className="text-xs leading-4">{kindLabel(b)}</Muted>
+                      </span>
+                      {writable && (
+                        <Button small variant="ghost" aria-label={`Remove ${b.barcode}`} onClick={() => patch({ barcodes: draft.barcodes.filter((_, j) => j !== i) })}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {save.fieldErrors.barcodes && <span className="text-xs leading-4 text-gold">{save.fieldErrors.barcodes}</span>}
+              {newBarcode && (
+                <form className="card p-3 flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); addBarcode(); }}>
+                  <Field label="Barcode">
+                    <Input className="mono" value={newBarcode.barcode} onChange={(e) => setNewBarcode({ ...newBarcode, barcode: e.target.value })} placeholder="09312345000012" autoFocus />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Kind">
+                      <Select value={newBarcode.kind} onChange={(e) => setNewBarcode({ ...newBarcode, kind: e.target.value as Kind })}>
+                        {KINDS.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Qty per scan" hint={`in ${draft.uom}`}>
+                      <Input inputMode="decimal" value={newBarcode.qty_per} onChange={(e) => setNewBarcode({ ...newBarcode, qty_per: e.target.value })} placeholder="1" />
+                    </Field>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button small type="button" onClick={() => setNewBarcode(null)}>Cancel</Button>
+                    <Button small type="submit" variant="primary" disabled={!newBarcode.barcode.trim()}>Add</Button>
+                  </div>
+                </form>
+              )}
+            </Section>
+
+            {selected && (
+              <Section title="On hand">
+                {onHand.loading && <Muted className="text-sm">Loading…</Muted>}
+                {onHand.error && <Muted className="text-sm">No stock recorded yet.</Muted>}
+                {onHand.data && (
+                  <div className="text-sm leading-5">
+                    {fmtQty(onHand.data.total_on_hand, onHand.data.uom)} on hand · {fmtQty(onHand.data.total_available)} available
+                    {onHand.data.locations.length > 0 && <Muted> · {plural(onHand.data.locations.length, "shelf", "shelves")}</Muted>}
+                  </div>
+                )}
+              </Section>
+            )}
+
+            {selected && (
+              <Section title="Batches">
+                {batches.loading && !batches.data && <Muted className="text-sm">Loading…</Muted>}
+                {batches.error && <Notice tone="gold">{batches.error}</Notice>}
+                {batchDone && <Notice>{batchDone}</Notice>}
+                {batches.data?.items.length === 0 && (
+                  <Muted className="text-sm">
+                    No batches recorded for this product. A batch is recorded the first time it is received.
+                  </Muted>
+                )}
+                {batches.data && batches.data.items.length > 0 && (
+                  <div className="flex flex-col rounded-lg border border-line">
+                    {batches.data.items.map((b) => (
+                      <div key={b.code} className="flex flex-col gap-1.5 px-3 py-2.5 row-line last:border-b-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="mono text-sm leading-5 truncate">{b.code}</span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            {b.status === "quarantined"
+                              ? <Pill tone="warn">Quarantined</Pill>
+                              : <Pill tone="info">Released</Pill>}
+                            {canHoldBatch && (
+                              <Button
+                                small
+                                variant="ghost"
+                                aria-label={`${b.status === "quarantined" ? "Release" : "Hold"} ${b.code}`}
+                                onClick={() => openBatchForm(b)}
+                              >
+                                {b.status === "quarantined" ? "Release" : "Hold"}
+                              </Button>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 text-xs leading-4">
+                          {expiryLabel(b)}
+                          <Muted className="truncate">Made {fmtDate(b.manufactured_on)} · lot {b.supplier_lot ?? "—"}</Muted>
+                          <span className="grow" />
+                          <span className="shrink-0">{fmtQty(b.on_hand, selected.uom)} on hand</span>
+                        </div>
+                        {b.status === "quarantined" && b.reason && (
+                          <span className="text-xs leading-4 text-gold">Held: {b.reason}</span>
+                        )}
+                        {batchForm?.code === b.code && (
+                          <form
+                            className="flex flex-col gap-3 rounded-md border border-line p-3"
+                            onSubmit={(e) => { e.preventDefault(); void submitBatch(b); }}
+                          >
+                            {batchForm.hold && (
+                              <Field
+                                label="Reason"
+                                hint="Up to 64 characters. Whoever looks at the batch reads this."
+                                error={batchAction.fieldErrors.reason}
+                              >
+                                <Input
+                                  value={batchForm.reason}
+                                  maxLength={64}
+                                  autoFocus
+                                  onChange={(e) => setBatchForm({ ...batchForm, reason: e.target.value })}
+                                  placeholder="Quality hold"
+                                />
+                              </Field>
+                            )}
+                            <Field label="Note" error={batchAction.fieldErrors.note}>
+                              <Input
+                                value={batchForm.note}
+                                autoFocus={!batchForm.hold}
+                                onChange={(e) => setBatchForm({ ...batchForm, note: e.target.value })}
+                                placeholder="Optional"
+                              />
+                            </Field>
+                            {batchError && <Notice tone="gold">{batchError}</Notice>}
+                            <div className="flex gap-2 [&>*]:grow">
+                              <Button small type="button" aria-label={`Cancel ${b.code}`} onClick={() => setBatchForm(null)}>
+                                Cancel
+                              </Button>
+                              <Button
+                                small
+                                type="submit"
+                                variant="primary"
+                                aria-label={`Save ${b.code}`}
+                                disabled={batchAction.busy || (batchForm.hold && !batchForm.reason.trim())}
+                              >
+                                {batchAction.busy ? "Saving…" : "Save"}
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Muted className="text-xs leading-4">
+                  A held batch stays on the shelf and in the balances. It is simply never promised to
+                  anyone. Of the batches that can be picked, the one that expires first goes first.
+                </Muted>
+              </Section>
+            )}
+          </>
+        ) : (
+          <DetailHeader eyebrow="Product" title="—" subtitle={writable ? "Pick a row to edit it, or add a product." : "Pick a row to see its details."} />
+        )}
+      </DetailPanel>
+    </>
+  );
+}
