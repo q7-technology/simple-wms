@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS products panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Products" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Products</h1>
+        <div style="font-size: 13px; color: #5A6785;">Your inventory, like a game backpack. Tap one to see where it lives.</div>
+      </div>
+      <label style="flex: 0 1 260px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search products</span>
+        <input type="search" placeholder="Name or SKU" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+      </label>
+      <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add product
+      </button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      
+        <button type="button" aria-pressed="true" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #2F6FE4; background: #2F6FE4; color: #FFFFFF;">All<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.22); color: #FFFFFF;">10</span></button>
+      
+        <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Running low<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">3</span></button>
+      
+      <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D; margin-left: auto;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="m8 12 3 3 5-6"></path></svg>Select many</button>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; overflow: auto;">
+      <div style="flex: 999 1 420px; min-width: 0; padding: 18px 28px 120px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+          
+            <button type="button" aria-pressed="true" aria-label="Safety gloves (L), 120 pairs" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #F2F6FF; border: 2px solid #2F6FE4; box-shadow: 0 8px 20px rgba(47,111,228,.18);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #F6E6CC; color: #8A5E26;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Safety gloves (L)</span>
+              <span style="font-size: 12px; color: #5A6785;">GLV-L</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">120 pairs</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 30%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Hi-vis vests, 70 vests" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #FFF0C2; color: #8A6A00;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Hi-vis vests</span>
+              <span style="font-size: 12px; color: #5A6785;">VST-HV</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">70 vests</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 18%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Hard hats (white), 72 hats" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #EEF3FF; color: #2148A8;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Hard hats (white)</span>
+              <span style="font-size: 12px; color: #5A6785;">HAT-WH</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">72 hats</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 18%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Packing tape 48 mm, 22 rolls, running low" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #F2B8B3; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #E6EDFB; color: #3A4A72;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Packing tape 48 mm</span>
+              <span style="font-size: 12px; color: #5A6785;">TPE-48</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">22 rolls</span>
+                
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #FDE2E0; color: #A3221A; font-size: 11px; font-weight: 800;">LOW</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 6%; border-radius: 999px; background: #D9443A;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Cardboard boxes (large), 600 boxes" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #F6E6CC; color: #8A5E26;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Cardboard boxes (large)</span>
+              <span style="font-size: 12px; color: #5A6785;">BOX-LG</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">600 boxes</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 100%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Pallet wrap 500 mm, 12 rolls, running low" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #F2B8B3; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #D3EFE8; color: #0F5F59;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Pallet wrap 500 mm</span>
+              <span style="font-size: 12px; color: #5A6785;">WRP-500</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">12 rolls</span>
+                
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #FDE2E0; color: #A3221A; font-size: 11px; font-weight: 800;">LOW</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 4%; border-radius: 999px; background: #D9443A;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Ear plugs (box of 200), 35 boxes" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #FDE6D2; color: #8E4A0E;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Ear plugs (box of 200)</span>
+              <span style="font-size: 12px; color: #5A6785;">EAR-200</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">35 boxes</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 9%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Cable ties 300 mm, 63 packs" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #EDE6FB; color: #4B2E99;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Cable ties 300 mm</span>
+              <span style="font-size: 12px; color: #5A6785;">TIE-300</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">63 packs</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 16%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="Work boots (size 10), 8 pairs, running low" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #F2B8B3; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #E9E3DC; color: #5A4632;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">Work boots (size 10)</span>
+              <span style="font-size: 12px; color: #5A6785;">BOOT-10</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">8 pairs</span>
+                
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #FDE2E0; color: #A3221A; font-size: 11px; font-weight: 800;">LOW</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 4%; border-radius: 999px; background: #D9443A;"></span></span>
+            </button>
+          
+            <button type="button" aria-pressed="false" aria-label="First aid kits, 28 kits" style="position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: #FFFFFF; border: 2px solid #E6EDFB; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+              
+              <span style="width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #FDE2E0; color: #A3221A;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">First aid kits</span>
+              <span style="font-size: 12px; color: #5A6785;">AID-KIT</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">28 kits</span>
+                
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 7%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            </button>
+          
+        </div>
+      </div>
+
+      <aside aria-label="Product details" style="flex: 1 1 300px; max-width: 360px; min-width: 0; padding: 18px 28px 120px 0; display: flex; flex-direction: column; gap: 14px;">
+        <div style="padding: 18px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="width: 48px; height: 48px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #F6E6CC; color: #8A5E26;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+            </span>
+            <div style="min-width: 0;">
+              <div style="font-size: 18px; font-weight: 800;">Safety gloves (L)</div>
+              <div style="font-size: 12px; color: #5A6785;">SKU GLV-L</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 8px;">WHERE IT IS</div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+              <div style="padding: 10px; border-radius: 12px; background: #D8E5FF;"><div style="font-size: 11px; font-weight: 800; color: #1F4FB0;">ARRIVING</div><div style="font-size: 18px; font-weight: 800;">0</div></div>
+              <div style="padding: 10px; border-radius: 12px; background: #D3EFE8;"><div style="font-size: 11px; font-weight: 800; color: #0F5F59;">STORED</div><div style="font-size: 18px; font-weight: 800;">120</div></div>
+              <div style="padding: 10px; border-radius: 12px; background: #FDE6D2;"><div style="font-size: 11px; font-weight: 800; color: #8E4A0E;">LEAVING</div><div style="font-size: 18px; font-weight: 800;">0</div></div>
+            </div>
+          </div>
+
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+            Warn me when stock drops below
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" aria-label="Lower the warning level" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+              <span style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; display: grid; place-items: center; font-size: 16px; font-weight: 800;">80 pairs</span>
+              <button type="button" aria-label="Raise the warning level" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            </span>
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="Main.html" style="height: 46px; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font-weight: 800; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z"></path><circle cx="12" cy="11" r="2"></circle></svg>Show pallets on map
+            </a>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+              <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Edit details</button>
+              <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Print labels</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    
+
+    
+  </section>
+</div>
+</body>
+</html>

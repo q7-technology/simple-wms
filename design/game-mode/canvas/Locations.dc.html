@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS locations panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Locations" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Locations and zones</h1>
+        <div style="font-size: 13px; color: #5A6785;">Every shelf has an address, like houses on a street.</div>
+      </div>
+      <label style="flex: 0 1 240px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search a location</span>
+        <input type="search" value="{{q}}" onInput="{{setQ}}" placeholder="Search a location" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+      </label>
+      <button type="button" onClick="{{printAll}}" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/></svg>Print location labels
+      </button>
+      <button type="button" onClick="{{add}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add location
+      </button>
+    </header>
+
+    <nav aria-label="Where you are" style="padding: 0 28px 10px; font-size: 13px; color: #4A5672; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+      <span>Site: <b style="color: #18233D;">Ballarat</b></span><span aria-hidden="true">›</span>
+      <span>Warehouse: <b style="color: #18233D;">BAL-WH01</b></span><span aria-hidden="true">›</span>
+      <span>Zone: <b style="color: #18233D;">{{zoneCrumb}}</b></span><span aria-hidden="true">›</span>
+      <span>Location</span>
+    </nav>
+
+    <div role="group" aria-label="Filter by zone" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <sc-for list="{{zones}}" as="z" hint-placeholder-count="7">
+        <button type="button" aria-pressed="{{z.on}}" onClick="{{z.pick}}" style="{{z.style}}">{{z.label}} <span style="{{z.countStyle}}">{{z.count}}</span></button>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; overflow: auto;">
+      <div style="flex: 999 1 460px; min-width: 0; padding: 8px 28px 40px;">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                <th style="padding: 10px 8px; font-weight: 800;">LOCATION</th>
+                <th style="padding: 10px 8px; font-weight: 800;">ZONE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">TYPE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">PICK ORDER</th>
+                <th style="padding: 10px 8px; font-weight: 800;">ALLOWS</th>
+                <th style="padding: 10px 8px; font-weight: 800;">MIXING</th>
+                <th style="padding: 10px 8px; font-weight: 800;">SPACE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">HOLDING</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+                <tr style="{{r.rowStyle}}">
+                  <td style="padding: 6px 8px;"><button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" style="{{r.locStyle}}">{{r.code}}</button></td>
+                  <td style="padding: 6px 8px;"><span style="{{r.chip}}">{{r.word}}</span><div style="font-size: 11px; color: #5A6785; margin-top: 2px;">{{r.zone}}</div></td>
+                  <td style="padding: 6px 8px;">{{r.type}}</td>
+                  <td style="padding: 6px 8px;">{{r.seq}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{r.allows}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{r.mixing}}</td>
+                  <td style="padding: 6px 8px;">
+                    <div style="font-size: 13px;">{{r.cap}}</div>
+                    <sc-if value="{{r.hasBar}}" hint-placeholder-val="{{ false }}">
+                      <div style="width: 90px; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden; margin-top: 4px;"><div style="{{r.bar}}"></div></div>
+                    </sc-if>
+                  </td>
+                  <td style="padding: 6px 8px;">
+                    <span style="{{r.holdStyle}}">{{r.holding}}</span>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 40px 0; text-align: center; color: #5A6785; font-weight: 700;">No locations match.</div>
+        </sc-if>
+        <div style="margin-top: 12px; font-size: 12px; color: #5A6785;">Pick order is the walk order on the scanner. New stock goes: same product with space, then empty in preferred zone, then any allowed empty, then overflow with a flag.</div>
+      </div>
+
+      <aside aria-label="Location details" style="flex: 1 1 300px; max-width: 380px; min-width: 0; padding: 18px 28px 40px 0; display: flex; flex-direction: column; gap: 14px;">
+        <div style="padding: 18px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <span style="{{d.chip}}">{{d.word}}</span>
+            <div style="font-size: 20px; font-weight: 800; margin-top: 8px;">{{d.code}}</div>
+            <div style="font-size: 13px; color: #5A6785;">{{d.desc}}</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Zone
+              <input type="text" value="{{d.zone}}" onInput="{{d.setZone}}" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; min-width: 0;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Pick sequence
+              <input type="text" value="{{d.seq}}" onInput="{{d.setSeq}}" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; min-width: 0;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Type
+              <select onChange="{{d.setType}}" style="height: 44px; padding: 0 8px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF; min-width: 0;">
+                <sc-for list="{{d.types}}" as="o" hint-placeholder-count="6">
+                  <option value="{{o.v}}" selected="{{o.on}}">{{o.v}}</option>
+                </sc-for>
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Access
+              <select onChange="{{d.setAccess}}" style="height: 44px; padding: 0 8px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF; min-width: 0;">
+                <sc-for list="{{d.access}}" as="o" hint-placeholder-count="3">
+                  <option value="{{o.v}}" selected="{{o.on}}">{{o.v}}</option>
+                </sc-for>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 4px;">RULES</div>
+            <sc-for list="{{d.rules}}" as="w" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #E6EDFB;">
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-weight: 800; font-size: 14px;">{{w.label}}</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">{{w.hint}}</span>
+                </span>
+                <span style="font-size: 12px; font-weight: 800; color: #4A5672; width: 26px;">{{w.word}}</span>
+                <button type="button" role="switch" aria-checked="{{w.on}}" aria-label="{{w.label}}" onClick="{{w.flip}}" style="{{w.trackStyle}}"><span style="{{w.knobStyle}}"></span></button>
+              </div>
+            </sc-for>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 8px;">BARCODE</div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              <svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><path fill="#18233D" d="M0 0h3v40H0zM5 0h1v40H5zM8 0h2v40H8zM12 0h4v40h-4zM18 0h1v40h-1zM21 0h3v40h-3zM26 0h2v40h-2zM30 0h1v40h-1zM33 0h4v40h-4zM39 0h2v40h-2zM43 0h3v40h-3zM48 0h1v40h-1zM51 0h2v40h-2zM55 0h3v40h-3zM60 0h1v40h-1zM62 0h2v40h-2z"/></svg>
+              <div style="min-width: 0;">
+                <div style="font-weight: 800; font-size: 14px;">LOC-{{d.code}}</div>
+                <div style="font-size: 12px; color: #5A6785;">Code 128 · template location-label v2</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <button type="button" onClick="{{printOne}}" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Print label</button>
+            <button type="button" onClick="{{save}}" style="height: 44px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Save</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      zone: 'all', q: '', sel: 'PF-01-02-A', toast: '',
+      locs: [
+        { code: 'DOCK-01', zone: 'RECEIVE', type: 'Dock', seq: '—', allows: 'Anything', mixing: 'Yes', cap: '—', used: -1, holding: 'PO-88815 in progress', flag: false, access: 'Ground', one: false, fifo: true, over: false, desc: 'Receiving dock, door 1' },
+        { code: 'BK-04-01-C', zone: 'BULK', type: 'Pallet rack', seq: '410', allows: 'Pallets', mixing: 'Yes', cap: '3 pallets · 2 used', used: 67, holding: 'ABC123 ×72, FG-900 ×240', flag: false, access: 'Forklift', one: false, fifo: true, over: false, desc: 'Bulk rack · aisle 4, bay 1, level C' },
+        { code: 'BK-05-01-A', zone: 'BULK', type: 'Pallet rack', seq: '501', allows: 'Pallets', mixing: 'Yes', cap: '3 pallets · 0 used', used: 0, holding: 'Empty', flag: false, access: 'Forklift', one: false, fifo: true, over: false, desc: 'Bulk rack · aisle 5, bay 1, level A' },
+        { code: 'PF-01-02-A', zone: 'PICKFACE', type: 'Shelf', seq: '102', allows: 'Cartons, units', mixing: 'No · one SKU', cap: '96 EA', used: 50, holding: 'ABC123 ×48 · min 48', flag: false, access: 'Ground', one: true, fifo: true, over: false, desc: 'Pick face · aisle 1, bay 2, level A' },
+        { code: 'PF-01-05-C', zone: 'PICKFACE', type: 'Shelf', seq: '105', allows: 'Cartons, units', mixing: 'Yes · bucket', cap: 'Mixed', used: -1, holding: 'GHI789 ×12, GHI790 ×8', flag: false, access: 'Step', one: false, fifo: true, over: false, desc: 'Pick face · aisle 1, bay 5, level C' },
+        { code: 'PACK-02', zone: 'PACK', type: 'Bench', seq: '—', allows: 'Open cartons', mixing: 'Yes', cap: '—', used: -1, holding: 'Printer: Packing bench 2', flag: false, access: 'Ground', one: false, fifo: false, over: false, desc: 'Packing bench 2' },
+        { code: 'LINE-03-IN', zone: 'LINE-SIDE', type: 'Drop point', seq: '—', allows: 'Components', mixing: 'Yes', cap: '—', used: -1, holding: 'Production line 3', flag: false, access: 'Ground', one: false, fifo: true, over: false, desc: 'Line-side drop point for production line 3' },
+        { code: 'OVERFLOW-01', zone: 'OVERFLOW', type: 'Floor', seq: '900', allows: 'Anything', mixing: 'Yes', cap: '—', used: -1, holding: 'Flagged: 1 pallet needs a home', flag: true, access: 'Forklift', one: false, fifo: true, over: true, desc: 'Floor overflow by the back wall' }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var Z = {
+      RECEIVE: ['Arriving', '#D8E5FF', '#1F4FB0'], BULK: ['Stored', '#D3EFE8', '#0F5F59'], PICKFACE: ['Stored', '#D3EFE8', '#0F5F59'],
+      PACK: ['Leaving', '#FDE6D2', '#8E4A0E'], 'LINE-SIDE': ['Line-side', '#E6EDFB', '#2148A8'], OVERFLOW: ['Overflow', '#FFF0C2', '#7A5C00']
+    };
+    var zw = function (z) { return Z[z] || ['Other', '#E6EDFB', '#2148A8']; };
+    var chip = function (z) { return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + z[1] + '; color: ' + z[2] + ';'; };
+    var flash = function (msg) {
+      self.setState({ toast: msg });
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+    };
+    var zones = [['all', 'All zones'], ['RECEIVE', 'RECEIVE'], ['BULK', 'BULK'], ['PICKFACE', 'PICKFACE'], ['PACK', 'PACK'], ['LINE-SIDE', 'LINE-SIDE'], ['OVERFLOW', 'OVERFLOW']].map(function (d) {
+      var on = s.zone === d[0];
+      return {
+        label: d[1], on: on, count: s.locs.filter(function (l) { return d[0] === 'all' || l.zone === d[0]; }).length,
+        pick: function () { self.setState({ zone: d[0] }); },
+        style: 'height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid ' + (on ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#18233D') + ';',
+        countStyle: 'min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + (on ? 'rgba(255,255,255,.22)' : '#EEF3FF') + '; color: ' + (on ? '#FFFFFF' : '#2148A8') + ';'
+      };
+    });
+    var q = s.q.trim().toUpperCase();
+    var rows = s.locs.filter(function (l) { return (s.zone === 'all' || l.zone === s.zone) && (!q || l.code.indexOf(q) >= 0); }).map(function (l) {
+      var z = zw(l.zone), on = s.sel === l.code;
+      return {
+        code: l.code, zone: l.zone, word: z[0], type: l.type, seq: l.seq, allows: l.allows, mixing: l.mixing, cap: l.cap, holding: l.holding, on: on,
+        chip: chip(z), hasBar: l.used >= 0,
+        bar: 'height: 100%; width: ' + Math.max(0, l.used) + '%; border-radius: 999px; background: #2F6FE4;',
+        holdStyle: l.flag ? 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #FFF0C2; color: #7A5C00;' : 'font-size: 13px; color: #4A5672;',
+        rowStyle: 'border-top: 1px solid #EEF2FA; background: ' + (on ? '#F2F6FF' : '#FFFFFF') + ';',
+        locStyle: 'min-height: 44px; padding: 0 12px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid ' + (on ? '#2F6FE4' : 'transparent') + '; background: ' + (on ? '#EEF3FF' : '#F3F6FD') + '; color: #18233D;',
+        pick: function () { self.setState({ sel: l.code }); }
+      };
+    });
+    var cur = s.locs.filter(function (l) { return l.code === s.sel; })[0] || s.locs[0];
+    var patch = function (p) {
+      self.setState({ locs: s.locs.map(function (l) { return l.code === cur.code ? Object.assign({}, l, p) : l; }) });
+    };
+    var ruleDefs = [
+      ['one', 'One product only', 'No mixing on this shelf'],
+      ['fifo', 'Counts in FIFO', 'Received date decides pick order'],
+      ['over', 'Allow overflow', 'Put away here when the preferred zone is full']
+    ];
+    var rules = ruleDefs.map(function (r) {
+      var on = !!cur[r[0]];
+      return {
+        label: r[1], hint: r[2], on: on, word: on ? 'On' : 'Off',
+        flip: function () { var p = {}; p[r[0]] = !on; if (r[0] === 'one') { p.mixing = !on ? 'No · one SKU' : 'Yes'; } patch(p); },
+        trackStyle: 'position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: ' + (on ? '#2F6FE4' : '#B9C4DC') + ';',
+        knobStyle: 'position: absolute; top: 4px; left: ' + (on ? '28px' : '4px') + '; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);'
+      };
+    });
+    var opts = function (list, v) { return list.map(function (x) { return { v: x, on: x === v }; }); };
+    var cz = zw(cur.zone);
+    var d = {
+      code: cur.code, desc: cur.desc, zone: cur.zone, seq: cur.seq, word: cz[0], chip: chip(cz),
+      types: opts(['Shelf', 'Pallet rack', 'Floor', 'Bench', 'Dock', 'Drop point'], cur.type),
+      access: opts(['Ground', 'Step', 'Forklift'], cur.access),
+      rules: rules,
+      setZone: function (e) { patch({ zone: e.target.value.toUpperCase() }); },
+      setSeq: function (e) { patch({ seq: e.target.value }); },
+      setType: function (e) { patch({ type: e.target.value }); },
+      setAccess: function (e) { patch({ access: e.target.value }); }
+    };
+    return {
+      zones: zones, rows: rows, empty: rows.length === 0, d: d,
+      zoneCrumb: s.zone === 'all' ? 'all zones' : s.zone,
+      q: s.q, setQ: function (e) { self.setState({ q: e.target.value }); },
+      add: function () {
+        var n = s.locs.filter(function (l) { return l.code.indexOf('BK-06-') === 0; }).length + 1;
+        var code = 'BK-06-0' + n + '-A';
+        var l = { code: code, zone: 'BULK', type: 'Pallet rack', seq: String(600 + n), allows: 'Pallets', mixing: 'Yes', cap: '3 pallets · 0 used', used: 0, holding: 'Empty', flag: false, access: 'Forklift', one: false, fifo: true, over: false, desc: 'Bulk rack · aisle 6, bay ' + n + ', level A' };
+        self.setState({ locs: s.locs.concat([l]), sel: code, zone: 'all', q: '' });
+        flash('Ding! New location ' + code + ' added');
+      },
+      printAll: function () { flash(rows.length + ' location labels sent to the printer'); },
+      printOne: function () { flash('Label LOC-' + cur.code + ' sent to the printer'); },
+      save: function () { flash('Ding! ' + cur.code + ' saved'); },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

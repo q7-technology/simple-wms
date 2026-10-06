@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner receive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 19px; font-weight: 800; line-height: 1.2;">Receive</div>
+      <div style="font-size: 12px; color: #5A6785; font-weight: 600;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; flex: none; font-size: 14px;">
+    <span style="font-weight: 800;">PO-88815</span>
+    <span style="color: #4A5672; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Coastline Supply Co · expected</span>
+    <span style="padding: 4px 10px; border-radius: 999px; background: #D8E5FF; color: #1F4FB0; font-size: 12px; font-weight: 800;">Arriving</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none; padding: 10px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">Line 2 of 5</span>
+    <div role="progressbar" aria-label="Lines received" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" style="flex: 1; height: 10px; border-radius: 999px; background: #EEF3FF; overflow: hidden;">
+      <div style="height: 100%; width: 20%; border-radius: 999px; background: #2F6FE4;"></div>
+    </div>
+    
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+    
+
+    
+      <div style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: #5A6785;">STEP 1 · COUNT IT</div>
+            <div style="font-size: 21px; font-weight: 800;">DEF456</div>
+            <div style="font-size: 14px; color: #4A5672;">Rotor 280 mm</div>
+          </div>
+          <span style="padding: 4px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">Expecting 120 EA</span>
+        </div>
+
+        
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #E3F5EA; color: #145A31; font-size: 14px; font-weight: 700;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m5 12 5 5 9-10"></path></svg>
+            <span>From the GS1 label: 120 EA · batch B2611</span>
+          </div>
+        
+        
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="rcv-qty" style="font-size: 14px; font-weight: 800;">How many came in? (EA)</label>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+            <input id="rcv-qty" type="text" inputmode="decimal" value="120" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; border-radius: 14px; border: 2px solid #CFDAF2; background: #FFFFFF; color: #18233D; font: inherit; font-size: 28px; font-weight: 800;">
+            <button type="button" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg></button>
+          </div>
+        </div>
+
+        
+      </div>
+
+      
+
+      <div style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 2px solid #2F6FE4; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="flex: 1; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: #5A6785;">STEP 2 · PUT IT AWAY</span>
+          <span style="padding: 4px 10px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+          <span style="padding: 4px 8px; border-radius: 999px; background: #F3F6FD; border: 1px solid #DDE5F5; color: #4A5672; font-size: 12px; font-weight: 800;">BULK</span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700; color: #4A5672;">Go to</span>
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">BK-05-01-A</span>
+        <span style="font-size: 13px; font-weight: 700; color: #4A5672;">Empty shelf in BULK, this product's preferred zone.</span>
+        <span style="font-size: 12px; color: #5A6785;">How we choose: same product with room, then an empty shelf in its own zone, then any empty shelf it's allowed on, then overflow.</span>
+      </div>
+
+      
+      
+        <button type="button" style="min-height: 64px; flex: none; border: 2px dashed #2F6FE4; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"></path><path d="M8 9v6M11 9v6M14 9v6M17 9v6"></path></svg>
+          <span><span style="display: block; font-size: 17px; font-weight: 800;">Scan the shelf to confirm</span><span style="display: block; font-size: 12px; color: #4A5672;">Tap to pretend-scan the shelf label.</span></span>
+        </button>
+        <button type="button" style="min-height: 48px; flex: none; border: 1px solid #CFDAF2; border-radius: 14px; background: #FFFFFF; color: #2148A8; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Or scan a different shelf that takes it</button>
+      
+    
+  </div>
+
+  
+
+  <div style="display: flex; gap: 10px; flex: none;">
+    
+    
+      <button type="button" aria-pressed="false" style="flex: 1; height: 58px; border-radius: 16px; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; border: 2px solid #CFDAF2; background: #FFFFFF; color: #A3221A;">Damaged</button>
+      <button type="button" style="flex: 2; height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer;">Confirm receipt</button>
+    
+  </div>
+
+  
+</div>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS manager map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+.ov{position:absolute}
+.stage-col{display:flex;flex-direction:column;gap:12px}
+@media (max-width: 960px){
+.ov{position:static;width:auto !important;max-width:none !important}
+.stage{display:flex;flex-direction:column;gap:12px;padding:12px}
+.hide-sm{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column;">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 24px; background: #FFFFFF; border-bottom: 1px solid #DDE5F5;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 28 10 16 17 4 10Z" fill="#6E95F0"></path><path d="M4 10 16 17V30L4 23Z" fill="#3E6FE2"></path><path d="M28 10 16 17V30L28 23Z" fill="#2B57C2"></path></svg>
+    <span style="font-size: 19px; font-weight: 800; letter-spacing: -0.2px;">Simple WMS</span>
+  </div>
+  <label style="flex: 1 1 280px; max-width: 460px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+    <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search</span>
+    <input type="search" placeholder="Find a pallet, product or order" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+  </label>
+  <div style="display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap;">
+    <span style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; background: #EAF7EF; color: #17663A; font-size: 13px; font-weight: 700;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #22A35A;"></span>Live · Mon 3:42 pm</span>
+    <button type="button" aria-pressed="true" aria-label="Weather effects" style="width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; border: 1px solid #2F6FE4; background: #EEF3FF; color: #2148A8;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 18 9.5a3.5 3.5 0 0 1-.5 6.5Z"></path><path d="m9 19-1 2M13 19l-1 2M17 19l-1 2"></path></svg>
+    </button>
+    <button type="button" aria-pressed="true" aria-label="Game sounds" style="width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; border: 1px solid #2F6FE4; background: #EEF3FF; color: #2148A8;">
+      
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
+      
+      
+    </button>
+    <button type="button" aria-label="Account" style="width: 44px; height: 44px; border-radius: 50%; border: 0; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">JM</button>
+  </div>
+</header>
+
+<main class="stage" style="position: relative; flex: 1; overflow: hidden;">
+  <img src="warehouse.svg" alt="Pretend warehouse with Arriving, Stored and Leaving zones, two trucks, two forklifts and stacks of pallets" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto;">
+
+  <div class="ov stage-col" style="top: 20px; left: 24px; width: 300px;">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+      <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08);">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.2px; color: #2F6FE4;">ARRIVING</div>
+        <div style="font-size: 24px; font-weight: 800;">7</div>
+      </div>
+      <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08);">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.2px; color: #167A73;">STORED</div>
+        <div style="font-size: 24px; font-weight: 800;">12</div>
+      </div>
+      <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08);">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.2px; color: #B85F12;">LEAVING</div>
+        <div style="font-size: 24px; font-weight: 800;">5</div>
+      </div>
+    </div>
+
+    <section aria-label="Today's goal" style="padding: 16px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08); display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">TODAY'S GOAL</span>
+        <a href="#goal" style="font-size: 13px; font-weight: 700;">Edit</a>
+      </div>
+      <div style="font-size: 18px; font-weight: 800;">Ship 45 orders</div>
+      <div style="height: 12px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="height: 100%; width: 69%; border-radius: 999px; background: #2F6FE4;"></div></div>
+      <div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5672;"><span><b style="color: #18233D;">31</b> shipped</span><span>14 to go</span></div>
+      <div style="font-size: 12px; color: #5A6785;">Suggested from your last 4 weeks. You usually ship about 40.</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <span style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #FFF1E3; color: #8E4A0E; font-size: 12px; font-weight: 800;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9Z"></path></svg>6-day on-time streak
+        </span>
+        <span style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"></path><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"></path></svg>Badge: Clean Dock
+        </span>
+      </div>
+    </section>
+  </div>
+
+  <section class="ov" aria-label="Selected pallet" style="top: 20px; right: 24px; width: 320px; padding: 18px; border-radius: 18px; background: #FFFFFF; box-shadow: 0 10px 30px rgba(24,35,61,.12); display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: #F6E6CC; display: grid; place-items: center; color: #8A5E26;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5M12 12v9"></path></svg>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 12px; color: #5A6785; font-weight: 700;">Pallet P-1042</div>
+        <div style="font-size: 18px; font-weight: 800;">Safety gloves (L)</div>
+      </div>
+      <button type="button" aria-label="Close" style="width: 36px; height: 36px; border: 0; border-radius: 10px; background: #F3F6FD; color: #4A5672; cursor: pointer; display: grid; place-items: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <span style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Stored</span>
+    <dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; font-size: 13px;">
+      <div><dt style="color: #5A6785;">Quantity</dt><dd style="margin: 2px 0 0; font-weight: 700;">120 pairs</dd></div>
+      <div><dt style="color: #5A6785;">Weight</dt><dd style="margin: 2px 0 0; font-weight: 700;">48 kg</dd></div>
+      <div><dt style="color: #5A6785;">Arrived</dt><dd style="margin: 2px 0 0; font-weight: 700;">Today, 9:14 am</dd></div>
+      <div><dt style="color: #5A6785;">Order</dt><dd style="margin: 2px 0 0; font-weight: 700;">Waiting</dd></div>
+    </dl>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" style="height: 46px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">Move to Leaving<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </button>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Mark as shipped</button>
+        <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3"></path><path d="M7 14h10v7H7Z"></path></svg>Print label
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="ov hide-sm" style="top: 50%; right: 24px; transform: translateY(40px); display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08);">
+    <button type="button" aria-label="Zoom in" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <button type="button" aria-label="Zoom out" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+    <button type="button" aria-label="Back to whole warehouse" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg></button>
+  </div>
+
+  <section class="ov" aria-label="What just happened" style="bottom: 24px; left: 24px; width: 340px; padding: 16px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 6px 20px rgba(24,35,61,.08); display: flex; flex-direction: column; gap: 10px;">
+    <span style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">WHAT JUST HAPPENED</span>
+    
+      <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+        <span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; flex: none; background: #2F6FE4;"></span>
+        <span style="flex: 1;">Truck dropped 4 pallets in Arriving</span>
+        <span style="color: #5A6785; white-space: nowrap;">2 min</span>
+      </div>
+    
+      <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+        <span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; flex: none; background: #E07A1F;"></span>
+        <span style="flex: 1;">Order #2041 shipped</span>
+        <span style="color: #5A6785; white-space: nowrap;">8 min</span>
+      </div>
+    
+      <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+        <span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; flex: none; background: #1F8A84;"></span>
+        <span style="flex: 1;">Forklift moved P-1038 to Stored</span>
+        <span style="color: #5A6785; white-space: nowrap;">15 min</span>
+      </div>
+    
+  </section>
+
+  <nav class="ov" aria-label="Big jobs" style="bottom: 24px; left: 50%; transform: translateX(-30%); display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 16px; background: #18233D; box-shadow: 0 10px 30px rgba(24,35,61,.25);">
+    <a href="Products.html" style="height: 48px; padding: 0 16px; border-radius: 12px; background: transparent; color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"></path><path d="m4 7.5 8 4.5 8-4.5"></path></svg>Products</a>
+    <a href="Orders.html" style="height: 48px; padding: 0 16px; border-radius: 12px; background: transparent; color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Orders</a>
+    <a href="Reports.html" style="height: 48px; padding: 0 16px; border-radius: 12px; background: transparent; color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>Reports</a>
+    <a href="Settings.html" style="height: 48px; padding: 0 16px; border-radius: 12px; background: transparent; color: #FFFFFF; font-weight: 700; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg>Settings</a>
+    <a href="Menu.html" style="height: 48px; padding: 0 16px; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font-weight: 800; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"></rect><rect x="14" y="4" width="6" height="6" rx="1.5"></rect><rect x="4" y="14" width="6" height="6" rx="1.5"></rect><rect x="14" y="14" width="6" height="6" rx="1.5"></rect></svg>All panels</a>
+  </nav>
+
+  
+</main>
+</div>
+</body>
+</html>

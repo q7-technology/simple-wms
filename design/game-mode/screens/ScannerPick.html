@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner pick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Pick one order</div>
+      <div style="font-size: 12px; color: #4A5672;">Order 0080012345 · Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">Line 3 of 4</span>
+    <div role="progressbar" aria-label="Lines picked" aria-valuemin="0" aria-valuemax="4" aria-valuenow="2" style="flex: 1; height: 12px; border-radius: 999px; background: #DDE5F5; overflow: hidden;">
+      <div style="height: 100%; border-radius: 999px; background: #22A35A; width: 50%;"></div>
+    </div>
+    
+  </div>
+
+  
+
+  
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <section aria-label="Go to location" style="padding: 14px 16px; border-radius: 18px; background: #2F6FE4; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.6px; color: #D8E5FF;">GO TO</span>
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">PF-01-02-A</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #EEF3FF;">
+          <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+          <span style="font-weight: 700;">PF</span>
+          <span>Aisle 1, bay 2, level A</span>
+        </div>
+      </section>
+
+      <section aria-label="Product" style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800;">GHI789</div>
+            <div style="font-size: 14px; color: #4A5672;">Wiper blade 22 in</div>
+          </div>
+          <span style="padding: 4px 9px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">Oldest first (FIFO) · B2609A</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 34px; font-weight: 800; line-height: 1;">6</span>
+          <span style="font-size: 15px; color: #4A5672;">each to pick · 38 on this shelf</span>
+        </div>
+      </section>
+
+      <button type="button" style="min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 2px dashed #2F6FE4; background: #FFFFFF;">
+        
+        
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 7v10M12 7v10M16 7v10"></path></svg>
+        
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">Scan the shelf label</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">At PF-01-02-A. Tap to pretend-scan.</span>
+        </span>
+      </button>
+      <div style="display: flex; gap: 6px; flex: none;">
+        
+          <span style="flex: 1; text-align: center; padding: 6px 4px; border-radius: 10px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8; border: 1px solid #2F6FE4;">Shelf</span>
+        
+          <span style="flex: 1; text-align: center; padding: 6px 4px; border-radius: 10px; font-size: 12px; font-weight: 800; background: #FFFFFF; color: #5A6785; border: 1px solid #DDE5F5;">Product</span>
+        
+          <span style="flex: 1; text-align: center; padding: 6px 4px; border-radius: 10px; font-size: 12px; font-weight: 800; background: #FFFFFF; color: #5A6785; border: 1px solid #DDE5F5;">Count</span>
+        
+      </div>
+      <a href="ScannerWrongScan.html" style="font-size: 13px; font-weight: 700; align-self: flex-start;">What if I scan the wrong thing?</a>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label for="qty" style="font-size: 14px; font-weight: 800;">How many did you pick?</label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+          </button>
+          <input id="qty" type="number" inputmode="decimal" min="0" step="any" value="6" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; font: inherit; font-size: 28px; font-weight: 800; color: #18233D; background: #FFFFFF; border: 2px solid #CFDAF2; border-radius: 14px;">
+          <button type="button" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg>
+          </button>
+        </div>
+        
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <a href="ScannerShortPick.html" style="flex: 1; height: 58px; border-radius: 16px; background: #FFF0C2; color: #7A5C00; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center; text-align: center;">Short pick</a>
+      <button type="button" style="flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: #8FA9DE;">Confirm pick</button>
+    </div>
+  
+
+  
+</div>
+</body>
+</html>

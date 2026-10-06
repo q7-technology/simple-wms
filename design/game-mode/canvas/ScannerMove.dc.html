@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner move</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column;">
+
+  <div style="flex: none; padding: 16px 16px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #DDE5F5; background: #FFFFFF;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800;">Move stock</div>
+      <div style="font-size: 12px; color: #4A5672;">Free move, inside BAL-WH01 · Sam</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 13px; font-weight: 800; color: #4A5672; white-space: nowrap;">{{stepText}}</span>
+      <div style="flex: 1; height: 10px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="{{barStyle}}"></div></div>
+    </div>
+
+    <section aria-label="Moving from" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 4px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; font-weight: 800; color: #4A5672; display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>From (scanned)
+        </span>
+        <span style="display: flex; gap: 6px; align-items: center;">
+          <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+          <span style="font-size: 12px; font-weight: 700; color: #5A6785;">BULK</span>
+        </span>
+      </div>
+      <div style="font-size: 26px; font-weight: 800;">BK-04-01-C</div>
+      <div style="font-size: 12px; color: #5A6785;">72 EA of ABC123 here · batch B2601</div>
+    </section>
+
+    <section aria-label="Product" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+        <div>
+          <div style="font-size: 18px; font-weight: 800;">ABC123</div>
+          <div style="font-size: 14px; color: #4A5672;">Brake pad set</div>
+        </div>
+        <span style="padding: 4px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">Batch B2601</span>
+      </div>
+      <label for="qty" style="font-size: 14px; font-weight: 800;">{{qtyLabel}}</label>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onClick="{{less}}" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 16px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <input id="qty" type="number" inputmode="numeric" value="{{qty}}" onInput="{{setQty}}" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; font: inherit; font-size: 28px; font-weight: 800; color: #18233D; border-radius: 16px; background: #FFFFFF; border: 2px solid #CFDAF2;">
+        <button type="button" onClick="{{more}}" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 16px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section aria-label="Moving to" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 2px solid #2F6FE4; display: flex; flex-direction: column; gap: 4px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; font-weight: 800; color: #4A5672;">Go to</span>
+        <span style="display: flex; gap: 6px; align-items: center;">
+          <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+          <span style="font-size: 12px; font-weight: 700; color: #5A6785;">PICKFACE</span>
+        </span>
+      </div>
+      <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">PF-01-02-A</div>
+      <div style="font-size: 12px; color: #5A6785;">Mixed products are allowed on this shelf.</div>
+    </section>
+
+    <button type="button" onClick="{{scan}}" style="{{scanStyle}}">
+      <sc-if value="{{scanned}}" hint-placeholder-val="{{ false }}">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      </sc-if>
+      <sc-if value="{{notScanned}}" hint-placeholder-val="{{ true }}">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>
+      </sc-if>
+      <span style="text-align: left;"><span style="display: block; font-size: 17px; font-weight: 800;">{{scanTitle}}</span><span style="display: block; font-size: 12px; color: #4A5672;">{{scanSub}}</span></span>
+    </button>
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <label for="reason" style="font-size: 14px; font-weight: 800;">Why are you moving it?</label>
+      <select id="reason" onChange="{{setReason}}" style="height: 52px; box-sizing: border-box; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 600; color: #18233D; background: #FFFFFF; border: 2px solid #CFDAF2;">
+        <option value="Tidy">Tidy up</option>
+        <option value="Consolidate">Put the same stock together</option>
+        <option value="Damaged">Damaged</option>
+        <option value="Quality hold">Quality hold (check before use)</option>
+      </select>
+    </div>
+
+    <sc-if value="{{hasError}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="padding: 10px 14px; border-radius: 14px; background: #FDE2E0; color: #A3221A; font-size: 14px; font-weight: 700;">{{error}}</div>
+    </sc-if>
+
+    <a href="ScannerWrongScan.dc.html" style="align-self: center; font-size: 13px; font-weight: 700;">See what a wrong scan looks like</a>
+  </div>
+
+  <div style="flex: none; padding: 12px 16px 18px; border-top: 1px solid #DDE5F5; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px;">
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; gap: 10px;">
+        <button type="button" onClick="{{again}}" style="flex: 1; height: 58px; border: 2px solid #18233D; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Move more</button>
+        <a href="ScannerHome.dc.html" style="flex: 2; height: 58px; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: grid; place-items: center;">Back to menu</a>
+      </div>
+    </sc-if>
+    <sc-if value="{{notDone}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; gap: 10px;">
+        <a href="ScannerHome.dc.html" style="flex: 1; height: 58px; box-sizing: border-box; border: 2px solid #18233D; border-radius: 16px; background: #FFFFFF; color: #18233D; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center;">Cancel</a>
+        <button type="button" onClick="{{confirm}}" style="flex: 2; height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer;">Confirm move</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 16px; right: 16px; top: 84px; padding: 12px 16px; border-radius: 16px; background: #145A31; color: #FFFFFF; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(24,35,61,0.2);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      <span style="flex: 1;">{{toast}}</span>
+      <span style="padding: 3px 8px; border-radius: 999px; background: #22A35A; font-size: 12px;">{{streak}}</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { here: 72, qty: 12, scanned: false, reason: 'Tidy', done: false, moves: 0, toast: '', error: '' };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var setQ = function (n) {
+      n = parseInt(n, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      if (n > s.here) n = s.here;
+      self.setState({ qty: n, error: '' });
+    };
+    var step = s.done ? 3 : (s.scanned ? 3 : 2);
+    var pct = s.done ? 100 : Math.round((step - 1) / 3 * 100);
+    return {
+      stepText: s.done ? 'All done' : 'Step ' + step + ' of 3',
+      barStyle: 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: ' + (s.done ? '#22A35A' : '#2F6FE4') + ';',
+      qtyLabel: 'How many to move? (' + s.here + ' EA here)',
+      qty: s.qty,
+      setQty: function (e) { setQ(e.target.value); },
+      less: function () { setQ(s.qty - 1); },
+      more: function () { setQ(s.qty + 1); },
+      scanned: s.scanned, notScanned: !s.scanned,
+      scanTitle: s.scanned ? 'PF-01-02-A scanned' : 'Scan the shelf you put it on',
+      scanSub: s.scanned ? 'Right shelf. Now confirm the move.' : 'Tap to pretend-scan.',
+      scanStyle: 'height: 66px; flex: none; border: 2px ' + (s.scanned ? 'solid #22A35A' : 'dashed #2F6FE4') + '; border-radius: 16px; background: ' + (s.scanned ? '#E3F5EA' : '#FFFFFF') + '; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;',
+      scan: function () { if (!s.done) self.setState({ scanned: true, error: '' }); },
+      setReason: function (e) { self.setState({ reason: e.target.value }); },
+      hasError: !!s.error, error: s.error,
+      confirm: function () {
+        if (!s.scanned) { self.setState({ error: 'Scan the shelf you put it on first.' }); return; }
+        if (self._t) clearTimeout(self._t);
+        self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+        self.setState({ done: true, here: s.here - s.qty, moves: s.moves + 1, toast: 'Ding! Moved ' + s.qty + ' EA · ' + s.reason, error: '' });
+      },
+      again: function () { self.setState({ done: false, scanned: false, qty: Math.min(12, Math.max(1, s.here)) }); },
+      done: s.done, notDone: !s.done,
+      toastOn: !!s.toast, toast: s.toast,
+      streak: '+' + s.moves + ' move' + (s.moves === 1 ? '' : 's')
+    };
+  }
+}
+</script>
+</body>
+</html>

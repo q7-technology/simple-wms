@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner look up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 18px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 12px; flex: none;">
+    <a href="ScannerHome.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; box-sizing: border-box; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; text-decoration: none; display: grid; place-items: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 19px; font-weight: 800;">Where is it?</div>
+      <div style="font-size: 12px; color: #4A5672;">Look up · Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <button type="button" style="min-height: 68px; flex: none; border: 2px dashed #2F6FE4; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left;">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"></path><path d="M8 9v6M11 9v6M14 9v6M17 9v6"></path></svg>
+    <span><span style="display: block; font-size: 17px; font-weight: 800;">Scan a product or a shelf</span><span style="display: block; font-size: 12px; color: #4A5672;">A product shows every shelf it is on. A shelf shows what is on it. Tap to pretend-scan a shelf.</span></span>
+  </button>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <section aria-label="Product" style="padding: 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.4px;">ABC123</div>
+            <div style="font-size: 14px; color: #4A5672;">Brake pad set · counted in each (EA)</div>
+          </div>
+          <span style="padding: 4px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">Batch tracked</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <div style="padding: 10px; border-radius: 12px; background: #F3F6FD;"><div style="font-size: 12px; font-weight: 700; color: #5A6785;">On hand</div><div style="font-size: 24px; font-weight: 800;">144</div></div>
+          <div style="padding: 10px; border-radius: 12px; background: #F3F6FD;"><div style="font-size: 12px; font-weight: 700; color: #5A6785;">Saved for orders</div><div style="font-size: 24px; font-weight: 800;">10</div></div>
+          <div style="padding: 10px; border-radius: 12px; background: #EEF3FF;"><div style="font-size: 12px; font-weight: 700; color: #2148A8;">Free to use</div><div style="font-size: 24px; font-weight: 800; color: #2148A8;">134</div></div>
+        </div>
+        <div style="font-size: 12px; color: #5A6785;">Numbers are for this warehouse · BAL-WH01 (reserved = saved for orders, available = free to use)</div>
+      </section>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-size: 13px; font-weight: 800; letter-spacing: 0.6px; color: #4A5672;">SHELVES, OLDEST FIRST</span><span style="font-size: 12px; color: #5A6785;">Use the top one first</span></div>
+        <div style="border-radius: 16px; background: #FFFFFF; border: 1px solid #DDE5F5; overflow: hidden;">
+          
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #DDE5F5;">
+              <div style="min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="font-size: 16px; font-weight: 800;">PF-01-02-A</span><span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #D3EFE8; color: #0F5F59;">Stored</span></div>
+                <div style="font-size: 12px; color: #4A5672;">Batch B2601 · oldest</div>
+              </div>
+              <div style="text-align: right; flex: none;">
+                <div style="font-size: 20px; font-weight: 800; color: #18233D;">48</div>
+                <span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #FFF0C2; color: #7A5C00;">10 held</span>
+              </div>
+            </div>
+          
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #DDE5F5;">
+              <div style="min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="font-size: 16px; font-weight: 800;">BK-04-01-C</span><span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #D3EFE8; color: #0F5F59;">Stored</span></div>
+                <div style="font-size: 12px; color: #4A5672;">Batch B2601</div>
+              </div>
+              <div style="text-align: right; flex: none;">
+                <div style="font-size: 20px; font-weight: 800; color: #18233D;">72</div>
+                
+              </div>
+            </div>
+          
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #DDE5F5;">
+              <div style="min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="font-size: 16px; font-weight: 800;">BK-04-02-A</span><span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #D3EFE8; color: #0F5F59;">Stored</span></div>
+                <div style="font-size: 12px; color: #4A5672;">Batch B2609</div>
+              </div>
+              <div style="text-align: right; flex: none;">
+                <div style="font-size: 20px; font-weight: 800; color: #18233D;">24</div>
+                
+              </div>
+            </div>
+          
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; background: #F7F9FE;">
+              <div style="min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="font-size: 16px; font-weight: 800;">PF-02-01-B</span><span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #E6EDFB; color: #4A5672;">Other site</span></div>
+                <div style="font-size: 12px; color: #4A5672;">MEL-WH01 · not this warehouse</div>
+              </div>
+              <div style="text-align: right; flex: none;">
+                <div style="font-size: 20px; font-weight: 800; color: #5A6785;">24</div>
+                <span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: #E6EDFB; color: #4A5672;">other site</span>
+              </div>
+            </div>
+          
+        </div>
+      </div>
+    </div>
+
+    
+  </div>
+
+  <div style="display: flex; gap: 10px; flex: none;">
+    <button type="button" style="flex: 1; height: 58px; border: 2px solid #CFDAF2; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"></path><rect x="4" y="9" width="16" height="8" rx="2"></rect><path d="M7 14h10v7H7z"></path></svg>Print label
+    </button>
+    <a href="ScannerMove.html" style="flex: 1.6; height: 58px; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font-weight: 800; font-size: 17px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move from here
+    </a>
+  </div>
+
+  
+</div>
+</body>
+</html>

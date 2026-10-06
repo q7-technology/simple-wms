@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner receive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 19px; font-weight: 800; line-height: 1.2;">Receive</div>
+      <div style="font-size: 12px; color: #5A6785; font-weight: 600;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px; flex: none; font-size: 14px;">
+    <span style="font-weight: 800;">PO-88815</span>
+    <span style="color: #4A5672; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Coastline Supply Co · expected</span>
+    <span style="padding: 4px 10px; border-radius: 999px; background: #D8E5FF; color: #1F4FB0; font-size: 12px; font-weight: 800;">Arriving</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none; padding: 10px 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">{{lineText}}</span>
+    <div role="progressbar" aria-label="Lines received" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{pct}}" style="flex: 1; height: 10px; border-radius: 999px; background: #EEF3FF; overflow: hidden;">
+      <div style="{{barStyle}}"></div>
+    </div>
+    <sc-if value="{{hasStreak}}" hint-placeholder-val="{{ false }}">
+      <span style="padding: 3px 9px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800; white-space: nowrap;">{{streakText}}</span>
+    </sc-if>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="margin-top: 40px; padding: 24px 18px; border-radius: 22px; background: #E3F5EA; color: #145A31; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+        <span style="width: 76px; height: 76px; border-radius: 24px; background: #22A35A; color: #FFFFFF; display: grid; place-items: center;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </span>
+        <span style="font-size: 26px; font-weight: 800; color: #18233D;">All lines received!</span>
+        <span style="font-size: 15px;">PO-88815 is done and every box is on a shelf.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{working}}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: #5A6785;">STEP 1 · COUNT IT</div>
+            <div style="font-size: 21px; font-weight: 800;">{{ln.sku}}</div>
+            <div style="font-size: 14px; color: #4A5672;">{{ln.name}}</div>
+          </div>
+          <span style="padding: 4px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">{{expectText}}</span>
+        </div>
+
+        <sc-if value="{{labelDone}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #E3F5EA; color: #145A31; font-size: 14px; font-weight: 700;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m5 12 5 5 9-10"/></svg>
+            <span>{{labelText}}</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{labelTodo}}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{scanLabel}}" style="height: 64px; border: 2px dashed #2F6FE4; border-radius: 14px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>
+            <span><span style="display: block; font-size: 17px; font-weight: 800;">Scan the box label</span><span style="display: block; font-size: 12px; color: #4A5672;">The GS1 barcode fills in the count and batch. Tap to pretend-scan.</span></span>
+          </button>
+        </sc-if>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="rcv-qty" style="font-size: 14px; font-weight: 800;">How many came in? (EA)</label>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" onClick="{{less}}" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <input id="rcv-qty" type="text" inputmode="decimal" value="{{qty}}" onInput="{{setQty}}" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; border-radius: 14px; border: 2px solid #CFDAF2; background: #FFFFFF; color: #18233D; font: inherit; font-size: 28px; font-weight: 800;">
+            <button type="button" onClick="{{more}}" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+          </div>
+        </div>
+
+        <sc-if value="{{note.on}}" hint-placeholder-val="{{ false }}">
+          <div style="{{note.style}}">
+            <span>{{note.text}}</span>
+            <sc-if value="{{supAsk}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{supScan}}" style="height: 52px; border: 2px dashed #A3221A; border-radius: 12px; background: #FFFFFF; color: #A3221A; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer;">Supervisor: scan your badge</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{dmgOpen}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 12px 14px; border-radius: 16px; background: #FDE2E0; color: #A3221A; display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 15px; font-weight: 800;">Damaged · how many are broken?</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" onClick="{{dmgLess}}" aria-label="One less damaged" style="width: 52px; height: 52px; flex: none; border-radius: 12px; border: 1px solid #F2B8B3; background: #FFFFFF; color: #A3221A; cursor: pointer; display: grid; place-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <span style="flex: 1; text-align: center; font-size: 26px; font-weight: 800; color: #18233D;">{{dmg}}</span>
+            <button type="button" onClick="{{dmgMore}}" aria-label="One more damaged" style="width: 52px; height: 52px; flex: none; border-radius: 12px; border: 1px solid #F2B8B3; background: #FFFFFF; color: #A3221A; cursor: pointer; display: grid; place-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+          </div>
+          <span style="font-size: 13px; font-weight: 600;">{{dmgText}}</span>
+        </div>
+      </sc-if>
+
+      <div style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 2px solid #2F6FE4; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="flex: 1; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: #5A6785;">STEP 2 · PUT IT AWAY</span>
+          <span style="{{zoneChip}}">{{zoneWord}}</span>
+          <span style="padding: 4px 8px; border-radius: 999px; background: #F3F6FD; border: 1px solid #DDE5F5; color: #4A5672; font-size: 12px; font-weight: 800;">{{zoneCode}}</span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700; color: #4A5672;">Go to</span>
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">{{shelf}}</span>
+        <span style="{{whyStyle}}">{{why}}</span>
+        <span style="font-size: 12px; color: #5A6785;">How we choose: same product with room, then an empty shelf in its own zone, then any empty shelf it's allowed on, then overflow.</span>
+      </div>
+
+      <sc-if value="{{shelfDone}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; background: #E3F5EA; color: #145A31; font-size: 15px; font-weight: 800;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m5 12 5 5 9-10"/></svg>{{shelfOkText}}
+        </div>
+      </sc-if>
+      <sc-if value="{{shelfTodo}}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{scanShelf}}" style="min-height: 64px; flex: none; border: 2px dashed #2F6FE4; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>
+          <span><span style="display: block; font-size: 17px; font-weight: 800;">Scan the shelf to confirm</span><span style="display: block; font-size: 12px; color: #4A5672;">Tap to pretend-scan the shelf label.</span></span>
+        </button>
+        <button type="button" onClick="{{scanOther}}" style="min-height: 48px; flex: none; border: 1px solid #CFDAF2; border-radius: 14px; background: #FFFFFF; color: #2148A8; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Or scan a different shelf that takes it</button>
+      </sc-if>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{hasError}}" hint-placeholder-val="{{ false }}">
+    <div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: #FDE2E0; color: #A3221A; font-size: 14px; font-weight: 700;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="flex: none;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>{{error}}
+    </div>
+  </sc-if>
+
+  <div style="display: flex; gap: 10px; flex: none;">
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <a href="ScannerHome.dc.html" style="flex: 1; height: 58px; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: grid; place-items: center;">Back to menu</a>
+    </sc-if>
+    <sc-if value="{{working}}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{toggleDmg}}" aria-pressed="{{dmgPressed}}" style="{{dmgBtnStyle}}">Damaged</button>
+      <button type="button" onClick="{{confirm}}" style="flex: 2; height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer;">Confirm receipt</button>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; top: 70px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 15px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { i: 0, qty: '120', label: true, shelfOk: false, alt: false, dmgOpen: false, dmg: 0, supOk: false, error: '', toast: '', streak: 0, done: false };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var FIRST = 2, TOTAL = 5;
+    var LINES = [
+      { sku: 'DEF456', name: 'Rotor 280 mm', expected: 120, batch: 'B2611', shelf: 'BK-05-01-A', zone: 'BULK', why: 'Empty shelf in BULK, this product\'s preferred zone.', alt: 'BK-05-02-B', overflow: false },
+      { sku: 'JKL012', name: 'Oil filter', expected: 48, batch: 'B2614', shelf: 'PF-01-02-A', zone: 'PICK', why: 'Same product is already here and there is room.', alt: 'PF-01-03-A', overflow: false },
+      { sku: 'MNO345', name: 'Spark plug 4-pack', expected: 200, batch: '', shelf: 'PF-02-03-B', zone: 'PICK', why: 'Same product is already here and there is room.', alt: 'BK-06-01-A', overflow: false },
+      { sku: 'PQR678', name: 'Floor mat set', expected: 30, batch: 'B2620', shelf: 'OV-01-01-A', zone: 'OVERFLOW', why: 'No allowed shelf is free, so it goes to overflow. The office gets a flag to sort it.', alt: 'BK-07-02-C', overflow: false }
+    ];
+    var ln = LINES[Math.min(s.i, LINES.length - 1)];
+    var q = parseFloat(s.qty); if (isNaN(q) || q < 0) q = 0;
+    var round = function (n) { return Math.round(n * 1000) / 1000; };
+    var flash = function (extra, msg) {
+      var o = Object.assign({}, extra, { toast: msg, error: '' });
+      self.setState(o);
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+    };
+    var lineNo = FIRST + s.i;
+    var pct = s.done ? 100 : Math.round((lineNo - 1) / TOTAL * 100);
+    var limit = ln.expected * 1.05;
+    var diff = round(q - ln.expected);
+    var needSup = q > limit;
+    var note = { on: false, text: '', style: '' };
+    var warnStyle = 'display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 12px; font-size: 14px; font-weight: 700; ';
+    if (s.qty !== '' && q < ln.expected) {
+      note = { on: true, text: round(ln.expected - q) + ' fewer than expected. That\'s okay, the office will see the real number.', style: warnStyle + 'background: #FFF0C2; color: #7A5C00;' };
+    } else if (q > ln.expected && !needSup) {
+      note = { on: true, text: diff + ' more than expected, but inside the 5% allowed. Fine to keep going.', style: warnStyle + 'background: #FFF0C2; color: #7A5C00;' };
+    } else if (needSup && !s.supOk) {
+      note = { on: true, text: diff + ' more than expected. That\'s past the 5% limit, so a supervisor has to OK it.', style: warnStyle + 'background: #FDE2E0; color: #A3221A;' };
+    } else if (needSup && s.supOk) {
+      note = { on: true, text: 'Supervisor OK\'d ' + diff + ' extra.', style: warnStyle + 'background: #E3F5EA; color: #145A31;' };
+    }
+    var shelf = s.alt ? ln.alt : ln.shelf;
+    var isOverflow = !s.alt && ln.zone === 'OVERFLOW';
+    var zoneCode = s.alt ? (ln.alt.indexOf('PF') === 0 ? 'PICK' : 'BULK') : ln.zone;
+    var good = round(q - s.dmg);
+    var reset = { qty: '', label: false, shelfOk: false, alt: false, dmgOpen: false, dmg: 0, supOk: false };
+    return {
+      lineText: s.done ? 'All 5 lines' : 'Line ' + lineNo + ' of ' + TOTAL,
+      pct: pct,
+      barStyle: 'height: 100%; width: ' + pct + '%; border-radius: 999px; background: ' + (s.done ? '#22A35A' : '#2F6FE4') + ';',
+      hasStreak: s.streak > 0, streakText: '+' + s.streak + ' in a row',
+      done: s.done, working: !s.done,
+      ln: ln,
+      expectText: 'Expecting ' + ln.expected + ' EA',
+      labelDone: s.label, labelTodo: !s.label,
+      labelText: 'From the GS1 label: ' + ln.expected + ' EA' + (ln.batch ? ' · batch ' + ln.batch : ' · no batch on this one'),
+      scanLabel: function () { self.setState({ label: true, qty: String(ln.expected), error: '' }); },
+      qty: s.qty,
+      setQty: function (e) { self.setState({ qty: e.target.value, error: '', supOk: false }); },
+      less: function () { self.setState({ qty: String(Math.max(0, round(q - 1))), error: '', supOk: false }); },
+      more: function () { self.setState({ qty: String(round(q + 1)), error: '', supOk: false }); },
+      note: note,
+      supAsk: needSup && !s.supOk,
+      supScan: function () { self.setState({ supOk: true, error: '' }); },
+      dmgOpen: s.dmgOpen, dmg: s.dmg, dmgPressed: s.dmgOpen ? 'true' : 'false',
+      dmgText: s.dmg > 0 ? good + ' good ones go on the shelf. The ' + s.dmg + ' damaged stay off it and the office is told.' : 'Nothing marked damaged yet.',
+      dmgLess: function () { self.setState({ dmg: Math.max(0, s.dmg - 1) }); },
+      dmgMore: function () { self.setState({ dmg: Math.min(q, s.dmg + 1) }); },
+      toggleDmg: function () { self.setState({ dmgOpen: !s.dmgOpen, dmg: s.dmgOpen ? 0 : Math.min(1, q) }); },
+      dmgBtnStyle: 'flex: 1; height: 58px; border-radius: 16px; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; ' + (s.dmgOpen ? 'border: 2px solid #A3221A; background: #FDE2E0; color: #A3221A;' : 'border: 2px solid #CFDAF2; background: #FFFFFF; color: #A3221A;'),
+      shelf: shelf, zoneCode: zoneCode,
+      zoneWord: 'Stored',
+      zoneChip: 'padding: 4px 10px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;',
+      why: s.alt ? 'You picked this shelf. It allows this product, so that\'s fine. The stock record saves where it really went.' : ln.why,
+      whyStyle: 'font-size: 13px; font-weight: 700; ' + (isOverflow ? 'padding: 6px 10px; border-radius: 10px; background: #FFF0C2; color: #7A5C00;' : 'color: #4A5672;'),
+      shelfDone: s.shelfOk, shelfTodo: !s.shelfOk,
+      shelfOkText: 'Shelf ' + shelf + ' scanned. Right spot!',
+      scanShelf: function () { self.setState({ shelfOk: true, error: '' }); },
+      scanOther: function () { self.setState({ shelfOk: true, alt: true, error: '' }); },
+      hasError: !!s.error, error: s.error,
+      confirm: function () {
+        if (s.done) return;
+        if (q <= 0) { self.setState({ error: 'Scan the box label or type how many came in.' }); return; }
+        if (needSup && !s.supOk) { self.setState({ error: 'Too many extra. A supervisor needs to scan their badge.' }); return; }
+        if (!s.shelfOk) { self.setState({ error: 'Scan the shelf first, so we know where it went.' }); return; }
+        var msg = 'Ding! ' + good + ' ' + ln.sku + ' put away';
+        if (s.i + 1 >= LINES.length) { flash({ done: true, streak: s.streak + 1 }, 'Ding! Last line done'); return; }
+        flash(Object.assign({}, reset, { i: s.i + 1, streak: s.streak + 1 }), msg);
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

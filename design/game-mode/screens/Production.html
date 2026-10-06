@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS production panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Production" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #2F6FE4;">BALLARAT · TODAY</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Production</h1>
+        <div style="font-size: 13px; color: #5A6785;">Send parts to the line, then catch the finished pallets as they come off.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #4A5672;">
+        Warehouse
+        <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-size: 14px; font-weight: 700;">
+          <option value="BAL-WH01">BAL-WH01 · Ballarat</option>
+          <option value="MEL-WH01">MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <span style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px 0 6px; border-radius: 999px; background: #F3F6FD; font-size: 13px; font-weight: 700; color: #4A5672;">
+        <span style="width: 32px; height: 32px; border-radius: 999px; background: #2F6FE4; color: #FFFFFF; display: grid; place-items: center; font-size: 12px; font-weight: 800;">LL</span>Supervisor
+      </span>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 28px 14px;">
+      <label style="flex: 1 1 240px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search production orders</span>
+        <input type="search" placeholder="Order number or product" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+      </label>
+      <button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"></path></svg>Import CSV
+      </button>
+      <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Create production order
+      </button>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: auto; padding: 0 28px 40px; display: flex; flex-direction: column; gap: 16px;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">PARTS TO SEND</div>
+          <div style="font-size: 30px; font-weight: 800;">5</div>
+          <div style="font-size: 13px; color: #4A5672;">components to issue · 2 lines short in the pick face</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">ISSUED, RUNNING</div>
+          <div style="font-size: 30px; font-weight: 800;">3</div>
+          <div style="font-size: 13px; color: #4A5672;">on line 3 and line 4</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">FINISHED GOODS IN</div>
+          <div style="font-size: 30px; font-weight: 800;">1,140</div>
+          <div style="font-size: 13px; color: #4A5672;">EA received today · 10 pallets</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #F2D27A; background: #FFFBEF;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #7A5C00;">OVER TOLERANCE</div>
+          <div style="font-size: 30px; font-weight: 800; color: #7A5C00;">1</div>
+          <div style="font-size: 13px; color: #4A5672;">PRD-1000452 needs a supervisor</div>
+        </div>
+      </div>
+
+      <div role="tablist" aria-label="Production status" style="display: flex; flex-wrap: wrap; gap: 6px;">
+        
+          <button type="button" role="tab" aria-selected="true" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #2F6FE4; background: #2F6FE4; color: #FFFFFF;">All<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.22); color: #FFFFFF;">5</span></button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Waiting<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Issuing<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Receiving<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Over tolerance<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Complete<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+        
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <div style="flex: 999 1 460px; min-width: 0; overflow-x: auto; border: 1px solid #E6EDFB; border-radius: 16px;">
+          <table style="width: 100%; min-width: 660px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                <th style="padding: 12px 10px; font-weight: 800;">ORDER</th>
+                <th style="padding: 12px 10px; font-weight: 800;">MAKES</th>
+                <th style="padding: 12px 10px; font-weight: 800;">PARTS ISSUED</th>
+                <th style="padding: 12px 10px; font-weight: 800;">FINISHED / PLANNED</th>
+                <th style="padding: 12px 10px; font-weight: 800;">STATUS</th>
+                <th style="padding: 12px 10px; font-weight: 800;">LINE</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #F2F6FF;">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" aria-pressed="true" aria-label="Show production order PRD-1000456" style="min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid #2F6FE4; background: #EEF3FF; color: #18233D;">PRD-1000456</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">Brake pad set</div><div style="font-size: 12px; color: #5A6785;">FG-900</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">5 / 6</div><div style="font-size: 12px; color: #5A6785;">6 component lines</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">240 / 500 EA</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 48%; border-radius: 999px; background: #2F6FE4;"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #D8E5FF; color: #1F4FB0;">Receiving</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">Line 3 · batch B2609A</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" aria-pressed="false" aria-label="Show production order PRD-1000457" style="min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid transparent; background: transparent; color: #18233D;">PRD-1000457</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">Rotor 280 mm</div><div style="font-size: 12px; color: #5A6785;">FG-910</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">1 / 3</div><div style="font-size: 12px; color: #5A6785;">3 component lines</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">0 / 200 EA</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 2%; border-radius: 999px; background: #2F6FE4;"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FDE6D2; color: #8E4A0E;">Issuing parts</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">Line 4 · Priya picking</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" aria-pressed="false" aria-label="Show production order PRD-1000458" style="min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid transparent; background: transparent; color: #18233D;">PRD-1000458</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">Brake pad set</div><div style="font-size: 12px; color: #5A6785;">FG-900</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">0 / 6</div><div style="font-size: 12px; color: #5A6785;">6 component lines</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">0 / 500 EA</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 2%; border-radius: 999px; background: #2F6FE4;"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E6EDFB; color: #2148A8;">Waiting</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">Line 3 · due Mon 06:00</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" aria-pressed="false" aria-label="Show production order PRD-1000452" style="min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid transparent; background: transparent; color: #18233D;">PRD-1000452</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">Pad set, ceramic</div><div style="font-size: 12px; color: #5A6785;">FG-905</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">5 / 5</div><div style="font-size: 12px; color: #5A6785;">5 component lines</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">512 / 500 EA</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 100%; border-radius: 999px; background: #D69A00;"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FFF0C2; color: #7A5C00;">Over tolerance</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">Line 2 · +12 EA, supervisor needed</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" aria-pressed="false" aria-label="Show production order PRD-1000449" style="min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid transparent; background: transparent; color: #18233D;">PRD-1000449</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">Rotor 280 mm</div><div style="font-size: 12px; color: #5A6785;">FG-910</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">3 / 3</div><div style="font-size: 12px; color: #5A6785;">3 component lines</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">200 / 200 EA</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 100%; border-radius: 999px; background: #2E9E5B;"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E3F5EA; color: #145A31;">Complete</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">Line 4 · closed 07:40</td>
+                </tr>
+              
+            </tbody>
+          </table>
+          
+        </div>
+
+        <aside aria-label="Production order details" style="flex: 1 1 300px; max-width: 360px; min-width: 0; padding: 18px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #2F6FE4;">PRODUCTION ORDER</div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 22px; font-weight: 800;">PRD-1000456</span><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #D8E5FF; color: #1F4FB0;">Receiving</span>
+            </div>
+            <div style="font-size: 13px; color: #4A5672;">Makes 500 EA FG-900 · Line 3 · batch B2609A</div>
+          </div>
+
+          
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">PARTS</div><div style="font-weight: 800;">Going to LINE-03-IN</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">TOLERANCE</div><div style="font-weight: 800;">±2 %</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">REQUIRED BY</div><div style="font-weight: 800;">Today 06:00</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">BATCH</div><div style="font-weight: 800;">B2609A</div><div style="font-size: 11px; color: #5A6785;">from the order QR · read-only</div></div>
+          </div>
+
+          <div style="padding: 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB; display: flex; align-items: center; gap: 10px;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 800;">ERP already counted the goods receipt?</div>
+              <div style="font-size: 12px; color: #5A6785;">Yes: we only move stock into bins. No receipt message sent.</div>
+            </div>
+            <button type="button" role="switch" aria-checked="true" aria-label="ERP already counted the goods receipt" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+            <span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E3F5EA; color: #145A31;">Yes</span>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;"><span>PALLETS RECEIVED</span><span>240 / 500 EA</span></div>
+            <span style="display: block; height: 10px; margin-bottom: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="display: block; height: 100%; width: 48%; border-radius: 999px; background: #2F6FE4;"></span></span>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span>08:10 → <span style="padding: 1px 8px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-weight: 800;">BK-04-01-C</span></span><span style="font-weight: 800;">120 EA</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span>08:45 → <span style="padding: 1px 8px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-weight: 800;">BK-04-01-C</span></span><span style="font-weight: 800;">120 EA</span>
+                </div>
+              
+              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px; color: #5A6785;"><span>Still expected</span><span>260 EA to come</span></div>
+            </div>
+            
+              <button type="button" style="margin-top: 8px; width: 100%; height: 44px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Scan next pallet (+120 EA)</button>
+            
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;">COMPONENTS ISSUED</div>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-120</b> · Backing plate</span><span style="font-weight: 800; color: #145A31;">1,000 / 1,000</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-131</b> · Friction pad</span><span style="font-weight: 800; color: #145A31;">1,000 / 1,000</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-140</b> · Shim</span><span style="font-weight: 800; color: #7A5C00;">980 / 1,000</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-150</b> · Wear sensor</span><span style="font-weight: 800; color: #145A31;">500 / 500</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-160</b> · Clip set</span><span style="font-weight: 800; color: #145A31;">500 / 500</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>RM-170</b> · Grease sachet</span><span style="font-weight: 800; color: #145A31;">500 / 500</span>
+                </div>
+              
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;">MESSAGES SENT</div>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span style="font-family: ui-monospace, monospace; font-size: 12px;">production.components_issued → ERP</span><span style="padding: 2px 8px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 11px; font-weight: 800;">delivered</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span style="font-family: ui-monospace, monospace; font-size: 12px;">production.received ×2 → ERP</span><span style="padding: 2px 8px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 11px; font-weight: 800;">delivered</span>
+                </div>
+              
+              
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Issue remainder</button>
+            <button type="button" aria-disabled="false" style="height: 44px; border-radius: 12px; font: inherit; font-weight: 800; font-size: 14px; border: 1px solid #E8B54A; background: #FFF0C2; color: #7A5C00; cursor: pointer;">Close order</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    
+  </section>
+</div>
+</body>
+</html>

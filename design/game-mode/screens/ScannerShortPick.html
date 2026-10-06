@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner short pick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Short pick</div>
+      <div style="font-size: 12px; color: #4A5672;">Order 0080012345 · line 30 · GHI789</div>
+      <div style="font-size: 12px; color: #5A6785;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  
+
+  
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <section style="padding: 14px 16px; border-radius: 18px; background: #FFF0C2; color: #7A5C00; display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg>
+        <div>
+          <div style="font-size: 28px; font-weight: 800; line-height: 1.1; color: #18233D;">Picked 2 of 6</div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 4px;">4 each missing from PF-01-02-A</div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px;">
+            <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+            <span>The system thinks 12 are there</span>
+          </div>
+        </div>
+      </section>
+
+      <div role="radiogroup" aria-labelledby="why" style="display: flex; flex-direction: column; gap: 8px;">
+        <span id="why" style="font-size: 16px; font-weight: 800;">Why is it short?</span>
+        
+          <button type="button" role="radio" aria-checked="true" style="min-height: 54px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 800; color: #18233D; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px; background: #EEF3FF; border: 2px solid #2F6FE4;">
+            <span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #2F6FE4; background: #2F6FE4; box-shadow: inset 0 0 0 3px #FFFFFF;"></span>Not found on the shelf</button>
+        
+          <button type="button" role="radio" aria-checked="false" style="min-height: 54px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 600; color: #18233D; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 2px solid #DDE5F5;">
+            <span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #CFDAF2; background: #FFFFFF; box-shadow: inset 0 0 0 3px #FFFFFF;"></span>Damaged</button>
+        
+          <button type="button" role="radio" aria-checked="false" style="min-height: 54px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 600; color: #18233D; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 2px solid #DDE5F5;">
+            <span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #CFDAF2; background: #FFFFFF; box-shadow: inset 0 0 0 3px #FFFFFF;"></span>Wrong product on the shelf</button>
+        
+          <button type="button" role="radio" aria-checked="false" style="min-height: 54px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 600; color: #18233D; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 2px solid #DDE5F5;">
+            <span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #CFDAF2; background: #FFFFFF; box-shadow: inset 0 0 0 3px #FFFFFF;"></span>Shelf label can’t be read</button>
+        
+      </div>
+
+      <div style="padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 13px; color: #4A5672; line-height: 1.45;">
+        
+          <strong style="color: #18233D;">Not found makes a count job for PF-01-02-A.</strong>
+        
+        The order ships short with 2, and the office system hears the real number: delivery.shipped with qty_shipped 2.
+      </div>
+
+      <button type="button" style="min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 2px dashed #2F6FE4; background: #FFFFFF;">
+        
+        
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">Supervisor: scan your badge</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">Any supervisor can okay this. Tap to pretend-scan.</span>
+        </span>
+      </button>
+
+      
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <a href="ScannerPick.html" style="flex: 1; height: 58px; border-radius: 16px; background: #FFFFFF; border: 2px solid #CFDAF2; box-sizing: border-box; color: #18233D; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center; text-align: center;">Recount shelf</a>
+      <button type="button" style="flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: #8FA9DE;">Approve short</button>
+    </div>
+  
+</div>
+</body>
+</html>

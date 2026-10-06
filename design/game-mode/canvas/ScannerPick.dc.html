@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner pick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Pick one order</div>
+      <div style="font-size: 12px; color: #4A5672;">Order 0080012345 · Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">{{lineLabel}}</span>
+    <div role="progressbar" aria-label="Lines picked" aria-valuemin="0" aria-valuemax="4" aria-valuenow="{{doneCount}}" style="flex: 1; height: 12px; border-radius: 999px; background: #DDE5F5; overflow: hidden;">
+      <div style="{{barStyle}}"></div>
+    </div>
+    <sc-if value="{{hasStreak}}" hint-placeholder-val="{{ false }}">
+      <span style="padding: 4px 9px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800; white-space: nowrap;">{{streakLabel}}</span>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; justify-content: center; align-items: center; text-align: center;">
+      <span style="width: 88px; height: 88px; border-radius: 50%; background: #E3F5EA; color: #145A31; display: grid; place-items: center;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      </span>
+      <div style="font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">All 4 lines picked</div>
+      <div style="font-size: 15px; color: #4A5672; max-width: 290px;">Order 0080012345 is ready. Take the tote to the packing bench.</div>
+      <span style="padding: 6px 12px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 13px; font-weight: 800;">{{streakLabel}}</span>
+    </div>
+    <a href="ScannerPack.dc.html" style="height: 60px; flex: none; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      Go to packing
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+    <a href="ScannerHome.dc.html" style="height: 52px; flex: none; border-radius: 16px; background: #FFFFFF; border: 1px solid #CFDAF2; color: #18233D; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center;">Back to menu</a>
+  </sc-if>
+
+  <sc-if value="{{working}}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <section aria-label="Go to location" style="padding: 14px 16px; border-radius: 18px; background: #2F6FE4; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.6px; color: #D8E5FF;">GO TO</span>
+        <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">{{line.loc}}</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #EEF3FF;">
+          <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+          <span style="font-weight: 700;">PF</span>
+          <span>{{line.where}}</span>
+        </div>
+      </section>
+
+      <section aria-label="Product" style="padding: 14px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800;">{{line.sku}}</div>
+            <div style="font-size: 14px; color: #4A5672;">{{line.name}}</div>
+          </div>
+          <span style="padding: 4px 9px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">Oldest first (FIFO) · {{line.batch}}</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 34px; font-weight: 800; line-height: 1;">{{line.need}}</span>
+          <span style="font-size: 15px; color: #4A5672;">each to pick · {{line.avail}} on this shelf</span>
+        </div>
+      </section>
+
+      <button type="button" onClick="{{scan}}" style="{{scanStyle}}">
+        <sc-if value="{{scanDone}}" hint-placeholder-val="{{ false }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </sc-if>
+        <sc-if value="{{scanOpen}}" hint-placeholder-val="{{ true }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>
+        </sc-if>
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">{{scanTitle}}</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">{{scanHint}}</span>
+        </span>
+      </button>
+      <div style="display: flex; gap: 6px; flex: none;">
+        <sc-for list="{{steps}}" as="st" hint-placeholder-count="3">
+          <span style="{{st.style}}">{{st.label}}</span>
+        </sc-for>
+      </div>
+      <a href="ScannerWrongScan.dc.html" style="font-size: 13px; font-weight: 700; align-self: flex-start;">What if I scan the wrong thing?</a>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label for="qty" style="font-size: 14px; font-weight: 800;">How many did you pick?</label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onClick="{{less}}" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+          </button>
+          <input id="qty" type="number" inputmode="decimal" min="0" step="any" value="{{qty}}" onInput="{{setQty}}" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; font: inherit; font-size: 28px; font-weight: 800; color: #18233D; background: #FFFFFF; border: 2px solid #CFDAF2; border-radius: 14px;">
+          <button type="button" onClick="{{more}}" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+          </button>
+        </div>
+        <sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="{{msgStyle}}">{{msg}}</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <a href="ScannerShortPick.dc.html" style="flex: 1; height: 58px; border-radius: 16px; background: #FFF0C2; color: #7A5C00; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center; text-align: center;">Short pick</a>
+      <button type="button" onClick="{{confirm}}" style="{{confirmStyle}}">Confirm pick</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; top: 74px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 15px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, step: 0, qty: '6', msg: '', msgKind: '', toast: '', streak: 0, done: false };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var lines = [
+      { n: 3, loc: 'PF-01-02-A', where: 'Aisle 1, bay 2, level A', sku: 'GHI789', name: 'Wiper blade 22 in', batch: 'B2609A', need: 6, avail: 38 },
+      { n: 4, loc: 'PF-01-04-B', where: 'Aisle 1, bay 4, level B', sku: 'MNO345', name: 'Brake pad set, front', batch: 'B2611C', need: 2, avail: 15 }
+    ];
+    var line = lines[s.idx] || lines[lines.length - 1];
+    var doneCount = s.done ? 4 : line.n - 1;
+    var stepNames = ['Shelf', 'Product', 'Count'];
+    var steps = stepNames.map(function (n, i) {
+      var on = i < s.step || (i === 2 && s.step === 2);
+      var cur = i === s.step && s.step < 2;
+      return {
+        label: (on ? 'Done: ' : '') + n,
+        style: 'flex: 1; text-align: center; padding: 6px 4px; border-radius: 10px; font-size: 12px; font-weight: 800; ' +
+          (on ? 'background: #E3F5EA; color: #145A31;' : cur ? 'background: #EEF3FF; color: #2148A8; border: 1px solid #2F6FE4;' : 'background: #FFFFFF; color: #5A6785; border: 1px solid #DDE5F5;')
+      };
+    });
+    var titles = ['Scan the shelf label', 'Now scan the product', 'Scanned. Check the count'];
+    var hints = ['At ' + line.loc + '. Tap to pretend-scan.', 'One barcode fills in product, batch and how many.', line.sku + ' · batch ' + line.batch + ' · ' + line.need + ' each'];
+    var num = parseFloat(s.qty);
+    var setQ = function (v) { self.setState({ qty: String(Math.max(0, v)), msg: '' }); };
+    var cur = isNaN(num) ? 0 : num;
+    return {
+      lineLabel: 'Line ' + line.n + ' of 4',
+      doneCount: doneCount,
+      barStyle: 'height: 100%; border-radius: 999px; background: #22A35A; width: ' + (doneCount / 4 * 100) + '%;',
+      hasStreak: s.streak > 0, streakLabel: '+' + s.streak + (s.streak === 1 ? ' pick' : ' picks'),
+      allDone: s.done, working: !s.done,
+      line: line,
+      steps: steps,
+      scanDone: s.step === 2, scanOpen: s.step < 2,
+      scanTitle: titles[s.step], scanHint: hints[s.step],
+      scanStyle: 'min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; ' +
+        (s.step === 2 ? 'border: 2px solid #22A35A; background: #E3F5EA;' : 'border: 2px dashed #2F6FE4; background: #FFFFFF;'),
+      scan: function () {
+        if (s.step < 2) self.setState({ step: s.step + 1, toast: '', msg: '', qty: s.step === 1 ? String(line.need) : s.qty });
+      },
+      qty: s.qty,
+      setQty: function (e) { self.setState({ qty: e.target.value, msg: '' }); },
+      less: function () { setQ(cur - 1); },
+      more: function () { setQ(cur + 1); },
+      hasMsg: !!s.msg, msg: s.msg,
+      msgStyle: 'padding: 10px 12px; border-radius: 12px; font-size: 14px; font-weight: 700; ' + (s.msgKind === 'warn' ? 'background: #FFF0C2; color: #7A5C00;' : 'background: #FDE2E0; color: #A3221A;'),
+      confirmStyle: 'flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: ' + (s.step === 2 ? '#2F6FE4' : '#8FA9DE') + ';',
+      confirm: function () {
+        if (s.step < 2) { self.setState({ msg: 'Scan the shelf and the product first.', msgKind: 'bad' }); return; }
+        if (isNaN(num)) { self.setState({ msg: 'Type how many you picked.', msgKind: 'bad' }); return; }
+        if (num < line.need) { self.setState({ msg: 'Fewer than ' + line.need + '? Tap Short pick so we can sort it out.', msgKind: 'warn' }); return; }
+        if (num > line.need) { self.setState({ msg: 'That is more than the order needs. Put ' + (num - line.need) + ' back.', msgKind: 'warn' }); return; }
+        var last = s.idx >= lines.length - 1;
+        self.setState({ idx: last ? s.idx : s.idx + 1, step: 0, qty: last ? s.qty : String(lines[s.idx + 1].need), msg: '', toast: 'Ding! Picked ' + line.need + ' of ' + line.sku, streak: s.streak + 1, done: last });
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

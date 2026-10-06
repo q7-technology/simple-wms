@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS integrations panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Integrations and printing" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">API IN, EVENTS OUT</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Integrations and printing</h1>
+        <div style="font-size: 13px; color: #5A6785;">Other systems talk to us here, and we tell them what happened.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #4A5672;">
+        Warehouse
+        <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+          <option>BAL-WH01 · Ballarat</option>
+          <option>MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <button type="button" onClick="{{addSub}}" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Add subscriber</button>
+      <button type="button" onClick="{{createKey}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Create API key</button>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 4px 28px 40px; border-top: 1px solid #E6EDFB;">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; padding-top: 16px;">
+
+        <div style="display: flex; flex-direction: column; gap: 22px; min-width: 0;">
+
+          <section aria-labelledby="sub-h">
+            <h2 id="sub-h" style="margin: 0 0 4px; font-size: 17px; font-weight: 800;">Subscribers</h2>
+            <div style="font-size: 13px; color: #5A6785; margin-bottom: 6px;">Who gets which events. Tap one to see its key.</div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                  <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                    <th style="padding: 8px; font-weight: 800;">NAME</th>
+                    <th style="padding: 8px; font-weight: 800;">EVENTS</th>
+                    <th style="padding: 8px; font-weight: 800;">LAST</th>
+                    <th style="padding: 8px; font-weight: 800;">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{subs}}" as="b" hint-placeholder-count="4">
+                    <tr style="{{b.rowStyle}}">
+                      <td style="padding: 4px 8px;"><button type="button" onClick="{{b.pick}}" aria-pressed="{{b.on}}" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #18233D; cursor: pointer; text-align: left;">{{b.name}}</button></td>
+                      <td style="padding: 4px 8px; color: #4A5672; font-size: 13px;">{{b.events}}</td>
+                      <td style="padding: 4px 8px;">{{b.last}}</td>
+                      <td style="padding: 4px 8px;"><span style="{{b.chip}}">{{b.status}}</span></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section aria-labelledby="pp-h">
+            <h2 id="pp-h" style="margin: 0 0 4px; font-size: 17px; font-weight: 800;">Print points</h2>
+            <div style="font-size: 13px; color: #5A6785; margin-bottom: 6px;">When this happens, print that label, on that printer. Platen does the drawing.</div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                  <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                    <th style="padding: 8px; font-weight: 800;">EVENT</th>
+                    <th style="padding: 8px; font-weight: 800;">TEMPLATE</th>
+                    <th style="padding: 8px; font-weight: 800;">PRINTER</th>
+                    <th style="padding: 8px; font-weight: 800;">COPIES</th>
+                    <th style="padding: 8px; font-weight: 800;">ON</th>
+                    <th style="padding: 8px;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Edit</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{points}}" as="p" hint-placeholder-count="4">
+                    <tr style="border-top: 1px solid #EEF2FA;">
+                      <td style="padding: 6px 8px; font-weight: 700;">{{p.event}}<div style="font-size: 12px; font-weight: 500; color: #5A6785;">{{p.plain}}</div></td>
+                      <td style="padding: 6px 8px; color: #4A5672;">{{p.template}}</td>
+                      <td style="padding: 6px 8px;">{{p.printer}}</td>
+                      <td style="padding: 6px 8px;">{{p.copies}}</td>
+                      <td style="padding: 6px 8px;"><button type="button" role="switch" aria-checked="{{p.on}}" aria-label="{{p.aria}}" onClick="{{p.flip}}" style="{{p.track}}"><span style="{{p.knob}}"></span></button></td>
+                      <td style="padding: 6px 8px; text-align: right;">
+                        <a href="PrintTemplate.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: 10px; background: #F3F6FD; color: #2148A8; font-size: 13px; font-weight: 700; text-decoration: none;">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7Z"/></svg>Edit
+                        </a>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section aria-labelledby="q-h">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 6px;">
+              <div style="flex: 1; min-width: 200px;">
+                <h2 id="q-h" style="margin: 0 0 4px; font-size: 17px; font-weight: 800;">Event queue</h2>
+                <div style="font-size: 13px; color: #5A6785;">Saved safely and retried until answered: 1 min, 5 min, 30 min, then every 2 h.</div>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <sc-for list="{{qtabs}}" as="t" hint-placeholder-count="3">
+                  <button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; min-width: 780px; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                  <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                    <th style="padding: 8px; font-weight: 800;">EVENT ID</th>
+                    <th style="padding: 8px; font-weight: 800;">TYPE</th>
+                    <th style="padding: 8px; font-weight: 800;">SUBSCRIBER</th>
+                    <th style="padding: 8px; font-weight: 800;">TRIES</th>
+                    <th style="padding: 8px; font-weight: 800;">NEXT TRY</th>
+                    <th style="padding: 8px; font-weight: 800;">STATUS</th>
+                    <th style="padding: 8px; font-weight: 800;">REFERENCE</th>
+                    <th style="padding: 8px;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Retry</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{queue}}" as="q" hint-placeholder-count="4">
+                    <tr style="border-top: 1px solid #EEF2FA; height: 56px;">
+                      <td style="padding: 4px 8px; font-weight: 800;">{{q.id}}</td>
+                      <td style="padding: 4px 8px;">{{q.type}}</td>
+                      <td style="padding: 4px 8px;">{{q.sub}}</td>
+                      <td style="padding: 4px 8px;">{{q.attempts}}</td>
+                      <td style="padding: 4px 8px; color: #4A5672;">{{q.next}}</td>
+                      <td style="padding: 4px 8px;"><span style="{{q.chip}}">{{q.status}}</span></td>
+                      <td style="padding: 4px 8px; color: #4A5672; font-size: 13px;">{{q.ref}}</td>
+                      <td style="padding: 4px 8px; text-align: right;">
+                        <sc-if value="{{q.canRetry}}" hint-placeholder-val="{{ true }}">
+                          <button type="button" onClick="{{q.retry}}" aria-label="{{q.aria}}" style="height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: #EEF3FF; color: #2148A8; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;">Retry now</button>
+                        </sc-if>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <sc-if value="{{qEmpty}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 24px 0; text-align: center; color: #5A6785; font-weight: 700;">Queue is clear. Everyone has heard the news.</div>
+            </sc-if>
+          </section>
+        </div>
+
+        <aside aria-label="API key detail" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">API KEY</div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 22px; font-weight: 800;">{{k.name}}</span>
+              <span style="{{k.chip}}">{{k.state}}</span>
+            </div>
+            <div style="font-size: 13px; color: #5A6785;">{{k.meta}}</div>
+          </div>
+
+          <sc-if value="{{k.fresh}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 12px; border-radius: 14px; background: #FFF0C2; color: #4D3A00; font-size: 13px;">
+              <b>Copy it now.</b> This key is shown once only.
+              <div style="margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: #FFFFFF; font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all;">{{k.plain}}</div>
+            </div>
+          </sc-if>
+
+          <dl style="margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; font-size: 13px;">
+            <div style="grid-column: 1 / -1;"><dt style="color: #5A6785;">Scopes</dt><dd style="margin: 0; font-weight: 700;">{{k.scopes}}</dd></div>
+            <div><dt style="color: #5A6785;">Warehouses</dt><dd style="margin: 0; font-weight: 700;">{{k.wh}}</dd></div>
+            <div><dt style="color: #5A6785;">Owner</dt><dd style="margin: 0; font-weight: 700;">{{k.owner}}</dd></div>
+            <div style="grid-column: 1 / -1;"><dt style="color: #5A6785;">IP allowlist</dt><dd style="margin: 0; font-weight: 700;">{{k.ip}}</dd></div>
+          </dl>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">WEBHOOK</div>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              URL
+              <input type="text" value="{{k.url}}" onInput="{{setUrl}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 500; color: #18233D;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              HMAC secret (signs every event)
+              <input type="password" value="whsec_hidden_secret_value" readonly="readonly" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 13px; color: #18233D; background: #F7F9FE;">
+            </label>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #5A6785; margin-bottom: 6px;">MESSAGE IDS</div>
+            <div style="border: 1px solid #E6EDFB; border-radius: 12px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid #EEF2FA;"><span>Duplicates rejected (24 h)</span><b>{{k.dupes}}</b></div>
+              <div style="display: flex; justify-content: space-between; padding: 9px 12px;"><span>Last duplicate</span><span style="color: #4A5672;">{{k.lastDupe}}</span></div>
+            </div>
+            <div style="font-size: 12px; color: #5A6785; margin-top: 6px;">A repeated message ID gets the first answer again, and nothing happens twice.</div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button type="button" onClick="{{rotate}}" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Rotate key</button>
+            <button type="button" onClick="{{revoke}}" style="flex: 1; height: 44px; border: 1px solid #E8B4AF; border-radius: 12px; background: #FFFFFF; color: #A3221A; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Revoke</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      pick: 'erp', qtab: 'all', toast: '', fresh: '', n: 0,
+      subs: [
+        { id: 'erp', name: 'ERP bridge', events: 'delivery.shipped, stock.adjusted, transfer.*, production.*', last: '09:12', status: 'retry', created: '4 Sep', used: '09:41', scopes: 'deliveries:write, transfers:write, stock:read', wh: 'BAL-WH01, MEL-WH01', owner: 'DEFAULT', ip: '10.0.5.20', url: 'https://hooks.example.internal/wms-events', dupes: 17, lastDupe: 'REP-1003 · 08:02' },
+        { id: 'car', name: 'Carrier A', events: 'delivery.packed, delivery.shipped', last: '09:40', status: 'ok', created: '12 Aug', used: '09:40', scopes: 'deliveries:read', wh: 'BAL-WH01', owner: 'DEFAULT', ip: '203.0.113.14', url: 'https://carrier-a.example.com/hooks', dupes: 0, lastDupe: '—' },
+        { id: 'edi', name: 'EDI broker', events: 'delivery.shipped (ASN)', last: '09:40', status: 'ok', created: '20 Aug', used: '09:40', scopes: 'deliveries:read', wh: 'BAL-WH01, MEL-WH01', owner: 'DEFAULT', ip: '198.51.100.7', url: 'https://edi.example.net/asn', dupes: 2, lastDupe: 'ASN-5521 · Fri' },
+        { id: 'pla', name: 'Platen', events: 'print jobs · template + JSON', last: '09:41', status: 'ok', created: '1 Sep', used: '09:41', scopes: 'print:write', wh: 'BAL-WH01, MEL-WH01', owner: 'DEFAULT', ip: '10.0.5.31', url: 'https://platen.internal/jobs', dupes: 0, lastDupe: '—' }
+      ],
+      points: [
+        { event: 'delivery.packed', plain: 'Order packed', template: 'carton-label v3', printer: 'Packing bench 2', copies: '1 per carton', on: true },
+        { event: 'receipt.confirmed', plain: 'Truck unloaded (Arriving)', template: 'location-label v2', printer: 'Receiving dock', copies: '1', on: true },
+        { event: 'production.received', plain: 'Pallet off the line', template: 'pallet-label v1', printer: 'Line 3 label printer', copies: '1 per pallet', on: true },
+        { event: 'delivery.allocated', plain: 'Order given stock', template: 'pick-list A4', printer: 'Office', copies: '0', on: false }
+      ],
+      queue: [
+        { id: 'evt-…8a21', type: 'delivery.shipped', sub: 'ERP bridge', attempts: 4, next: '09:46', status: 'retry', ref: '0080012340 · 503 from listener' },
+        { id: 'evt-…8a22', type: 'stock.adjusted', sub: 'ERP bridge', attempts: 4, next: '09:46', status: 'retry', ref: 'L-889201 · −2 EA' },
+        { id: 'evt-…8a23', type: 'production.received', sub: 'ERP bridge', attempts: 3, next: '09:46', status: 'retry', ref: 'PRD-1000456 · 120 EA' },
+        { id: 'evt-…8a19', type: 'delivery.packed', sub: 'Carrier A', attempts: 1, next: '—', status: 'done', ref: '0080012338 · 09:40 · 210 ms' }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var chipCss = function (bg, ink) { return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: ' + bg + '; color: ' + ink + ';'; };
+    var SS = { retry: ['Retrying', '#FFF0C2', '#7A5C00'], ok: ['OK', '#E3F5EA', '#145A31'], off: ['Revoked', '#FDE2E0', '#A3221A'], done: ['Delivered', '#E3F5EA', '#145A31'] };
+    var flash = function (msg) {
+      self.setState({ toast: msg });
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2400);
+    };
+    var setSub = function (id, patch) { return s.subs.map(function (b) { return b.id === id ? Object.assign({}, b, patch) : b; }); };
+    var newKey = function () { return 'wms_live_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10); };
+
+    var subs = s.subs.map(function (b) {
+      var st = SS[b.status], on = b.id === s.pick;
+      return {
+        name: b.name, events: b.events, last: b.last, status: st[0], chip: chipCss(st[1], st[2]), on: on,
+        rowStyle: 'border-top: 1px solid #EEF2FA; background: ' + (on ? '#F2F6FF' : '#FFFFFF') + ';',
+        pick: function () { self.setState({ pick: b.id, fresh: '' }); }
+      };
+    });
+
+    var points = s.points.map(function (p, i) {
+      return {
+        event: p.event, plain: p.plain, template: p.template, printer: p.printer,
+        copies: p.on ? p.copies : '0 · off', on: p.on, aria: 'Print on ' + p.event,
+        flip: function () {
+          var next = s.points.map(function (x, j) { return j === i ? Object.assign({}, x, { on: !x.on }) : x; });
+          self.setState({ points: next });
+          flash(p.on ? p.template + ' switched off' : 'Ding! ' + p.template + ' will print again');
+        },
+        track: 'position: relative; width: 52px; height: 30px; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: ' + (p.on ? '#2F6FE4' : '#B9C4DC') + ';',
+        knob: 'position: absolute; top: 4px; left: ' + (p.on ? '26px' : '4px') + '; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);'
+      };
+    });
+
+    var qDefs = [['all', 'All'], ['retry', 'Retrying'], ['done', 'Delivered']];
+    var qtabs = qDefs.map(function (t) {
+      var on = s.qtab === t[0];
+      return {
+        label: t[1], on: on, pick: function () { self.setState({ qtab: t[0] }); },
+        style: 'height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid ' + (on ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#18233D') + ';'
+      };
+    });
+    var queue = s.queue.filter(function (q) { return s.qtab === 'all' || q.status === s.qtab; }).map(function (q) {
+      var st = SS[q.status];
+      return {
+        id: q.id, type: q.type, sub: q.sub, attempts: q.attempts, next: q.next, ref: q.ref,
+        status: st[0], chip: chipCss(st[1], st[2]), canRetry: q.status === 'retry', aria: 'Retry ' + q.id + ' now',
+        retry: function () {
+          var nq = s.queue.map(function (x) { return x.id === q.id ? Object.assign({}, x, { attempts: x.attempts + 1, next: '—', status: 'done', ref: x.ref.split(' · ')[0] + ' · now · 180 ms' }) : x; });
+          var left = nq.filter(function (x) { return x.sub === q.sub && x.status === 'retry'; }).length;
+          var nsubs = s.subs.map(function (b) { return b.name === q.sub && left === 0 && b.status === 'retry' ? Object.assign({}, b, { status: 'ok', last: 'now' }) : b; });
+          self.setState({ queue: nq, subs: nsubs });
+          flash('Ding! ' + q.type + ' delivered to ' + q.sub);
+        }
+      };
+    });
+
+    var cur = s.subs.filter(function (b) { return b.id === s.pick; })[0] || s.subs[0];
+    var cst = cur.status === 'off' ? SS.off : ['Active', '#E3F5EA', '#145A31'];
+    var k = {
+      name: cur.name, state: cst[0], chip: chipCss(cst[1], cst[2]),
+      meta: 'Created ' + cur.created + ' · last used ' + cur.used + ' · key shown once',
+      fresh: !!s.fresh, plain: s.fresh,
+      scopes: cur.scopes, wh: cur.wh, owner: cur.owner, ip: cur.ip, url: cur.url,
+      dupes: cur.dupes, lastDupe: cur.lastDupe
+    };
+
+    return {
+      subs: subs, points: points, qtabs: qtabs, queue: queue, qEmpty: queue.length === 0, k: k,
+      setUrl: function (e) { self.setState({ subs: setSub(cur.id, { url: e.target.value }) }); },
+      rotate: function () {
+        self.setState({ fresh: newKey(), subs: setSub(cur.id, { created: 'today', status: cur.status === 'off' ? 'ok' : cur.status }) });
+        flash('Ding! New key for ' + cur.name + '. The old one stops working');
+      },
+      revoke: function () {
+        self.setState({ fresh: '', subs: setSub(cur.id, { status: 'off' }) });
+        flash(cur.name + ' key revoked');
+      },
+      createKey: function () {
+        var n = s.n + 1, id = 'new' + n;
+        var b = { id: id, name: 'New partner ' + n, events: 'none yet', last: '—', status: 'ok', created: 'today', used: 'never', scopes: 'stock:read', wh: 'BAL-WH01', owner: 'DEFAULT', ip: 'Any (add one)', url: '', dupes: 0, lastDupe: '—' };
+        self.setState({ n: n, subs: s.subs.concat([b]), pick: id, fresh: newKey() });
+        flash('Ding! API key created. Copy it now');
+      },
+      addSub: function () {
+        var n = s.n + 1, id = 'sub' + n;
+        var b = { id: id, name: 'New subscriber ' + n, events: 'delivery.shipped', last: '—', status: 'ok', created: 'today', used: 'never', scopes: 'deliveries:read', wh: 'BAL-WH01', owner: 'DEFAULT', ip: 'Any (add one)', url: 'https://', dupes: 0, lastDupe: '—' };
+        self.setState({ n: n, subs: s.subs.concat([b]), pick: id, fresh: '' });
+        flash('Ding! Subscriber added. Add its webhook URL');
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

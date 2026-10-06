@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner wrong scan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; padding: 20px 20px 18px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 12px; flex: none;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; box-sizing: border-box; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; text-decoration: none; display: grid; place-items: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 19px; font-weight: 800;">Pick · order 0080012345</div>
+      <div style="font-size: 12px; color: #4A5672;">Single order · Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px;">
+    <section aria-label="Where to go" style="padding: 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.6px; color: #5A6785;">GO TO</div>
+      <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px;">PF-01-02-A</span><span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span></div>
+      <div style="font-size: 13px; color: #4A5672;">Pick face · aisle 1, bay 2, level A · then grab ABC123</div>
+    </section>
+
+    <sc-if value="{{notFixed}}" hint-placeholder-val="{{ true }}">
+      <section role="alert" style="padding: 16px; border-radius: 18px; background: #FDE2E0; color: #A3221A; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span style="font-size: 22px; font-weight: 800;">Oops, that is a shelf</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 600; color: #18233D;">You scanned shelf PF-01-03-B. This step needs the product barcode for ABC123.</div>
+        <div style="padding: 10px 12px; border-radius: 12px; background: #FFFFFF; color: #18233D; display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12px; font-weight: 700; color: #5A6785;">What the scanner read</span>
+          <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; font-weight: 700;">LOC-PF-01-03-B</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <span style="padding: 2px 8px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 11px; font-weight: 800;">Format: plain</span>
+            <span style="padding: 2px 8px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 11px; font-weight: 800;">Type: location</span>
+          </div>
+        </div>
+      </section>
+
+      <button type="button" onClick="{{scan}}" style="min-height: 68px; width: 100%; margin-top: 12px; border: 2px dashed #2F6FE4; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>
+        <span><span style="display: block; font-size: 17px; font-weight: 800;">Scan the product to keep going</span><span style="display: block; font-size: 12px; color: #4A5672;">GS1, QR or the plain SKU all work here. Tap to pretend-scan.</span></span>
+      </button>
+    </sc-if>
+
+    <sc-if value="{{fixed}}" hint-placeholder-val="{{ false }}">
+      <section role="status" style="padding: 16px; border-radius: 18px; background: #E3F5EA; color: #145A31; display: flex; align-items: center; gap: 12px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+        <span><span style="display: block; font-size: 20px; font-weight: 800;">Right product!</span><span style="display: block; font-size: 14px; font-weight: 600;">ABC123 Brake pad set scanned. Back to your pick.</span></span>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{showHelp}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Wrong shelf help" style="padding: 14px 16px; border-radius: 16px; background: #FFF0C2; color: #7A5C00; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 16px; font-weight: 800;">At the wrong shelf?</span>
+        <span style="font-size: 14px; font-weight: 600; color: #18233D;">You are at PF-01-03-B. Your pick is at PF-01-02-A, one bay back. Walk there, then scan the product.</span>
+      </section>
+    </sc-if>
+
+    <div style="display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: #5A6785;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      <span>Codes the scanner does not know are saved with their raw text, so a new pattern can be added on the desktop.</span>
+    </div>
+  </div>
+
+  <sc-if value="{{notFixed}}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; gap: 10px; flex: none;">
+      <button type="button" onClick="{{toggleHelp}}" aria-pressed="{{helpPressed}}" style="flex: 1; height: 58px; border: 2px solid #CFDAF2; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer;">Wrong shelf?</button>
+      <button type="button" onClick="{{scan}}" style="flex: 1.6; height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M9 9v6M12 9v6M15 9v6"/></svg>Scan again
+      </button>
+    </div>
+  </sc-if>
+  <sc-if value="{{fixed}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 8px; flex: none;">
+      <a href="ScannerPick.dc.html" style="height: 58px; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>Back to picking
+      </a>
+      <a href="ScannerHome.dc.html" style="text-align: center; font-size: 14px; font-weight: 700; padding: 6px;">Back to menu</a>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; top: 76px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 15px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { fixed: false, help: false, toast: '' };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    return {
+      fixed: s.fixed, notFixed: !s.fixed,
+      showHelp: s.help && !s.fixed, helpPressed: s.help ? 'true' : 'false',
+      toggleHelp: function () { self.setState({ help: !s.help }); },
+      scan: function () {
+        self.setState({ fixed: true, help: false, toast: 'Ding! Right product' });
+        if (self._t) clearTimeout(self._t);
+        self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

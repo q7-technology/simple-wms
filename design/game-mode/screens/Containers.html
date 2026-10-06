@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS containers panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Containers" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Containers</h1>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #FFF0C2; color: #7A5C00;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Switched on later
+          </span>
+        </div>
+        <div style="font-size: 13px; color: #5A6785;">Pallets and cartons. Scan one label and everything on it moves too.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #4A5672;">
+        Warehouse
+        <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+          <option>BAL-WH01 · Ballarat</option>
+          <option>MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+    </header>
+
+    <div style="margin: 0 28px 14px; padding: 14px 16px; border-radius: 18px; border: 2px dashed #E2C35A; background: #FFFBEA; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+      <span style="width: 44px; height: 44px; flex: none; border-radius: 12px; background: #FFF0C2; color: #7A5C00; display: grid; place-items: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+      </span>
+      <div style="flex: 1; min-width: 220px;">
+        <div style="font-weight: 800; font-size: 15px;">Locked level: switched on later</div>
+        <div style="font-size: 13px; color: #4A5672;">The hooks are already in the data (a container on every stock line, cartons inside pallets, SSCC numbers from our company prefix). The screens stay off until you switch them on.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #E3F5EA; color: #145A31;">Feature flag: on (preview)</span>
+        <button type="button" role="switch" aria-checked="true" aria-label="Feature flag: containers" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+      </div>
+    </div>
+
+    
+
+    
+      <div style="flex: 1; overflow: auto; padding: 4px 28px 40px; display: flex; flex-direction: column; gap: 18px;">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <div role="group" aria-label="Container type" style="display: flex; flex-wrap: wrap; gap: 6px; flex: 1;">
+            
+              <button type="button" aria-pressed="true" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #2F6FE4; background: #2F6FE4; color: #FFFFFF;">All<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.22); color: #FFFFFF;">6</span></button>
+            
+              <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Pallets<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">4</span></button>
+            
+              <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Cartons<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+            
+              <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Totes<span style="min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #EEF3FF; color: #2148A8;">1</span></button>
+            
+          </div>
+          <button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6Z"></path></svg>Print SSCC labels
+          </button>
+          <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Build pallet
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+          <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">OPEN PALLETS</div>
+            <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">14</div>
+            <div style="font-size: 13px; color: #4A5672;">in BULK and staging</div>
+          </div>
+          <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">CARTONS ON PALLETS</div>
+            <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">162</div>
+            <div style="font-size: 13px; color: #4A5672;">boxes inside boxes</div>
+          </div>
+          <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">SSCC ISSUED</div>
+            <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">1,208</div>
+            <div style="font-size: 13px; color: #4A5672;">prefix 0614141 · 9 serial digits</div>
+          </div>
+          <div style="padding: 16px; border-radius: 16px; border: 1px solid #F2D27A; background: #FFFBEA;">
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #7A5C00;">EMPTY CONTAINERS</div>
+            <div style="font-size: 32px; font-weight: 800; margin-top: 4px; color: #7A5C00;">3</div>
+            <div style="font-size: 13px; color: #4A5672;">unlabelled, no stock</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px;">
+          <div style="flex: 999 1 460px; min-width: 0; overflow-x: auto;">
+            <table style="width: 100%; min-width: 780px; border-collapse: collapse; font-size: 14px;">
+              <thead>
+                <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                  <th style="padding: 10px 8px; font-weight: 800;">CONTAINER</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">TYPE</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">LOCATION</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">CONTENTS</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">QTY</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">NESTED</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">STATUS</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">LAST MOVE</th>
+                </tr>
+              </thead>
+              <tbody>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #F2F6FF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="true" aria-label="Show details for SSCC …00000124" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">SSCC …00000124</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Pallet</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">BK-04-01-C<div style="font-size: 12px; font-weight: 600; color: #5A6785;">Stored</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">FG-900 · batch B2609A</td>
+                    <td style="padding: 4px 8px;">120 EA</td>
+                    <td style="padding: 4px 8px;">10 cartons</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #D3EFE8; color: #0F5F59;">Stored</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Sam · production receipt 08:45</td>
+                  </tr>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="false" aria-label="Show details for SSCC …00000131" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">SSCC …00000131</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Pallet</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">STAGE-01<div style="font-size: 12px; font-weight: 600; color: #5A6785;">Leaving</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">Order 0080012351 · 9 lines</td>
+                    <td style="padding: 4px 8px;">120 EA</td>
+                    <td style="padding: 4px 8px;">8 cartons</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FDE6D2; color: #8E4A0E;">Staged to leave</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Waiting for the Geelong truck</td>
+                  </tr>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="false" aria-label="Show details for SSCC …00000094" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">SSCC …00000094</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Pallet</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">In transit<div style="font-size: 12px; font-weight: 600; color: #5A6785;">BAL-WH01 → MEL-WH01</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">Transfer STO-4500011 · 4 lines</td>
+                    <td style="padding: 4px 8px;">640 EA</td>
+                    <td style="padding: 4px 8px;">32 cartons</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E6EDFB; color: #2148A8;">In transit</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Shipped Fri 4:10 pm</td>
+                  </tr>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="false" aria-label="Show details for CTN-000418" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">CTN-000418</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Carton</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">PACK-02<div style="font-size: 12px; font-weight: 600; color: #5A6785;">Leaving</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">Order 0080012345 · carton 2</td>
+                    <td style="padding: 4px 8px;">6 items</td>
+                    <td style="padding: 4px 8px;">—</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #D8E5FF; color: #1F4FB0;">Open</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Sam · packing</td>
+                  </tr>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="false" aria-label="Show details for TOTE-07" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">TOTE-07</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Tote</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">PF-01<div style="font-size: 12px; font-weight: 600; color: #5A6785;">Stored</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">Batch B-14 · order 0080012346</td>
+                    <td style="padding: 4px 8px;">31 items</td>
+                    <td style="padding: 4px 8px;">—</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FDE6D2; color: #8E4A0E;">Picking</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Priya</td>
+                  </tr>
+                
+                  <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                    <td style="padding: 4px 8px;">
+                      <button type="button" aria-pressed="false" aria-label="Show details for SSCC …00000049" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-weight: 800; color: #2148A8; text-align: left; cursor: pointer;">SSCC …00000049</button>
+                    </td>
+                    <td style="padding: 4px 8px;">Pallet</td>
+                    <td style="padding: 4px 8px; font-weight: 700;">BK-05-01-A<div style="font-size: 12px; font-weight: 600; color: #5A6785;">Stored</div></td>
+                    <td style="padding: 4px 8px; color: #4A5672;">Empty</td>
+                    <td style="padding: 4px 8px;">0</td>
+                    <td style="padding: 4px 8px;">—</td>
+                    <td style="padding: 4px 8px;"><span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FFF0C2; color: #7A5C00;">Empty</span></td>
+                    <td style="padding: 4px 8px; font-size: 13px; color: #4A5672;">Release the label or reuse</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+
+          <aside aria-label="Container detail" style="flex: 1 1 280px; max-width: 340px; min-width: 0; padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; background: #FBFCFF; display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #2148A8;">PALLET</div>
+              <div style="font-size: 24px; font-weight: 800;">…00000124</div>
+              <div style="font-size: 13px; color: #5A6785; word-break: break-all;">SSCC 306141410000000128 · GS1-128 label</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 14px;">
+              <div><div style="font-size: 12px; color: #5A6785;">Location</div><div style="font-weight: 700;">BK-04-01-C</div></div>
+              <div><div style="font-size: 12px; color: #5A6785;">Owner</div><div style="font-weight: 700;">DEFAULT</div></div>
+              <div><div style="font-size: 12px; color: #5A6785;">Built</div><div style="font-weight: 700;">Sat 08:45 · Sam</div></div>
+              <div><div style="font-size: 12px; color: #5A6785;">Weight</div><div style="font-weight: 700;">210 kg</div></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-size: 13px; font-weight: 800;">Inside <span style="font-weight: 600; color: #5A6785;">· scan one label, move it all</span></div>
+              <div style="border-radius: 12px; border: 1px solid #E6EDFB; background: #FFFFFF;">
+                
+                  <div style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; font-size: 13px; border-top: 1px solid #F0F3FA;">
+                    <span style="font-weight: 700;">CTN-000401 · FG-900 ×12</span><span style="color: #4A5672;">B2609A</span>
+                  </div>
+                
+                  <div style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; font-size: 13px; border-top: 1px solid #F0F3FA;">
+                    <span style="font-weight: 700;">CTN-000402 · FG-900 ×12</span><span style="color: #4A5672;">B2609A</span>
+                  </div>
+                
+                  <div style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; font-size: 13px; border-top: 1px solid #F0F3FA;">
+                    <span style="font-weight: 700;">CTN-000403 · FG-900 ×12</span><span style="color: #4A5672;">B2609A</span>
+                  </div>
+                
+                  <div style="display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; font-size: 13px; border-top: 1px solid #F0F3FA;">
+                    <span style="font-weight: 700;">…7 more cartons</span><span style="color: #4A5672;"></span>
+                  </div>
+                
+                
+              </div>
+            </div>
+            <div style="padding: 12px; border-radius: 12px; background: #EEF3FF; font-size: 13px; color: #2148A8;">
+              <div style="font-weight: 800; margin-bottom: 2px;">Manifest for the ERP</div>
+              Sent as delivery.shipped packages[] with sscc, or transfer.shipped. Each carton keeps its own line so a partial unpack is one ledger line.
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+              <button type="button" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Reprint SSCC</button>
+              <button type="button" style="flex: 1; height: 44px; border-radius: 12px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; border: 1px solid #E8A9A3; background: #FFFFFF; color: #A3221A;">Break down pallet</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    
+
+    
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner short pick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Short pick</div>
+      <div style="font-size: 12px; color: #4A5672;">Order 0080012345 · line 30 · GHI789</div>
+      <div style="font-size: 12px; color: #5A6785;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <sc-if value="{{approved}}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; justify-content: center; align-items: center; text-align: center;">
+      <span style="width: 88px; height: 88px; border-radius: 50%; background: #E3F5EA; color: #145A31; display: grid; place-items: center;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      </span>
+      <div style="font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">Short pick approved</div>
+      <div style="font-size: 15px; color: #4A5672; max-width: 300px;">Approved by Kim R. · reason: {{reasonName}}</div>
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left;">
+        <sc-if value="{{countMade}}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 10px 12px; border-radius: 12px; background: #FFF0C2; color: #7A5C00; font-size: 14px; font-weight: 700;">Count job made for PF-01-02-A, so someone checks the shelf.</div>
+        </sc-if>
+        <div style="padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 14px; color: #4A5672;">The order goes out with 2, not 6. The office system is told the real number (delivery.shipped, qty_shipped 2).</div>
+      </div>
+    </div>
+    <a href="ScannerPick.dc.html" style="height: 60px; flex: none; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      Back to picking
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </sc-if>
+
+  <sc-if value="{{working}}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <section style="padding: 14px 16px; border-radius: 18px; background: #FFF0C2; color: #7A5C00; display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div>
+          <div style="font-size: 28px; font-weight: 800; line-height: 1.1; color: #18233D;">Picked 2 of 6</div>
+          <div style="font-size: 14px; font-weight: 700; margin-top: 4px;">4 each missing from PF-01-02-A</div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px;">
+            <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+            <span>The system thinks 12 are there</span>
+          </div>
+        </div>
+      </section>
+
+      <div role="radiogroup" aria-labelledby="why" style="display: flex; flex-direction: column; gap: 8px;">
+        <span id="why" style="font-size: 16px; font-weight: 800;">Why is it short?</span>
+        <sc-for list="{{reasons}}" as="r" hint-placeholder-count="4">
+          <button type="button" role="radio" aria-checked="{{r.checked}}" onClick="{{r.pick}}" style="{{r.style}}">
+            <span style="{{r.dot}}"></span>{{r.label}}
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 13px; color: #4A5672; line-height: 1.45;">
+        <sc-if value="{{isNotFound}}" hint-placeholder-val="{{ true }}">
+          <strong style="color: #18233D;">Not found makes a count job for PF-01-02-A.</strong>
+        </sc-if>
+        The order ships short with 2, and the office system hears the real number: delivery.shipped with qty_shipped 2.
+      </div>
+
+      <button type="button" onClick="{{badge}}" style="{{badgeStyle}}">
+        <sc-if value="{{hasBadge}}" hint-placeholder-val="{{ false }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </sc-if>
+        <sc-if value="{{noBadge}}" hint-placeholder-val="{{ true }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </sc-if>
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">{{badgeTitle}}</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">{{badgeHint}}</span>
+        </span>
+      </button>
+
+      <sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="padding: 10px 12px; border-radius: 12px; background: #FDE2E0; color: #A3221A; font-size: 14px; font-weight: 700;">{{msg}}</div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <a href="ScannerPick.dc.html" style="flex: 1; height: 58px; border-radius: 16px; background: #FFFFFF; border: 2px solid #CFDAF2; box-sizing: border-box; color: #18233D; font-weight: 800; font-size: 16px; text-decoration: none; display: grid; place-items: center; text-align: center;">Recount shelf</a>
+      <button type="button" onClick="{{approve}}" style="{{approveStyle}}">Approve short</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { reason: 'notfound', badge: false, approved: false, msg: '' };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var list = [
+      { id: 'notfound', label: 'Not found on the shelf' },
+      { id: 'damaged', label: 'Damaged' },
+      { id: 'wrong', label: 'Wrong product on the shelf' },
+      { id: 'label', label: 'Shelf label can’t be read' }
+    ];
+    var reasonName = '';
+    var reasons = list.map(function (r) {
+      var on = s.reason === r.id;
+      if (on) reasonName = r.label;
+      return {
+        label: r.label, checked: on ? 'true' : 'false',
+        pick: function () { self.setState({ reason: r.id, msg: '' }); },
+        style: 'min-height: 54px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: ' + (on ? '800' : '600') + '; color: #18233D; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px; ' +
+          (on ? 'background: #EEF3FF; border: 2px solid #2F6FE4;' : 'background: #FFFFFF; border: 2px solid #DDE5F5;'),
+        dot: 'width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid ' + (on ? '#2F6FE4' : '#CFDAF2') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; box-shadow: inset 0 0 0 3px #FFFFFF;'
+      };
+    });
+    var ready = !!s.reason && s.badge;
+    return {
+      approved: s.approved, working: !s.approved,
+      reasons: reasons, reasonName: reasonName,
+      isNotFound: s.reason === 'notfound', countMade: s.reason === 'notfound',
+      hasBadge: s.badge, noBadge: !s.badge,
+      badgeTitle: s.badge ? 'Kim R. scanned in' : 'Supervisor: scan your badge',
+      badgeHint: s.badge ? 'Supervisor check done' : 'Any supervisor can okay this. Tap to pretend-scan.',
+      badgeStyle: 'min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; ' +
+        (s.badge ? 'border: 2px solid #22A35A; background: #E3F5EA;' : 'border: 2px dashed #2F6FE4; background: #FFFFFF;'),
+      badge: function () { self.setState({ badge: true, msg: '' }); },
+      hasMsg: !!s.msg, msg: s.msg,
+      approveStyle: 'flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: ' + (ready ? '#2F6FE4' : '#8FA9DE') + ';',
+      approve: function () {
+        if (!s.reason) { self.setState({ msg: 'Pick a reason first.' }); return; }
+        if (!s.badge) { self.setState({ msg: 'A supervisor needs to scan their badge first.' }); return; }
+        self.setState({ approved: true, msg: '' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

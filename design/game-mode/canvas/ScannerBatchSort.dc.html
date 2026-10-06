@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner batch sort</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Sort batch B-15</div>
+      <div style="font-size: 12px; color: #4A5672; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <span>At PACK-02</span>
+        <span style="padding: 1px 7px; border-radius: 999px; background: #FDE6D2; color: #8E4A0E; font-size: 11px; font-weight: 800;">Leaving</span>
+        <span>· 3 orders</span>
+      </div>
+      <div style="font-size: 12px; color: #5A6785;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">{{itemLabel}}</span>
+    <div role="progressbar" aria-label="Items sorted" aria-valuemin="0" aria-valuemax="85" aria-valuenow="{{sorted}}" style="flex: 1; height: 12px; border-radius: 999px; background: #DDE5F5; overflow: hidden;">
+      <div style="{{barStyle}}"></div>
+    </div>
+    <sc-if value="{{hasStreak}}" hint-placeholder-val="{{ false }}">
+      <span style="padding: 4px 9px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800; white-space: nowrap;">{{streakLabel}}</span>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; justify-content: center; align-items: center; text-align: center;">
+      <span style="width: 88px; height: 88px; border-radius: 50%; background: #E3F5EA; color: #145A31; display: grid; place-items: center;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      </span>
+      <div style="font-size: 30px; font-weight: 800; letter-spacing: -0.4px;">All 85 items sorted</div>
+      <div style="font-size: 15px; color: #4A5672; max-width: 300px;">3 totes, one per order, are ready at PACK-02.</div>
+    </div>
+    <a href="ScannerPack.dc.html" style="height: 60px; flex: none; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      Go to packing
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </sc-if>
+
+  <sc-if value="{{working}}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <button type="button" onClick="{{scan}}" style="{{scanStyle}}">
+        <sc-if value="{{scanned}}" hint-placeholder-val="{{ true }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </sc-if>
+        <sc-if value="{{notScanned}}" hint-placeholder-val="{{ false }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>
+        </sc-if>
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">{{scanTitle}}</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">{{scanHint}}</span>
+        </span>
+      </button>
+
+      <sc-if value="{{scanned}}" hint-placeholder-val="{{ true }}">
+        <section aria-label="Product" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800;">{{item.sku}}</div>
+            <div style="font-size: 14px; color: #4A5672;">{{item.name}}</div>
+            <div style="font-size: 13px; color: #4A5672; margin-top: 4px;"><strong style="font-size: 22px; color: #18233D;">1</strong> each · {{item.inBatch}} in this batch</div>
+          </div>
+          <span style="padding: 4px 9px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800;">Scanned</span>
+        </section>
+
+        <section aria-label="Put it in" style="padding: 14px 16px; border-radius: 18px; background: #2F6FE4; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.6px; color: #D8E5FF;">PUT IT IN</span>
+          <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">{{tote.name}}</span>
+          <span style="font-size: 13px; color: #EEF3FF;">Order {{tote.order}} · {{tote.customer}}</span>
+          <span style="font-size: 13px; color: #EEF3FF;">{{tote.soFar}}</span>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="padding: 10px 12px; border-radius: 12px; background: #FDE2E0; color: #A3221A; font-size: 14px; font-weight: 700;">{{msg}}</div>
+      </sc-if>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <sc-for list="{{totes}}" as="t" hint-placeholder-count="3">
+          <div style="{{t.style}}">
+            <span style="font-size: 13px; font-weight: 800;">{{t.name}}</span>
+            <span style="font-size: 12px; color: #4A5672;">{{t.order}}</span>
+            <span style="{{t.barTrack}}"><span style="{{t.bar}}"></span></span>
+            <span style="{{t.countStyle}}">{{t.count}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <button type="button" onClick="{{skip}}" style="align-self: flex-start; padding: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700; color: #2557C9; text-decoration: underline; cursor: pointer;">Demo: jump to the last item</button>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <button type="button" onClick="{{wrong}}" style="flex: 1; height: 58px; border: 0; border-radius: 16px; background: #FDE2E0; color: #A3221A; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Wrong item</button>
+      <button type="button" onClick="{{confirm}}" style="{{confirmStyle}}">Confirm</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 15px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { item: 22, scanned: true, k: 0, counts: [14, 12, 0], msg: '', toast: '', streak: 0, done: false };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var meta = [
+      { name: 'Tote 1', order: '0080012347', customer: 'Riverside Motors', cap: 14 },
+      { name: 'Tote 2', order: '0080012349', customer: 'Hilltop Auto Spares', cap: 31 },
+      { name: 'Tote 3', order: '0080012350', customer: 'Lakeview Garage', cap: 40 }
+    ];
+    var items = [
+      { sku: 'JKL012', name: 'Oil filter', inBatch: 24, tote: 1 },
+      { sku: 'PQR678', name: 'Spark plug', inBatch: 32, tote: 2 },
+      { sku: 'STU901', name: 'Air filter', inBatch: 18, tote: 1 },
+      { sku: 'GHI789', name: 'Wiper blade 22 in', inBatch: 11, tote: 2 }
+    ];
+    var item = items[s.k % items.length];
+    var t = meta[item.tote];
+    var sorted = s.item - 1;
+    var totes = meta.map(function (m, i) {
+      var c = s.counts[i], full = c >= m.cap, active = s.scanned && i === item.tote;
+      return {
+        name: m.name, order: m.order,
+        count: c + ' / ' + m.cap + (full ? ' · full' : ''),
+        countStyle: 'font-size: 12px; font-weight: 800; color: ' + (full ? '#145A31' : '#4A5672') + ';',
+        barTrack: 'display: block; height: 6px; border-radius: 999px; background: #DDE5F5; overflow: hidden;',
+        bar: 'display: block; height: 100%; border-radius: 999px; background: ' + (full ? '#22A35A' : '#2F6FE4') + '; width: ' + Math.min(100, Math.round(c / m.cap * 100)) + '%;',
+        style: 'padding: 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; ' +
+          (active ? 'background: #EEF3FF; border: 2px solid #2F6FE4;' : full ? 'background: #E3F5EA; border: 2px solid #E3F5EA;' : 'background: #FFFFFF; border: 2px solid #DDE5F5;')
+      };
+    });
+    var finish = function (counts, next) {
+      self.setState({ counts: counts, item: next, scanned: false, k: s.k + 1, msg: '', toast: 'Ding! In ' + t.name, streak: s.streak + 1, done: next > 85 });
+    };
+    return {
+      itemLabel: 'Item ' + Math.min(s.item, 85) + ' of 85',
+      sorted: sorted,
+      barStyle: 'height: 100%; border-radius: 999px; background: #22A35A; width: ' + Math.round(sorted / 85 * 100) + '%;',
+      hasStreak: s.streak > 0, streakLabel: '+' + s.streak + ' sorted',
+      allDone: s.done, working: !s.done,
+      scanned: s.scanned, notScanned: !s.scanned,
+      scanTitle: s.scanned ? 'Item scanned' : 'Scan the next item from the tote',
+      scanHint: s.scanned ? 'Put it where it says below, then tap Confirm.' : 'Tap to pretend-scan.',
+      scanStyle: 'min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; ' +
+        (s.scanned ? 'border: 2px solid #22A35A; background: #E3F5EA;' : 'border: 2px dashed #2F6FE4; background: #FFFFFF;'),
+      scan: function () { if (!s.scanned) self.setState({ scanned: true, toast: '', msg: '' }); },
+      item: item,
+      tote: { name: t.name.toUpperCase(), order: t.order, customer: t.customer, soFar: s.counts[item.tote] + ' of ' + t.cap + ' items in this tote so far' },
+      totes: totes,
+      hasMsg: !!s.msg, msg: s.msg,
+      wrong: function () {
+        if (!s.scanned) { self.setState({ msg: 'Scan an item first.' }); return; }
+        self.setState({ scanned: false, k: s.k + 1, toast: '', msg: 'Wrong item noted. Keep it out of the totes and scan the next one.' });
+      },
+      confirmStyle: 'flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: ' + (s.scanned ? '#2F6FE4' : '#8FA9DE') + ';',
+      confirm: function () {
+        if (!s.scanned) { self.setState({ msg: 'Scan the next item first.' }); return; }
+        var counts = s.counts.slice();
+        counts[item.tote] = Math.min(meta[item.tote].cap, counts[item.tote] + 1);
+        finish(counts, s.item + 1);
+      },
+      skip: function () { self.setState({ item: 85, scanned: true, counts: [14, 31, 39], k: 3, msg: '', toast: '' }); },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

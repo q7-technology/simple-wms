@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS settings panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Settings" style="position: absolute; top: 0; right: 0; bottom: 0; width: 52%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Settings</h1>
+        <div style="font-size: 13px; color: #5A6785;">Make the game feel just right for your office.</div>
+      </div>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 18px;">
+
+      <section aria-labelledby="feel-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="feel-h" style="margin: 0 0 8px; font-size: 17px; font-weight: 800;">Game feel</h2>
+        <sc-for list="{{switches}}" as="w" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid #F0F3FA;">
+            <span style="{{w.iconStyle}}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{w.icon}}"/></svg>
+            </span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 800; font-size: 15px;">{{w.label}}</span>
+              <span style="display: block; font-size: 13px; color: #5A6785;">{{w.hint}}</span>
+            </span>
+            <button type="button" role="switch" aria-checked="{{w.on}}" aria-label="{{w.label}}" onClick="{{w.flip}}" style="{{w.trackStyle}}"><span style="{{w.knobStyle}}"></span></button>
+          </div>
+        </sc-for>
+        <sc-if value="{{soundOn}}" hint-placeholder-val="{{ true }}">
+          <label style="display: flex; align-items: center; gap: 12px; padding: 10px 0 0 54px; font-size: 13px; font-weight: 700; color: #4A5672;">
+            Volume
+            <input type="range" min="0" max="100" value="{{volume}}" onInput="{{setVolume}}" style="flex: 1; accent-color: #2F6FE4; height: 28px;">
+            <span style="width: 40px; text-align: right; color: #18233D;">{{volume}}%</span>
+          </label>
+        </sc-if>
+      </section>
+
+      <section aria-labelledby="goal-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+        <h2 id="goal-h" style="margin: 0; font-size: 17px; font-weight: 800;">Daily goal</h2>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; background: #EEF3FF;">
+          <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; display: grid; place-items: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="5"/></svg>
+          </span>
+          <span style="flex: 1; font-size: 14px;">The app suggests <b>45 orders</b> today. That's a little above your usual 40, to keep it fun.</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+          <span style="flex: 1; min-width: 160px; font-weight: 800; font-size: 15px;">Today's goal</span>
+          <button type="button" onClick="{{goalDown}}" aria-label="Lower today's goal" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <span style="min-width: 110px; height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; display: grid; place-items: center; font-size: 16px; font-weight: 800;">{{goal}} orders</span>
+          <button type="button" onClick="{{goalUp}}" aria-label="Raise today's goal" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <sc-if value="{{changed}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: #4A5672;">
+            <span>You changed it from the suggestion.</span>
+            <button type="button" onClick="{{resetGoal}}" style="height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: #F3F6FD; color: #2148A8; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;">Use suggestion</button>
+          </div>
+        </sc-if>
+      </section>
+
+      <section aria-labelledby="wh-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+        <h2 id="wh-h" style="margin: 0; font-size: 17px; font-weight: 800;">Your warehouse</h2>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Name on the building sign
+          <input type="text" value="SIMPLE WMS" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700; color: #18233D;">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Town for the weather
+          <input type="text" value="Ballarat, VIC" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; color: #18233D;">
+          <span style="font-weight: 500; color: #5A6785;">Rain on the map when it's raining there. Nobody's real location is used.</span>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Label size
+          <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; color: #18233D; background: #FFFFFF;">
+            <option>100 × 150 mm (pallet)</option>
+            <option>62 × 29 mm (small item)</option>
+          </select>
+        </label>
+      </section>
+
+      <button type="button" onClick="{{save}}" style="height: 50px; border: 0; border-radius: 14px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Save settings</button>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sound: true, weather: true, sky: true, motion: true, volume: 60, goal: 45, toast: '' };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var defs = [
+      ['sound', 'Sounds', 'Beeps when trucks arrive, a ding when orders ship', 'M11 5 6 9H3v6h3l5 4ZM15.5 8.5a5 5 0 0 1 0 7', ['#EEF3FF', '#2148A8']],
+      ['weather', 'Weather', 'Rain and clouds on the map, matching outside', 'M7 16a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 18 9.5a3.5 3.5 0 0 1-.5 6.5Z', ['#E6F4FB', '#14607E']],
+      ['sky', 'Day and night', 'The sky gets darker as the day ends', 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z', ['#EDE6FB', '#4B2E99']],
+      ['motion', 'Moving trucks and forklifts', 'Turn off if the computer feels slow', 'M3 7h11v9H3ZM14 10h4l3 3v3h-7ZM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01', ['#FFF0C2', '#7A5C00']]
+    ];
+    var switches = defs.map(function (d) {
+      var on = s[d[0]];
+      return {
+        label: d[1], hint: d[2], icon: d[3], on: on,
+        iconStyle: 'width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: ' + d[4][0] + '; color: ' + d[4][1] + ';',
+        flip: function () { var n = {}; n[d[0]] = !on; self.setState(n); },
+        trackStyle: 'position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: ' + (on ? '#2F6FE4' : '#B9C4DC') + ';',
+        knobStyle: 'position: absolute; top: 4px; left: ' + (on ? '28px' : '4px') + '; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);'
+      };
+    });
+    return {
+      switches: switches, soundOn: s.sound, volume: s.volume,
+      setVolume: function (e) { self.setState({ volume: Number(e.target.value) }); },
+      goal: s.goal, changed: s.goal !== 45,
+      goalUp: function () { self.setState({ goal: s.goal + 5 }); },
+      goalDown: function () { self.setState({ goal: Math.max(5, s.goal - 5) }); },
+      resetGoal: function () { self.setState({ goal: 45 }); },
+      save: function () {
+        self.setState({ toast: s.sound ? 'Ding! Settings saved' : 'Settings saved' });
+        clearTimeout(self._t);
+        self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

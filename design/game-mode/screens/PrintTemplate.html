@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS print template panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Print point" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <a href="Integrations.html" style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: 12px; background: #EEF3FF; color: #2148A8; font-size: 13px; font-weight: 700; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>Integrations
+      </a>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">PRINT POINT</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">carton-label v3 · delivery.packed</h1>
+        <div style="font-size: 13px; color: #5A6785;">Pick when it prints, what label, and which printer. Platen draws it.</div>
+      </div>
+      <button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #E9C46A; border-radius: 12px; background: #FFF0C2; color: #7A5C00; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Send a test</button>
+      <button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Save</button>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: start;">
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <section aria-labelledby="when-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="when-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">1</span>When</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Event
+              <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                
+                  <option value="delivery.packed" selected>delivery.packed · order packed</option>
+                
+                  <option value="receipt.confirmed">receipt.confirmed · truck unloaded (Arriving)</option>
+                
+                  <option value="production.received">production.received · pallet off the line</option>
+                
+                  <option value="delivery.allocated">delivery.allocated · order given stock</option>
+                
+                  <option value="transfer.shipped">transfer.shipped · transfer Leaving</option>
+                
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Warehouse
+              <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                <option>BAL-WH01</option>
+                <option>MEL-WH01</option>
+                <option>All</option>
+              </select>
+            </label>
+            <div style="display: flex; align-items: center; gap: 12px; padding-top: 6px; border-top: 1px solid #F0F3FA;">
+              <span style="flex: 1;">
+                <span style="display: block; font-weight: 800; font-size: 15px;">Enabled</span>
+                <span style="display: block; font-size: 13px; color: #5A6785;">Fires on every event</span>
+              </span>
+              <button type="button" role="switch" aria-checked="true" aria-label="Enabled" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+            </div>
+          </section>
+
+          <section aria-labelledby="what-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="what-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">2</span>What</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Template name (in Platen)
+              <input type="text" value="carton-label" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Version
+              <input type="text" value="v3" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Copies
+              <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                
+                  <option value="carton1" selected>1 per carton</option>
+                
+                  <option value="delivery1">1 per delivery</option>
+                
+                  <option value="carton2">2 per carton</option>
+                
+              </select>
+            </label>
+          </section>
+
+          <section aria-labelledby="where-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="where-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">3</span>Where</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Printer
+              <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                
+                  <option value="packing-bench-2" selected>Packing bench 2</option>
+                
+                  <option value="packing-bench-1">Packing bench 1</option>
+                
+                  <option value="receiving-dock">Receiving dock</option>
+                
+                  <option value="line-3">Line 3 label printer</option>
+                
+                  <option value="office">Office</option>
+                
+              </select>
+              <span style="font-weight: 500; color: #5A6785;">Printer names come from Platen.</span>
+            </label>
+          </section>
+        </div>
+
+        <section aria-labelledby="data-h" style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+          <h2 id="data-h" style="margin: 0; font-size: 17px; font-weight: 800;">Data sent to Platen</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: #5A6785;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #E6EDFB; color: #2148A8;">Fixed shape</span>
+            Same fields every time, so the label never breaks.
+          </div>
+          <pre style="margin: 0; padding: 18px; border-radius: 18px; background: #18233D; color: #E6EDFB; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre;">{
+  "job_id": "uuid",
+  "template": "carton-label",
+  "version": "v3",
+  "printer": "packing-bench-2",
+  "copies": 1,
+  "reference": {
+    "type": "delivery",
+    "ref": "0080012345",
+    "package_no": 1
+  },
+  "data": {
+    "ship_to": {
+      "name": "Ridgeline Hardware",
+      "address": "12 Example St",
+      "suburb": "Geelong",
+      "state": "VIC",
+      "postcode": "3220"
+    },
+    "delivery_ref": "0080012345",
+    "package_no": 1,
+    "package_count": 2,
+    "weight_kg": 8.4,
+    "carrier": null,
+    "tracking_no": null,
+    "sscc": null,
+    "lines": [
+      {
+        "sku": "ABC123",
+        "qty": 10,
+        "uom": "EA"
+      }
+    ]
+  }
+}</pre>
+        </section>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <section aria-labelledby="jobs-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 10px;">
+            <h2 id="jobs-h" style="margin: 0; font-size: 17px; font-weight: 800;">Recent jobs</h2>
+            <div role="progressbar" aria-label="Labels printed today" aria-valuemin="0" aria-valuemax="4" aria-valuenow="3">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;"><span>Printed today</span><span style="color: #4A5672;">3 of 4</span></div>
+              <div style="height: 10px; margin-top: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="height: 100%; border-radius: 999px; background: #2BA36B; width: 75%;"></div></div>
+            </div>
+            <div style="border: 1px solid #E6EDFB; border-radius: 12px; font-size: 13px;">
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid #EEF2FA;">
+                  <span style="font-weight: 700;">0080012338 · carton 1</span>
+                  <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E3F5EA; color: #145A31;">Printed 08:40</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid #EEF2FA;">
+                  <span style="font-weight: 700;">0080012340 · carton 1</span>
+                  <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E3F5EA; color: #145A31;">Printed 08:52</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid #EEF2FA;">
+                  <span style="font-weight: 700;">0080012340 · carton 2</span>
+                  <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #E3F5EA; color: #145A31;">Printed 08:52</span>
+                </div>
+              
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid #EEF2FA;">
+                  <span style="font-weight: 700;">0080012345 · carton 1</span>
+                  <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: #FFF0C2; color: #7A5C00;">Waiting · not packed</span>
+                </div>
+              
+            </div>
+          </section>
+
+          <section aria-labelledby="fields-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 10px;">
+            <h2 id="fields-h" style="margin: 0; font-size: 17px; font-weight: 800;">Fields Platen may use</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">ship_to</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">delivery_ref</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">package_no</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">package_count</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">weight_kg</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">carrier</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">tracking_no</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">sscc</span>
+              
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">lines[]</span>
+              
+            </div>
+            <div style="display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #FFF0C2; color: #4D3A00; font-size: 13px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>
+              <span>Adding a field here is a new version. Old versions keep working.</span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    
+  </section>
+</div>
+</body>
+</html>

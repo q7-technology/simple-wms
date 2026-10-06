@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS all panels</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="All panels" style="position: absolute; top: 0; right: 0; bottom: 0; width: 64%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">All panels</h1>
+        <div style="font-size: 13px; color: #5A6785;">Every part of the warehouse, like the main menu in a game.</div>
+      </div>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 22px;">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <section style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">{{g.title}}</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            <sc-for list="{{g.items}}" as="it" hint-placeholder-count="5">
+              <a href="{{it.href}}" style="{{it.style}}">
+                <span style="{{it.dot}}"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">{{it.name}}</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">{{it.hint}}</span>
+                </span>
+                <sc-if value="{{it.later}}" hint-placeholder-val="{{ false }}">
+                  <span style="padding: 3px 8px; border-radius: 999px; background: #FFF0C2; color: #7A5C00; font-size: 11px; font-weight: 800;">LATER</span>
+                </sc-if>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var mk = function (color, list) {
+      return list.map(function (x) {
+        return {
+          name: x[0], href: x[1], hint: x[2], later: !!x[3],
+          style: 'display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);',
+          dot: 'width: 12px; height: 12px; flex: none; border-radius: 4px; background: ' + color + ';'
+        };
+      });
+    };
+    return {
+      groups: [
+        { title: 'GOING OUT', items: mk('#E07A1F', [
+          ['Orders', 'Orders.dc.html', 'Every delivery waiting to go'],
+          ['Delivery detail', 'DeliveryDetail.dc.html', 'One order, line by line'],
+          ['Batch pick builder', 'BatchPick.dc.html', 'One walk for many orders'],
+          ['Task board', 'TaskBoard.dc.html', 'Who is doing what right now']
+        ]) },
+        { title: 'COMING IN', items: mk('#2F6FE4', [
+          ['Receiving', 'Receiving.dc.html', 'Trucks and pallets arriving'],
+          ['Production', 'Production.dc.html', 'Parts to the line, pallets back'],
+          ['Transfers', 'Transfers.dc.html', 'Stock moving between sites']
+        ]) },
+        { title: 'IN THE WAREHOUSE', items: mk('#1F8A84', [
+          ['Stock lookup', 'Stock.dc.html', 'Where is it, what is here'],
+          ['Products', 'Products.dc.html', 'Your inventory backpack'],
+          ['Top-ups and counts', 'Replenishment.dc.html', 'Refill shelves, count stock'],
+          ['Locations', 'Locations.dc.html', 'Every shelf and its rules'],
+          ['Containers', 'Containers.dc.html', 'Pallets, cartons and totes', true]
+        ]) },
+        { title: 'SCORES AND SETUP', items: mk('#5A6785', [
+          ['Reports', 'Reports.dc.html', 'Your scoreboard'],
+          ['Users and devices', 'Users.dc.html', 'People, scanners, history'],
+          ['Integrations and printing', 'Integrations.dc.html', 'Messages out, labels printed'],
+          ['Import and export', 'ImportExport.dc.html', 'Bring in a CSV file'],
+          ['Owners', 'Owners.dc.html', 'Stock for other businesses', true],
+          ['Settings', 'Settings.dc.html', 'Sounds, weather, goals']
+        ]) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

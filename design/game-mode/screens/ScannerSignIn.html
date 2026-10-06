@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner sign-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 24px 24px 18px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 28 10 16 17 4 10Z" fill="#6E95F0"></path><path d="M4 10 16 17V30L4 23Z" fill="#3E6FE2"></path><path d="M28 10 16 17V30L28 23Z" fill="#2B57C2"></path></svg>
+      <span style="font-size: 17px; font-weight: 800;">Simple WMS</span>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672;">Scanner 3</span>
+  </div>
+
+  <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.4px;">Ready to scan?</h1>
+
+  <button type="button" style="height: 64px; flex: none; border: 2px dashed #2F6FE4; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7.5 18a4.5 4.5 0 0 1 9 0"></path></svg>
+    <span style="text-align: left;"><span style="display: block; font-size: 17px; font-weight: 800;">Scan your badge</span><span style="display: block; font-size: 12px; color: #4A5672;">Quickest way in. Tap to pretend-scan.</span></span>
+  </button>
+
+  <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #5A6785;"><span style="flex: 1; border-top: 1px solid #CFDAF2;"></span>OR TYPE IT IN<span style="flex: 1; border-top: 1px solid #CFDAF2;"></span></div>
+
+  <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 800;">
+    Username
+    <input type="text" autocomplete="username" autocapitalize="none" value="" style="height: 54px; box-sizing: border-box; width: 100%; padding: 0 16px; border-radius: 14px; font: inherit; font-size: 17px; font-weight: 600; color: #18233D; background: #FFFFFF; border: 2px solid #CFDAF2;">
+  </label>
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <span id="pin-label" style="font-size: 14px; font-weight: 800;">PIN</span>
+    <div role="img" aria-labelledby="pin-label" aria-label="0 of 4 numbers entered" style="display: flex; justify-content: center; gap: 18px; padding: 2px 0;">
+      
+        <span style="width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box; border: 2px solid #2F6FE4; background: transparent;"></span>
+      
+        <span style="width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box; border: 2px solid #2F6FE4; background: transparent;"></span>
+      
+        <span style="width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box; border: 2px solid #2F6FE4; background: transparent;"></span>
+      
+        <span style="width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box; border: 2px solid #2F6FE4; background: transparent;"></span>
+      
+    </div>
+  </div>
+
+  
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+    
+      <button type="button" aria-label="1" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        1
+      </button>
+    
+      <button type="button" aria-label="2" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        2
+      </button>
+    
+      <button type="button" aria-label="3" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        3
+      </button>
+    
+      <button type="button" aria-label="4" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        4
+      </button>
+    
+      <button type="button" aria-label="5" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        5
+      </button>
+    
+      <button type="button" aria-label="6" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        6
+      </button>
+    
+      <button type="button" aria-label="7" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        7
+      </button>
+    
+      <button type="button" aria-label="8" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        8
+      </button>
+    
+      <button type="button" aria-label="9" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        9
+      </button>
+    
+      <button type="button" aria-label="Clear PIN" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 0; background: transparent; color: #4A5672; font-size: 15px;">
+        
+        Clear
+      </button>
+    
+      <button type="button" aria-label="0" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">
+        
+        0
+      </button>
+    
+      <button type="button" aria-label="Delete last number" style="height: 52px; border-radius: 16px; font: inherit; font-size: 24px; font-weight: 800; cursor: pointer; display: grid; place-items: center; border: 0; background: transparent; color: #4A5672; font-size: 15px;">
+        
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11v12H9l-6-6Z"></path><path d="m12 10 4 4M16 10l-4 4"></path></svg>
+        
+        
+      </button>
+    
+  </div>
+
+  
+  
+    <button type="button" style="height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer;">Sign in</button>
+  
+
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; font-size: 12px; color: #5A6785;">
+    <span style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #4A5672;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Signs you out after 8 hours, one shift
+    </span>
+    <span>5 wrong PINs locks your account. A supervisor can unlock it.</span>
+    <a href="ScannerLocked.html" style="font-weight: 700;">See the locked screen</a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS scanner count</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column;">
+
+  <div style="flex: none; padding: 16px 16px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #DDE5F5; background: #FFFFFF;">
+    <a href="ScannerHome.dc.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800;">Shelf count</div>
+      <div style="font-size: 12px; color: #4A5672;">CNT-0412 · PICKFACE aisle 1 · Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 13px; font-weight: 800; color: #4A5672; white-space: nowrap;">{{progressText}}</span>
+      <div role="progressbar" aria-label="Shelves counted" aria-valuemin="0" aria-valuemax="12" aria-valuenow="{{doneCount}}" style="flex: 1; height: 10px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="{{barStyle}}"></div></div>
+    </div>
+
+    <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+      <section style="padding: 20px 16px; border-radius: 18px; background: #E3F5EA; color: #145A31; display: flex; flex-direction: column; gap: 6px; text-align: center;">
+        <div style="font-size: 26px; font-weight: 800;">All 12 shelves counted</div>
+        <div style="font-size: 14px;">Counts that didn't match have gone to a supervisor to decide.</div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{counting}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Shelf to count" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 2px solid #2F6FE4; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 13px; font-weight: 800; color: #4A5672;">Count this shelf</span>
+          <span style="display: flex; gap: 6px; align-items: center;">
+            <span style="padding: 3px 9px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-size: 12px; font-weight: 800;">Stored</span>
+            <span style="font-size: 12px; font-weight: 700; color: #5A6785;">PICKFACE</span>
+          </span>
+        </div>
+        <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">{{loc.code}}</div>
+        <div style="font-size: 12px; color: #5A6785; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 22 12a17 17 0 0 1-3 3.6M6.6 6.6A17 17 0 0 0 2 12a10 10 0 0 0 13.4 5.4"/></svg>Blind count: we hide how many should be here. Count what you see.
+        </div>
+      </section>
+
+      <button type="button" onClick="{{scan}}" style="{{scanStyle}}">
+        <sc-if value="{{scanned}}" hint-placeholder-val="{{ false }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+        </sc-if>
+        <sc-if value="{{notScanned}}" hint-placeholder-val="{{ true }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F6FE4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>
+        </sc-if>
+        <span style="text-align: left;"><span style="display: block; font-size: 17px; font-weight: 800;">{{scanTitle}}</span><span style="display: block; font-size: 12px; color: #4A5672;">{{scanSub}}</span></span>
+      </button>
+
+      <section aria-label="Product on shelf" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+          <div>
+            <div style="font-size: 18px; font-weight: 800;">{{loc.sku}}</div>
+            <div style="font-size: 14px; color: #4A5672;">{{loc.name}}</div>
+          </div>
+          <span style="padding: 4px 10px; border-radius: 999px; background: #EEF3FF; color: #2148A8; font-size: 12px; font-weight: 800; white-space: nowrap;">{{loc.batchText}}</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 34px; font-weight: 800;">{{qty}}</span>
+          <span style="font-size: 15px; color: #4A5672;">EA counted</span>
+        </div>
+        <label for="qty" style="font-size: 14px; font-weight: 800;">How many are on the shelf?</label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onClick="{{less}}" aria-label="One less" style="width: 56px; height: 56px; flex: none; border-radius: 16px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+          </button>
+          <input id="qty" type="number" inputmode="numeric" value="{{qty}}" onInput="{{setQty}}" style="flex: 1; min-width: 0; height: 56px; box-sizing: border-box; text-align: center; font: inherit; font-size: 28px; font-weight: 800; color: #18233D; border-radius: 16px; background: #FFFFFF; border: 2px solid #CFDAF2;">
+          <button type="button" onClick="{{more}}" aria-label="One more" style="width: 56px; height: 56px; flex: none; border-radius: 16px; border: 1px solid #CFDAF2; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <sc-if value="{{differs}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="padding: 12px 14px; border-radius: 14px; background: #FFF0C2; color: #7A5C00; display: flex; gap: 10px; align-items: flex-start;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span><span style="display: block; font-size: 15px; font-weight: 800;">That's not what we expected</span><span style="display: block; font-size: 13px;">Count again, or send it anyway and a supervisor decides.</span></span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasError}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="padding: 10px 14px; border-radius: 14px; background: #FDE2E0; color: #A3221A; font-size: 14px; font-weight: 700;">{{error}}</div>
+      </sc-if>
+    </sc-if>
+  </div>
+
+  <div style="flex: none; padding: 12px 16px 18px; border-top: 1px solid #DDE5F5; background: #FFFFFF;">
+    <sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+      <a href="ScannerHome.dc.html" style="height: 58px; border-radius: 16px; background: #22A35A; color: #FFFFFF; font-weight: 800; font-size: 18px; text-decoration: none; display: grid; place-items: center;">Back to menu</a>
+    </sc-if>
+    <sc-if value="{{counting}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; gap: 10px;">
+        <button type="button" onClick="{{recount}}" style="flex: 1; height: 58px; border: 2px solid #18233D; border-radius: 16px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Count again</button>
+        <button type="button" onClick="{{submit}}" style="flex: 2; height: 58px; border: 0; border-radius: 16px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer;">{{submitLabel}}</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 16px; right: 16px; top: 84px; padding: 12px 16px; border-radius: 16px; background: #145A31; color: #FFFFFF; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(24,35,61,0.2);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+      <span style="flex: 1;">{{toast}}</span>
+      <span style="padding: 3px 8px; border-radius: 999px; background: #22A35A; font-size: 12px;">{{streak}}</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 3, qty: 46, scanned: false, warned: false, error: '', toast: '', counted: 0 };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var total = 12;
+    var locs = [
+      { code: 'PF-01-01-A', sku: 'ABC100', name: 'Oil filter', batch: 'B2598', expect: 30 },
+      { code: 'PF-01-01-B', sku: 'ABC104', name: 'Air filter', batch: 'B2599', expect: 18 },
+      { code: 'PF-01-01-C', sku: 'ABC110', name: 'Wiper blade 22in', batch: '', expect: 40 },
+      { code: 'PF-01-02-A', sku: 'ABC123', name: 'Brake pad set', batch: 'B2601', expect: 48 },
+      { code: 'PF-01-02-B', sku: 'ABC130', name: 'Brake disc, front', batch: 'B2602', expect: 12 },
+      { code: 'PF-01-02-C', sku: 'ABC141', name: 'Spark plug 4-pack', batch: '', expect: 60 },
+      { code: 'PF-01-03-A', sku: 'ABC150', name: 'Fuel filter', batch: 'B2604', expect: 22 },
+      { code: 'PF-01-03-B', sku: 'ABC162', name: 'Cabin filter', batch: 'B2605', expect: 15 },
+      { code: 'PF-01-03-C', sku: 'ABC170', name: 'Drive belt', batch: '', expect: 9 },
+      { code: 'PF-01-04-A', sku: 'ABC181', name: 'Coolant 5L', batch: 'B2607', expect: 24 },
+      { code: 'PF-01-04-B', sku: 'ABC190', name: 'Brake fluid 1L', batch: 'B2608', expect: 36 },
+      { code: 'PF-01-04-C', sku: 'ABC199', name: 'Headlight globe', batch: '', expect: 50 }
+    ];
+    var allDone = s.idx >= total;
+    var raw = locs[Math.min(s.idx, total - 1)];
+    var loc = { code: raw.code, sku: raw.sku, name: raw.name, batchText: raw.batch ? 'Batch ' + raw.batch : 'No batch' };
+    var shown = allDone ? total : s.idx + 1;
+    var pct = Math.round((allDone ? total : s.idx) / total * 100);
+    var setQ = function (n) {
+      n = parseInt(n, 10);
+      if (isNaN(n) || n < 0) n = 0;
+      self.setState({ qty: n, warned: false, error: '' });
+    };
+    var next = function (msg) {
+      if (self._t) clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+      self.setState({ idx: s.idx + 1, qty: 0, scanned: false, warned: false, error: '', toast: msg, counted: s.counted + 1 });
+    };
+    return {
+      progressText: allDone ? 'Done!' : 'Shelf ' + shown + ' of ' + total,
+      doneCount: allDone ? total : s.idx,
+      barStyle: 'width: ' + pct + '%; height: 100%; border-radius: 999px; background: ' + (allDone ? '#22A35A' : '#2F6FE4') + ';',
+      allDone: allDone, counting: !allDone,
+      loc: loc,
+      scanned: s.scanned, notScanned: !s.scanned,
+      scanTitle: s.scanned ? raw.code + ' scanned' : 'Scan the shelf',
+      scanSub: s.scanned ? 'Right shelf. Count what is on it.' : 'Tap to pretend-scan.',
+      scanStyle: 'height: 66px; flex: none; border: 2px ' + (s.scanned ? 'solid #22A35A' : 'dashed #2F6FE4') + '; border-radius: 16px; background: ' + (s.scanned ? '#E3F5EA' : '#FFFFFF') + '; color: #18233D; font: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;',
+      scan: function () { self.setState({ scanned: true, error: '' }); },
+      qty: s.qty,
+      setQty: function (e) { setQ(e.target.value); },
+      less: function () { setQ(s.qty - 1); },
+      more: function () { setQ(s.qty + 1); },
+      differs: s.warned,
+      hasError: !!s.error, error: s.error,
+      submitLabel: s.warned ? 'Send anyway' : 'Send count',
+      recount: function () { self.setState({ qty: 0, warned: false, error: '' }); },
+      submit: function () {
+        if (allDone) return;
+        if (!s.scanned) { self.setState({ error: 'Scan the shelf first.' }); return; }
+        if (s.qty !== raw.expect && !s.warned) { self.setState({ warned: true, error: '' }); return; }
+        next(s.qty === raw.expect ? 'Ding! Shelf counted' : 'Sent. A supervisor will check it');
+      },
+      toastOn: !!s.toast, toast: s.toast,
+      streak: '+' + s.counted + (s.counted === 1 ? ' shelf' : ' shelves')
+    };
+  }
+}
+</script>
+</body>
+</html>

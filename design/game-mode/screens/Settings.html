@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS settings panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Settings" style="position: absolute; top: 0; right: 0; bottom: 0; width: 52%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Settings</h1>
+        <div style="font-size: 13px; color: #5A6785;">Make the game feel just right for your office.</div>
+      </div>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 18px;">
+
+      <section aria-labelledby="feel-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 4px;">
+        <h2 id="feel-h" style="margin: 0 0 8px; font-size: 17px; font-weight: 800;">Game feel</h2>
+        
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid #F0F3FA;">
+            <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: #EEF3FF; color: #2148A8;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4ZM15.5 8.5a5 5 0 0 1 0 7"></path></svg>
+            </span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 800; font-size: 15px;">Sounds</span>
+              <span style="display: block; font-size: 13px; color: #5A6785;">Beeps when trucks arrive, a ding when orders ship</span>
+            </span>
+            <button type="button" role="switch" aria-checked="true" aria-label="Sounds" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+          </div>
+        
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid #F0F3FA;">
+            <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: #E6F4FB; color: #14607E;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 18 9.5a3.5 3.5 0 0 1-.5 6.5Z"></path></svg>
+            </span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 800; font-size: 15px;">Weather</span>
+              <span style="display: block; font-size: 13px; color: #5A6785;">Rain and clouds on the map, matching outside</span>
+            </span>
+            <button type="button" role="switch" aria-checked="true" aria-label="Weather" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+          </div>
+        
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid #F0F3FA;">
+            <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: #EDE6FB; color: #4B2E99;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"></path></svg>
+            </span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 800; font-size: 15px;">Day and night</span>
+              <span style="display: block; font-size: 13px; color: #5A6785;">The sky gets darker as the day ends</span>
+            </span>
+            <button type="button" role="switch" aria-checked="true" aria-label="Day and night" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+          </div>
+        
+          <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid #F0F3FA;">
+            <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: #FFF0C2; color: #7A5C00;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3ZM14 10h4l3 3v3h-7ZM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg>
+            </span>
+            <span style="flex: 1; min-width: 0;">
+              <span style="display: block; font-weight: 800; font-size: 15px;">Moving trucks and forklifts</span>
+              <span style="display: block; font-size: 13px; color: #5A6785;">Turn off if the computer feels slow</span>
+            </span>
+            <button type="button" role="switch" aria-checked="true" aria-label="Moving trucks and forklifts" style="position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: #2F6FE4;"><span style="position: absolute; top: 4px; left: 28px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);"></span></button>
+          </div>
+        
+        
+          <label style="display: flex; align-items: center; gap: 12px; padding: 10px 0 0 54px; font-size: 13px; font-weight: 700; color: #4A5672;">
+            Volume
+            <input type="range" min="0" max="100" value="60" style="flex: 1; accent-color: #2F6FE4; height: 28px;">
+            <span style="width: 40px; text-align: right; color: #18233D;">60%</span>
+          </label>
+        
+      </section>
+
+      <section aria-labelledby="goal-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+        <h2 id="goal-h" style="margin: 0; font-size: 17px; font-weight: 800;">Daily goal</h2>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; background: #EEF3FF;">
+          <span style="width: 40px; height: 40px; flex: none; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; display: grid; place-items: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path><circle cx="12" cy="12" r="5"></circle></svg>
+          </span>
+          <span style="flex: 1; font-size: 14px;">The app suggests <b>45 orders</b> today. That's a little above your usual 40, to keep it fun.</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+          <span style="flex: 1; min-width: 160px; font-weight: 800; font-size: 15px;">Today's goal</span>
+          <button type="button" aria-label="Lower today's goal" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+          <span style="min-width: 110px; height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; display: grid; place-items: center; font-size: 16px; font-weight: 800;">45 orders</span>
+          <button type="button" aria-label="Raise today's goal" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </div>
+        
+      </section>
+
+      <section aria-labelledby="wh-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+        <h2 id="wh-h" style="margin: 0; font-size: 17px; font-weight: 800;">Your warehouse</h2>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Name on the building sign
+          <input type="text" value="SIMPLE WMS" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 700; color: #18233D;">
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Town for the weather
+          <input type="text" value="Ballarat, VIC" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; color: #18233D;">
+          <span style="font-weight: 500; color: #5A6785;">Rain on the map when it's raining there. Nobody's real location is used.</span>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+          Label size
+          <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 15px; color: #18233D; background: #FFFFFF;">
+            <option>100 × 150 mm (pallet)</option>
+            <option>62 × 29 mm (small item)</option>
+          </select>
+        </label>
+      </section>
+
+      <button type="button" style="height: 50px; border: 0; border-radius: 14px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Save settings</button>
+    </div>
+
+    
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Simple WMS scanner batch sort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2557C9}a:hover{color:#1A3F99}
+</style>
+<style>html,body{min-height:100%}body{display:flex;justify-content:center;padding:24px 0;background:#E6EDFB !important}</style>
+</head>
+<body>
+
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 18px 18px 16px; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <a href="ScannerHome.html" aria-label="Back to menu" style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFFFFF; border: 1px solid #DDE5F5; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    </a>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-size: 18px; font-weight: 800; line-height: 1.2;">Sort batch B-15</div>
+      <div style="font-size: 12px; color: #4A5672; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <span>At PACK-02</span>
+        <span style="padding: 1px 7px; border-radius: 999px; background: #FDE6D2; color: #8E4A0E; font-size: 11px; font-weight: 800;">Leaving</span>
+        <span>· 3 orders</span>
+      </div>
+      <div style="font-size: 12px; color: #5A6785;">Sam · BAL-WH01</div>
+    </div>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DDE5F5; font-size: 12px; font-weight: 800; color: #4A5672; white-space: nowrap;">Scanner 3</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+    <span style="font-size: 14px; font-weight: 800; white-space: nowrap;">Item 22 of 85</span>
+    <div role="progressbar" aria-label="Items sorted" aria-valuemin="0" aria-valuemax="85" aria-valuenow="21" style="flex: 1; height: 12px; border-radius: 999px; background: #DDE5F5; overflow: hidden;">
+      <div style="height: 100%; border-radius: 999px; background: #22A35A; width: 25%;"></div>
+    </div>
+    
+  </div>
+
+  
+
+  
+    <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px;">
+
+      <button type="button" style="min-height: 66px; flex: none; padding: 10px 14px; border-radius: 16px; font: inherit; color: #18233D; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 2px solid #22A35A; background: #E3F5EA;">
+        
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22A35A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg>
+        
+        
+        <span style="text-align: left; flex: 1;">
+          <span style="display: block; font-size: 17px; font-weight: 800;">Item scanned</span>
+          <span style="display: block; font-size: 12px; color: #4A5672;">Put it where it says below, then tap Confirm.</span>
+        </span>
+      </button>
+
+      
+        <section aria-label="Product" style="padding: 12px 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #DDE5F5; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800;">JKL012</div>
+            <div style="font-size: 14px; color: #4A5672;">Oil filter</div>
+            <div style="font-size: 13px; color: #4A5672; margin-top: 4px;"><strong style="font-size: 22px; color: #18233D;">1</strong> each · 24 in this batch</div>
+          </div>
+          <span style="padding: 4px 9px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800;">Scanned</span>
+        </section>
+
+        <section aria-label="Put it in" style="padding: 14px 16px; border-radius: 18px; background: #2F6FE4; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.6px; color: #D8E5FF;">PUT IT IN</span>
+          <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">TOTE 2</span>
+          <span style="font-size: 13px; color: #EEF3FF;">Order 0080012349 · Hilltop Auto Spares</span>
+          <span style="font-size: 13px; color: #EEF3FF;">12 of 31 items in this tote so far</span>
+        </section>
+      
+
+      
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        
+          <div style="padding: 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: #E3F5EA; border: 2px solid #E3F5EA;">
+            <span style="font-size: 13px; font-weight: 800;">Tote 1</span>
+            <span style="font-size: 12px; color: #4A5672;">0080012347</span>
+            <span style="display: block; height: 6px; border-radius: 999px; background: #DDE5F5; overflow: hidden;"><span style="display: block; height: 100%; border-radius: 999px; background: #22A35A; width: 100%;"></span></span>
+            <span style="font-size: 12px; font-weight: 800; color: #145A31;">14 / 14 · full</span>
+          </div>
+        
+          <div style="padding: 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: #EEF3FF; border: 2px solid #2F6FE4;">
+            <span style="font-size: 13px; font-weight: 800;">Tote 2</span>
+            <span style="font-size: 12px; color: #4A5672;">0080012349</span>
+            <span style="display: block; height: 6px; border-radius: 999px; background: #DDE5F5; overflow: hidden;"><span style="display: block; height: 100%; border-radius: 999px; background: #2F6FE4; width: 39%;"></span></span>
+            <span style="font-size: 12px; font-weight: 800; color: #4A5672;">12 / 31</span>
+          </div>
+        
+          <div style="padding: 10px; border-radius: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: #FFFFFF; border: 2px solid #DDE5F5;">
+            <span style="font-size: 13px; font-weight: 800;">Tote 3</span>
+            <span style="font-size: 12px; color: #4A5672;">0080012350</span>
+            <span style="display: block; height: 6px; border-radius: 999px; background: #DDE5F5; overflow: hidden;"><span style="display: block; height: 100%; border-radius: 999px; background: #2F6FE4; width: 0%;"></span></span>
+            <span style="font-size: 12px; font-weight: 800; color: #4A5672;">0 / 40</span>
+          </div>
+        
+      </div>
+      <button type="button" style="align-self: flex-start; padding: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700; color: #2557C9; text-decoration: underline; cursor: pointer;">Demo: jump to the last item</button>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex: none;">
+      <button type="button" style="flex: 1; height: 58px; border: 0; border-radius: 16px; background: #FDE2E0; color: #A3221A; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;">Wrong item</button>
+      <button type="button" style="flex: 2; height: 58px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; color: #FFFFFF; background: #2F6FE4;">Confirm</button>
+    </div>
+  
+
+  
+</div>
+</body>
+</html>

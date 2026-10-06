@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS batch pick panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Batch pick builder" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 220px;">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">BUILD ONE WALK FROM SEVERAL ORDERS</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Batch pick builder</h1>
+        <div style="font-size: 13px; color: #5A6785;">Tick orders to add them. One trip round the shelves picks them all.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #5A6785;">Warehouse
+        <select style="height: 44px; padding: 0 10px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+          <option>BAL-WH01 · Ballarat</option>
+          <option>MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #4A5672;"><span style="width: 32px; height: 32px; border-radius: 999px; background: #EEF3FF; color: #2148A8; display: grid; place-items: center; font-size: 12px; font-weight: 800;">LL</span>Supervisor</span>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Auto-group by zone
+      </button>
+      <button type="button" style="height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: #F3F6FD; color: #2148A8; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Clear ticks</button>
+      <span style="flex: 1;"></span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"></path></svg>14 batches released today
+      </span>
+      <button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 12px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; background: #2F6FE4; color: #FFFFFF;">Release batch B-15</button>
+    </div>
+
+    <div style="flex: 1; overflow: auto; padding: 16px 28px 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-content: start;">
+
+      <section aria-labelledby="wait-h" style="display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+        <h2 id="wait-h" style="margin: 0; font-size: 17px; font-weight: 800;">Waiting orders <span style="font-size: 13px; font-weight: 700; color: #5A6785;">· tick to add</span></h2>
+        <div style="overflow-x: auto; border: 1px solid #E6EDFB; border-radius: 16px;">
+          <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px; background: #F7F9FE;">
+                <th style="padding: 10px 8px; width: 44px;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Add to batch</span></th>
+                <th style="padding: 10px 8px; font-weight: 800;">REFERENCE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">SHIP TO</th>
+                <th style="padding: 10px 8px; font-weight: 800;">LINES</th>
+                <th style="padding: 10px 8px; font-weight: 800;">UNITS</th>
+                <th style="padding: 10px 8px; font-weight: 800;">ZONES</th>
+                <th style="padding: 10px 8px; font-weight: 800;">DUE</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #F2F6FF;">
+                  <td style="padding: 4px 8px;">
+                    <label style="width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;">
+                      <input type="checkbox" checked aria-label="Add 0080012347 to the batch" style="width: 20px; height: 20px; accent-color: #2F6FE4; cursor: pointer;">
+                    </label>
+                  </td>
+                  <td style="padding: 8px; font-weight: 800;">0080012347</td>
+                  <td style="padding: 8px;"><div style="font-weight: 700;">Wendouree Motor Spares</div><div style="font-size: 12px; color: #5A6785;">Wendouree</div></td>
+                  <td style="padding: 8px;">2</td>
+                  <td style="padding: 8px;">14</td>
+                  <td style="padding: 8px;">
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">PICKFACE</span>
+                    
+                  </td>
+                  <td style="padding: 8px; color: #4A5672;">11:00</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #F2F6FF;">
+                  <td style="padding: 4px 8px;">
+                    <label style="width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;">
+                      <input type="checkbox" checked aria-label="Add 0080012349 to the batch" style="width: 20px; height: 20px; accent-color: #2F6FE4; cursor: pointer;">
+                    </label>
+                  </td>
+                  <td style="padding: 8px; font-weight: 800;">0080012349</td>
+                  <td style="padding: 8px;"><div style="font-weight: 700;">Sebastopol Auto Bits</div><div style="font-size: 12px; color: #5A6785;">Sebastopol</div></td>
+                  <td style="padding: 8px;">5</td>
+                  <td style="padding: 8px;">31</td>
+                  <td style="padding: 8px;">
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">PICKFACE</span>
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">BULK</span>
+                    
+                  </td>
+                  <td style="padding: 8px; color: #4A5672;">11:30</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #F2F6FF;">
+                  <td style="padding: 4px 8px;">
+                    <label style="width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;">
+                      <input type="checkbox" checked aria-label="Add 0080012350 to the batch" style="width: 20px; height: 20px; accent-color: #2F6FE4; cursor: pointer;">
+                    </label>
+                  </td>
+                  <td style="padding: 8px; font-weight: 800;">0080012350</td>
+                  <td style="padding: 8px;"><div style="font-weight: 700;">Delacombe Car Care</div><div style="font-size: 12px; color: #5A6785;">Delacombe</div></td>
+                  <td style="padding: 8px;">7</td>
+                  <td style="padding: 8px;">40</td>
+                  <td style="padding: 8px;">
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">PICKFACE</span>
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">BULK</span>
+                    
+                  </td>
+                  <td style="padding: 8px; color: #4A5672;">11:30</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 4px 8px;">
+                    <label style="width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;">
+                      <input type="checkbox" aria-label="Add 0080012351 to the batch" style="width: 20px; height: 20px; accent-color: #2F6FE4; cursor: pointer;">
+                    </label>
+                  </td>
+                  <td style="padding: 8px; font-weight: 800;">0080012351</td>
+                  <td style="padding: 8px;"><div style="font-weight: 700;">Murray Truck Parts</div><div style="font-size: 12px; color: #5A6785;">Albury</div></td>
+                  <td style="padding: 8px;">9</td>
+                  <td style="padding: 8px;">120</td>
+                  <td style="padding: 8px;">
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">BULK</span>
+                    
+                  </td>
+                  <td style="padding: 8px; color: #4A5672;">14:00</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EEF2FA; background: #FFFFFF;">
+                  <td style="padding: 4px 8px;">
+                    <label style="width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;">
+                      <input type="checkbox" aria-label="Add 0080012352 to the batch" style="width: 20px; height: 20px; accent-color: #2F6FE4; cursor: pointer;">
+                    </label>
+                  </td>
+                  <td style="padding: 8px; font-weight: 800;">0080012352</td>
+                  <td style="padding: 8px;"><div style="font-weight: 700;">Acme Auto Parts</div><div style="font-size: 12px; color: #5A6785;">Geelong</div></td>
+                  <td style="padding: 8px;">1</td>
+                  <td style="padding: 8px;">2</td>
+                  <td style="padding: 8px;">
+                    
+                      <span style="display: inline-block; margin: 2px 4px 2px 0; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">PICKFACE</span>
+                    
+                  </td>
+                  <td style="padding: 8px; color: #4A5672;">15:00</td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+        
+        <div style="font-size: 12px; color: #5A6785;">PICKFACE and BULK are both shelves in the Stored zone.</div>
+      </section>
+
+      <section aria-labelledby="batch-h" style="display: flex; flex-direction: column; gap: 14px; min-width: 0;">
+        <div style="padding: 18px; border-radius: 18px; background: #EEF3FF; border: 1px solid #CFDAF2; display: flex; flex-direction: column; gap: 12px;">
+          <h2 id="batch-h" style="margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 1px; color: #2148A8;">BATCH B-15</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+            <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF;"><div style="font-size: 12px; font-weight: 700; color: #5A6785;">Orders</div><div style="font-size: 26px; font-weight: 800;">3</div></div>
+            <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF;"><div style="font-size: 12px; font-weight: 700; color: #5A6785;">Lines</div><div style="font-size: 26px; font-weight: 800;">14</div></div>
+            <div style="padding: 10px 12px; border-radius: 14px; background: #FFFFFF;"><div style="font-size: 12px; font-weight: 700; color: #5A6785;">Stops</div><div style="font-size: 26px; font-weight: 800;">9</div></div>
+          </div>
+          <div style="height: 10px; border-radius: 999px; background: #FFFFFF; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 36%;"></div></div>
+          <div style="font-size: 13px; color: #18233D; font-weight: 600;">14 lines collapse to 9 shelf visits because 4 products repeat. 36% fewer stops!</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="margin: 0; font-size: 15px; font-weight: 800;">Walk order <span style="font-size: 13px; font-weight: 700; color: #5A6785;">(by pick sequence)</span></h3>
+          <ol style="list-style: none; margin: 0; padding: 0; border: 1px solid #E6EDFB; border-radius: 16px; overflow: hidden;">
+            
+              <li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #F0F3FA; font-size: 14px;">
+                <span style="min-width: 40px; padding: 3px 0; border-radius: 8px; background: #E6EDFB; color: #2148A8; font-size: 12px; font-weight: 800; text-align: center;">102</span>
+                <span style="flex: 1; min-width: 0;"><b>PF-01-02-A</b> · ABC123</span>
+                <span style="font-weight: 700; color: #4A5672; white-space: nowrap;">12 EA → 2 orders</span>
+              </li>
+            
+              <li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #F0F3FA; font-size: 14px;">
+                <span style="min-width: 40px; padding: 3px 0; border-radius: 8px; background: #E6EDFB; color: #2148A8; font-size: 12px; font-weight: 800; text-align: center;">105</span>
+                <span style="flex: 1; min-width: 0;"><b>PF-01-05-C</b> · GHI789</span>
+                <span style="font-weight: 700; color: #4A5672; white-space: nowrap;">6 EA → 1 order</span>
+              </li>
+            
+              <li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #F0F3FA; font-size: 14px;">
+                <span style="min-width: 40px; padding: 3px 0; border-radius: 8px; background: #E6EDFB; color: #2148A8; font-size: 12px; font-weight: 800; text-align: center;">106</span>
+                <span style="flex: 1; min-width: 0;"><b>PF-01-06-A</b> · JKL012</span>
+                <span style="font-weight: 700; color: #4A5672; white-space: nowrap;">24 EA → 3 orders</span>
+              </li>
+            
+              <li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #F0F3FA; font-size: 14px;">
+                <span style="min-width: 40px; padding: 3px 0; border-radius: 8px; background: #E6EDFB; color: #2148A8; font-size: 12px; font-weight: 800; text-align: center;">110</span>
+                <span style="flex: 1; min-width: 0;"><b>PF-01-10-B</b> · MNO345</span>
+                <span style="font-weight: 700; color: #4A5672; white-space: nowrap;">8 EA → 2 orders</span>
+              </li>
+            
+              <li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #F0F3FA; font-size: 14px;">
+                <span style="min-width: 40px; padding: 3px 0; border-radius: 8px; background: #E6EDFB; color: #2148A8; font-size: 12px; font-weight: 800; text-align: center;">112</span>
+                <span style="flex: 1; min-width: 0;"><b>PF-01-12-C</b> · PQR678</span>
+                <span style="font-weight: 700; color: #4A5672; white-space: nowrap;">4 EA → 1 order</span>
+              </li>
+            
+          </ol>
+          
+            <button type="button" style="height: 44px; border: 0; border-radius: 12px; background: #F3F6FD; color: #2148A8; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">…4 more stops</button>
+          
+          
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <label style="flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">Totes
+            <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+              <option value="per">3 totes · one per order</option>
+              <option value="bench">Sort at bench</option>
+            </select>
+          </label>
+          <label style="flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">Assign to
+            <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+              <option value="Next free picker">Next free picker</option>
+              <option value="Sam">Sam</option>
+              <option value="Priya">Priya</option>
+              <option value="Jo">Jo</option>
+            </select>
+          </label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4A5672;">
+          <span style="display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Leaving</span>
+          Sort step happens at PACK-02 when the walk ends.
+        </div>
+      </section>
+    </div>
+
+    
+  </section>
+</div>
+</body>
+</html>

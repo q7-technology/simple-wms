@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS production panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Production" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #2F6FE4;">{{eyebrow}}</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Production</h1>
+        <div style="font-size: 13px; color: #5A6785;">Send parts to the line, then catch the finished pallets as they come off.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #4A5672;">
+        Warehouse
+        <select onChange="{{pickWh}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-size: 14px; font-weight: 700;">
+          <option value="BAL-WH01">BAL-WH01 · Ballarat</option>
+          <option value="MEL-WH01">MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <span style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px 0 6px; border-radius: 999px; background: #F3F6FD; font-size: 13px; font-weight: 700; color: #4A5672;">
+        <span style="width: 32px; height: 32px; border-radius: 999px; background: #2F6FE4; color: #FFFFFF; display: grid; place-items: center; font-size: 12px; font-weight: 800;">LL</span>Supervisor
+      </span>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 28px 14px;">
+      <label style="flex: 1 1 240px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search production orders</span>
+        <input type="search" placeholder="Order number or product" onInput="{{onSearch}}" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+      </label>
+      <button type="button" onClick="{{importCsv}}" style="height: 44px; padding: 0 16px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>Import CSV
+      </button>
+      <button type="button" onClick="{{createOrder}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create production order
+      </button>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: auto; padding: 0 28px 40px; display: flex; flex-direction: column; gap: 16px;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">PARTS TO SEND</div>
+          <div style="font-size: 30px; font-weight: 800;">5</div>
+          <div style="font-size: 13px; color: #4A5672;">components to issue · 2 lines short in the pick face</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">ISSUED, RUNNING</div>
+          <div style="font-size: 30px; font-weight: 800;">3</div>
+          <div style="font-size: 13px; color: #4A5672;">on line 3 and line 4</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">FINISHED GOODS IN</div>
+          <div style="font-size: 30px; font-weight: 800;">{{fgToday}}</div>
+          <div style="font-size: 13px; color: #4A5672;">EA received today · {{fgPallets}} pallets</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #F2D27A; background: #FFFBEF;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #7A5C00;">OVER TOLERANCE</div>
+          <div style="font-size: 30px; font-weight: 800; color: #7A5C00;">{{overCount}}</div>
+          <div style="font-size: 13px; color: #4A5672;">{{overNote}}</div>
+        </div>
+      </div>
+
+      <div role="tablist" aria-label="Production status" style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+          <button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="{{t.countStyle}}">{{t.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+        <div style="flex: 999 1 460px; min-width: 0; overflow-x: auto; border: 1px solid #E6EDFB; border-radius: 16px;">
+          <table style="width: 100%; min-width: 660px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                <th style="padding: 12px 10px; font-weight: 800;">ORDER</th>
+                <th style="padding: 12px 10px; font-weight: 800;">MAKES</th>
+                <th style="padding: 12px 10px; font-weight: 800;">PARTS ISSUED</th>
+                <th style="padding: 12px 10px; font-weight: 800;">FINISHED / PLANNED</th>
+                <th style="padding: 12px 10px; font-weight: 800;">STATUS</th>
+                <th style="padding: 12px 10px; font-weight: 800;">LINE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+                <tr style="{{r.rowStyle}}">
+                  <td style="padding: 6px 10px;">
+                    <button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" aria-label="{{r.aria}}" style="{{r.btnStyle}}">{{r.id}}</button>
+                  </td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">{{r.makesName}}</div><div style="font-size: 12px; color: #5A6785;">{{r.makesSku}}</div></td>
+                  <td style="padding: 6px 10px;"><div style="font-weight: 700;">{{r.issued}}</div><div style="font-size: 12px; color: #5A6785;">{{r.comps}}</div></td>
+                  <td style="padding: 6px 10px; min-width: 130px;">
+                    <div style="font-size: 13px; font-weight: 700;">{{r.recText}}</div>
+                    <span style="display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="{{r.barStyle}}"></span></span>
+                  </td>
+                  <td style="padding: 6px 10px;"><span style="{{r.chip}}">{{r.status}}</span></td>
+                  <td style="padding: 6px 10px; font-size: 13px; color: #4A5672;">{{r.line}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 32px 0; text-align: center; color: #5A6785; font-weight: 700;">No production orders here.</div>
+          </sc-if>
+        </div>
+
+        <aside aria-label="Production order details" style="flex: 1 1 300px; max-width: 360px; min-width: 0; padding: 18px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #2F6FE4;">PRODUCTION ORDER</div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 22px; font-weight: 800;">{{d.id}}</span><span style="{{d.chip}}">{{d.status}}</span>
+            </div>
+            <div style="font-size: 13px; color: #4A5672;">{{d.sub}}</div>
+          </div>
+
+          <sc-if value="{{d.over}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 12px; border-radius: 12px; background: #FFF0C2; color: #7A5C00; font-size: 13px; font-weight: 700; display: flex; flex-direction: column; gap: 8px;">
+              <span>Over tolerance: {{d.overBy}}. A supervisor needs to badge to accept the extra.</span>
+              <button type="button" onClick="{{approveOver}}" style="height: 44px; border: 0; border-radius: 12px; background: #7A5C00; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M8 17h8"/></svg>Supervisor badge: accept
+              </button>
+            </div>
+          </sc-if>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">PARTS</div><div style="font-weight: 800;">{{d.drop}}</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">TOLERANCE</div><div style="font-weight: 800;">±2 %</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">REQUIRED BY</div><div style="font-weight: 800;">{{d.due}}</div></div>
+            <div style="padding: 10px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;"><div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #5A6785;">BATCH</div><div style="font-weight: 800;">{{d.batch}}</div><div style="font-size: 11px; color: #5A6785;">from the order QR · read-only</div></div>
+          </div>
+
+          <div style="padding: 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB; display: flex; align-items: center; gap: 10px;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 800;">ERP already counted the goods receipt?</div>
+              <div style="font-size: 12px; color: #5A6785;">{{gr.note}}</div>
+            </div>
+            <button type="button" role="switch" aria-checked="{{gr.on}}" aria-label="ERP already counted the goods receipt" onClick="{{gr.toggle}}" style="{{gr.track}}"><span style="{{gr.knob}}"></span></button>
+            <span style="{{gr.chip}}">{{gr.label}}</span>
+          </div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;"><span>PALLETS RECEIVED</span><span>{{d.running}}</span></div>
+            <span style="display: block; height: 10px; margin-bottom: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="{{d.barStyle}}"></span></span>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              <sc-for list="{{receipts}}" as="p" hint-placeholder-count="2">
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span>{{p.time}} → <span style="padding: 1px 8px; border-radius: 999px; background: #D3EFE8; color: #0F5F59; font-weight: 800;">{{p.loc}}</span></span><span style="font-weight: 800;">{{p.qty}}</span>
+                </div>
+              </sc-for>
+              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px; color: #5A6785;"><span>Still expected</span><span>{{d.left}}</span></div>
+            </div>
+            <sc-if value="{{d.canReceive}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{receivePallet}}" style="margin-top: 8px; width: 100%; height: 44px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Scan next pallet (+120 EA)</button>
+            </sc-if>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;">COMPONENTS ISSUED</div>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              <sc-for list="{{comps}}" as="c" hint-placeholder-count="3">
+                <div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span><b>{{c.sku}}</b> · {{c.name}}</span><span style="{{c.qtyStyle}}">{{c.qty}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 6px;">MESSAGES SENT</div>
+            <div style="border-radius: 12px; background: #FFFFFF; border: 1px solid #E6EDFB;">
+              <sc-for list="{{events}}" as="e" hint-placeholder-count="2">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #EEF2FA; font-size: 13px;">
+                  <span style="font-family: ui-monospace, monospace; font-size: 12px;">{{e.what}}</span><span style="padding: 2px 8px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 11px; font-weight: 800;">delivered</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{noEvents}}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 8px 12px; font-size: 13px; color: #5A6785;">{{noEventsText}}</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <button type="button" onClick="{{issueRest}}" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Issue remainder</button>
+            <button type="button" onClick="{{closeOrder}}" aria-disabled="{{d.closed}}" style="{{d.closeStyle}}">Close order</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: 'all', pick: 'PRD-1000456', q: '', wh: 'BAL-WH01', toast: '', erpGr: true, csvDone: false, nextNo: 1000460, fg: 1140,
+      orders: [
+        { id: 'PRD-1000456', sku: 'FG-900', name: 'Brake pad set', plan: 500, st: 'receiving', line: 'Line 3', lineNote: 'batch B2609A', batch: 'B2609A', due: 'Today 06:00',
+          comps: [['RM-120', 'Backing plate', 1000, 1000], ['RM-131', 'Friction pad', 1000, 1000], ['RM-140', 'Shim', 980, 1000], ['RM-150', 'Wear sensor', 500, 500], ['RM-160', 'Clip set', 500, 500], ['RM-170', 'Grease sachet', 500, 500]],
+          pallets: [['08:10', 'BK-04-01-C', 120], ['08:45', 'BK-04-01-C', 120]],
+          events: ['production.components_issued → ERP', 'production.received ×2 → ERP'] },
+        { id: 'PRD-1000457', sku: 'FG-910', name: 'Rotor 280 mm', plan: 200, st: 'issuing', line: 'Line 4', lineNote: 'Priya picking', batch: 'B2609B', due: 'Today 10:00',
+          comps: [['RM-210', 'Rotor casting', 200, 200], ['RM-220', 'Hub bolt', 0, 1000], ['RM-230', 'Anti-rust coat', 0, 20]], pallets: [], events: [] },
+        { id: 'PRD-1000458', sku: 'FG-900', name: 'Brake pad set', plan: 500, st: 'waiting', line: 'Line 3', lineNote: 'due Mon 06:00', batch: 'B2610A', due: 'Mon 06:00',
+          comps: [['RM-120', 'Backing plate', 0, 1000], ['RM-131', 'Friction pad', 0, 1000], ['RM-140', 'Shim', 0, 1000], ['RM-150', 'Wear sensor', 0, 500], ['RM-160', 'Clip set', 0, 500], ['RM-170', 'Grease sachet', 0, 500]], pallets: [], events: [] },
+        { id: 'PRD-1000452', sku: 'FG-905', name: 'Pad set, ceramic', plan: 500, st: 'over', line: 'Line 2', lineNote: '+12 EA, supervisor needed', batch: 'B2608C', due: 'Fri 14:00',
+          comps: [['RM-120', 'Backing plate', 1000, 1000], ['RM-132', 'Ceramic pad', 1000, 1000], ['RM-140', 'Shim', 1000, 1000], ['RM-150', 'Wear sensor', 500, 500], ['RM-160', 'Clip set', 500, 500]],
+          pallets: [['Fri 09:00', 'A-03-2', 128], ['Fri 11:20', 'A-03-2', 128], ['Fri 13:05', 'A-03-3', 128], ['Fri 14:30', 'A-03-3', 128]],
+          events: ['production.components_issued → ERP', 'production.received ×4 → ERP'] },
+        { id: 'PRD-1000449', sku: 'FG-910', name: 'Rotor 280 mm', plan: 200, st: 'complete', line: 'Line 4', lineNote: 'closed 07:40', batch: 'B2608A', due: 'Today 07:00',
+          comps: [['RM-210', 'Rotor casting', 200, 200], ['RM-220', 'Hub bolt', 1000, 1000], ['RM-230', 'Anti-rust coat', 20, 20]],
+          pallets: [['06:50', 'A-05-1', 100], ['07:35', 'A-05-1', 100]],
+          events: ['production.components_issued → ERP', 'production.received ×2 → ERP'] }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var S = {
+      waiting: ['Waiting', '#E6EDFB', '#2148A8'],
+      issuing: ['Issuing parts', '#FDE6D2', '#8E4A0E'],
+      receiving: ['Receiving', '#D8E5FF', '#1F4FB0'],
+      over: ['Over tolerance', '#FFF0C2', '#7A5C00'],
+      complete: ['Complete', '#E3F5EA', '#145A31']
+    };
+    var chip = function (k) { return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: ' + S[k][1] + '; color: ' + S[k][2] + ';'; };
+    var fmt = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    var got = function (o) { return o.pallets.reduce(function (a, p) { return a + p[2]; }, 0); };
+    var compsDone = function (o) { return o.comps.filter(function (c) { return c[2] >= c[3]; }).length; };
+    var flash = function (msg) {
+      self.setState({ toast: msg });
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+    };
+    var update = function (id, patch) { return s.orders.map(function (o) { return o.id === id ? Object.assign({}, o, patch) : o; }); };
+    var count = function (k) { return s.orders.filter(function (o) { return k === 'all' || o.st === k; }).length; };
+    var tabs = [['all', 'All'], ['waiting', 'Waiting'], ['issuing', 'Issuing'], ['receiving', 'Receiving'], ['over', 'Over tolerance'], ['complete', 'Complete']].map(function (t) {
+      var on = s.tab === t[0];
+      return {
+        label: t[1], count: count(t[0]), on: on,
+        pick: function () { self.setState({ tab: t[0] }); },
+        style: 'height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid ' + (on ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#18233D') + ';',
+        countStyle: 'min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + (on ? 'rgba(255,255,255,.22)' : '#EEF3FF') + '; color: ' + (on ? '#FFFFFF' : '#2148A8') + ';'
+      };
+    });
+    var q = s.q.toLowerCase();
+    var bar = function (pct, over) { return 'display: block; height: 100%; width: ' + Math.max(2, Math.min(100, pct)) + '%; border-radius: 999px; background: ' + (over ? '#D69A00' : (pct >= 100 ? '#2E9E5B' : '#2F6FE4')) + ';'; };
+    var rows = s.orders.filter(function (o) {
+      return (s.tab === 'all' || o.st === s.tab) && (!q || (o.id + ' ' + o.sku + ' ' + o.name).toLowerCase().indexOf(q) >= 0);
+    }).map(function (o) {
+      var on = o.id === s.pick, g = got(o), pct = Math.round(g / o.plan * 100);
+      return {
+        id: o.id, makesName: o.name, makesSku: o.sku, on: on,
+        issued: compsDone(o) + ' / ' + o.comps.length, comps: o.comps.length + ' component lines',
+        recText: fmt(g) + ' / ' + fmt(o.plan) + ' EA',
+        barStyle: bar(pct, o.st === 'over'),
+        status: S[o.st][0], chip: chip(o.st), line: o.line + ' · ' + o.lineNote,
+        aria: 'Show production order ' + o.id,
+        rowStyle: 'border-top: 1px solid #EEF2FA; background: ' + (on ? '#F2F6FF' : '#FFFFFF') + ';',
+        btnStyle: 'min-height: 44px; padding: 0 10px; border-radius: 10px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; border: 2px solid ' + (on ? '#2F6FE4' : 'transparent') + '; background: ' + (on ? '#EEF3FF' : 'transparent') + '; color: #18233D;',
+        pick: function () { self.setState({ pick: o.id }); }
+      };
+    });
+    var cur = s.orders.filter(function (o) { return o.id === s.pick; })[0] || s.orders[0];
+    var cg = got(cur), cpct = Math.round(cg / cur.plan * 100), closed = cur.st === 'complete';
+    var lineCode = 'LINE-0' + cur.line.replace(/\D/g, '') + '-IN';
+    var overOrders = s.orders.filter(function (o) { return o.st === 'over'; });
+    var gr = {
+      on: s.erpGr, label: s.erpGr ? 'Yes' : 'No',
+      note: s.erpGr ? 'Yes: we only move stock into bins. No receipt message sent.' : 'No: we send production.received to the ERP for each pallet.',
+      chip: 'padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: ' + (s.erpGr ? '#E3F5EA' : '#E6EDFB') + '; color: ' + (s.erpGr ? '#145A31' : '#2148A8') + ';',
+      track: 'position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: ' + (s.erpGr ? '#2F6FE4' : '#B9C4DC') + ';',
+      knob: 'position: absolute; top: 4px; left: ' + (s.erpGr ? '28px' : '4px') + '; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);',
+      toggle: function () { flash(s.erpGr ? 'Switched: WMS will tell the ERP about receipts' : 'Switched: ERP counts receipts, bins only'); self.setState({ erpGr: !s.erpGr }); }
+    };
+    return {
+      eyebrow: (s.wh === 'MEL-WH01' ? 'MELBOURNE' : 'BALLARAT') + ' · TODAY',
+      pickWh: function (e) { self.setState({ wh: e.target.value }); },
+      onSearch: function (e) { self.setState({ q: e.target.value }); },
+      fgToday: fmt(s.fg), fgPallets: Math.round(s.fg / 120),
+      overCount: overOrders.length,
+      overNote: overOrders.length ? overOrders[0].id + ' needs a supervisor' : 'All within tolerance',
+      tabs: tabs, rows: rows, empty: rows.length === 0,
+      gr: gr,
+      d: {
+        id: cur.id, status: S[cur.st][0], chip: chip(cur.st),
+        sub: 'Makes ' + fmt(cur.plan) + ' EA ' + cur.sku + ' · ' + cur.line + ' · batch ' + cur.batch,
+        drop: compsDone(cur) === cur.comps.length ? 'Issued to ' + lineCode : 'Going to ' + lineCode,
+        due: cur.due, batch: cur.batch,
+        over: cur.st === 'over', overBy: '+' + (cg - cur.plan) + ' EA (' + cpct + '%)',
+        running: fmt(cg) + ' / ' + fmt(cur.plan) + ' EA',
+        barStyle: bar(cpct, cur.st === 'over'),
+        left: cg >= cur.plan ? 'none' : fmt(cur.plan - cg) + ' EA to come',
+        canReceive: !closed && cur.st !== 'over' && cur.st !== 'waiting',
+        closed: closed,
+        closeStyle: 'height: 44px; border-radius: 12px; font: inherit; font-weight: 800; font-size: 14px; border: 1px solid ' + (closed ? '#DDE5F5' : '#E8B54A') + '; background: ' + (closed ? '#F3F6FD' : '#FFF0C2') + '; color: ' + (closed ? '#5A6785' : '#7A5C00') + '; cursor: ' + (closed ? 'default' : 'pointer') + ';'
+      },
+      receipts: cur.pallets.map(function (p) { return { time: p[0], loc: p[1], qty: p[2] + ' EA' }; }),
+      comps: cur.comps.map(function (c) {
+        var done = c[2] >= c[3];
+        return { sku: c[0], name: c[1], qty: fmt(c[2]) + ' / ' + fmt(c[3]), qtyStyle: 'font-weight: 800; color: ' + (done ? '#145A31' : (c[2] > 0 ? '#7A5C00' : '#5A6785')) + ';' };
+      }),
+      events: cur.events.map(function (e) { return { what: e }; }),
+      noEvents: cur.events.length === 0, noEventsText: 'Nothing sent yet.',
+      receivePallet: function () {
+        var g2 = cg + 120, tol = cur.plan * 1.02;
+        var st = g2 > tol ? 'over' : (g2 >= cur.plan ? 'complete' : 'receiving');
+        var n = cur.pallets.length + 1;
+        var ev = cur.events;
+        if (!s.erpGr) ev = ev.filter(function (e) { return e.indexOf('production.received') < 0; }).concat(['production.received ×' + n + ' → ERP']);
+        self.setState({ fg: s.fg + 120, orders: update(cur.id, { st: st, pallets: cur.pallets.concat([['Now', 'BK-04-01-C', 120]]), events: ev, lineNote: st === 'over' ? '+' + (g2 - cur.plan) + ' EA, supervisor needed' : cur.lineNote }) });
+        flash(st === 'over' ? 'Over tolerance. Supervisor needed' : 'Ding! Pallet ' + n + ' in. ' + fmt(g2) + ' of ' + fmt(cur.plan) + ' EA');
+      },
+      approveOver: function () {
+        self.setState({ orders: update(cur.id, { st: 'complete', lineNote: 'closed with supervisor OK' }) });
+        flash('Ding! Supervisor accepted ' + cur.id);
+      },
+      issueRest: function () {
+        var comps = cur.comps.map(function (c) { return [c[0], c[1], c[3], c[3]]; });
+        var ev = cur.events.indexOf('production.components_issued → ERP') < 0 ? ['production.components_issued → ERP'].concat(cur.events) : cur.events;
+        self.setState({ orders: update(cur.id, { comps: comps, events: ev, st: cur.st === 'waiting' || cur.st === 'issuing' ? 'receiving' : cur.st }) });
+        flash('Ding! All parts sent to ' + lineCode);
+      },
+      closeOrder: function () {
+        if (closed) return;
+        self.setState({ orders: update(cur.id, { st: 'complete', lineNote: 'closed just now' }) });
+        flash('Ding! ' + cur.id + ' closed');
+      },
+      importCsv: function () {
+        if (s.csvDone) { flash('That CSV is already in'); return; }
+        var o = { id: 'PRD-1000459', sku: 'FG-920', name: 'Caliper kit', plan: 300, st: 'waiting', line: 'Line 2', lineNote: 'from CSV · due Tue', batch: 'B2610B', due: 'Tue 06:00', comps: [['RM-310', 'Caliper body', 0, 300], ['RM-320', 'Piston seal', 0, 600]], pallets: [], events: [] };
+        self.setState({ orders: s.orders.concat([o]), csvDone: true, pick: o.id, tab: 'all' });
+        flash('Ding! 1 production order imported');
+      },
+      createOrder: function () {
+        var id = 'PRD-' + s.nextNo;
+        var o = { id: id, sku: 'FG-900', name: 'Brake pad set', plan: 250, st: 'waiting', line: 'Line 3', lineNote: 'new', batch: 'B2610C', due: 'Wed 06:00', comps: [['RM-120', 'Backing plate', 0, 500], ['RM-131', 'Friction pad', 0, 500]], pallets: [], events: [] };
+        self.setState({ orders: s.orders.concat([o]), nextNo: s.nextNo + 1, pick: id, tab: 'all' });
+        flash('Ding! ' + id + ' created');
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

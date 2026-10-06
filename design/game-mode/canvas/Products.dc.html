@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS products panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Products" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Products</h1>
+        <div style="font-size: 13px; color: #5A6785;">Your inventory, like a game backpack. Tap one to see where it lives.</div>
+      </div>
+      <label style="flex: 0 1 260px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border: 1px solid #DDE5F5; border-radius: 12px; background: #F7F9FE; color: #5A6785; font-size: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Search products</span>
+        <input type="search" placeholder="Name or SKU" style="flex: 1; border: 0; background: transparent; font: inherit; color: #18233D; outline: none; min-width: 0;">
+      </label>
+      <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add product
+      </button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <sc-for list="{{filters}}" as="t" hint-placeholder-count="2">
+        <button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="{{t.countStyle}}">{{t.count}}</span></button>
+      </sc-for>
+      <button type="button" aria-pressed="{{multi}}" onClick="{{toggleMulti}}" style="{{multiStyle}}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 12 3 3 5-6"/></svg>{{multiLabel}}
+      </button>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; overflow: auto;">
+      <div style="flex: 999 1 420px; min-width: 0; padding: 18px 28px 120px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+          <sc-for list="{{tiles}}" as="p" hint-placeholder-count="10">
+            <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.on}}" aria-label="{{p.aria}}" style="{{p.tileStyle}}">
+              <sc-if value="{{p.showTick}}" hint-placeholder-val="{{ false }}">
+                <span style="{{p.tickStyle}}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+                </span>
+              </sc-if>
+              <span style="{{p.iconStyle}}">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+              </span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.25;">{{p.name}}</span>
+              <span style="font-size: 12px; color: #5A6785;">{{p.sku}}</span>
+              <span style="display: flex; align-items: baseline; justify-content: space-between; width: 100%;">
+                <span style="font-size: 20px; font-weight: 800;">{{p.qty}}</span>
+                <sc-if value="{{p.low}}" hint-placeholder-val="{{ false }}">
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #FDE2E0; color: #A3221A; font-size: 11px; font-weight: 800;">LOW</span>
+                </sc-if>
+              </span>
+              <span style="display: block; width: 100%; height: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="{{p.barStyle}}"></span></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <aside aria-label="Product details" style="flex: 1 1 300px; max-width: 360px; min-width: 0; padding: 18px 28px 120px 0; display: flex; flex-direction: column; gap: 14px;">
+        <div style="padding: 18px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="{{d.iconStyle}}">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+            </span>
+            <div style="min-width: 0;">
+              <div style="font-size: 18px; font-weight: 800;">{{d.name}}</div>
+              <div style="font-size: 12px; color: #5A6785;">{{d.sku}}</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785; margin-bottom: 8px;">WHERE IT IS</div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+              <div style="padding: 10px; border-radius: 12px; background: #D8E5FF;"><div style="font-size: 11px; font-weight: 800; color: #1F4FB0;">ARRIVING</div><div style="font-size: 18px; font-weight: 800;">{{d.arriving}}</div></div>
+              <div style="padding: 10px; border-radius: 12px; background: #D3EFE8;"><div style="font-size: 11px; font-weight: 800; color: #0F5F59;">STORED</div><div style="font-size: 18px; font-weight: 800;">{{d.stored}}</div></div>
+              <div style="padding: 10px; border-radius: 12px; background: #FDE6D2;"><div style="font-size: 11px; font-weight: 800; color: #8E4A0E;">LEAVING</div><div style="font-size: 18px; font-weight: 800;">{{d.leaving}}</div></div>
+            </div>
+          </div>
+
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+            Warn me when stock drops below
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" onClick="{{d.down}}" aria-label="Lower the warning level" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+              <span style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; display: grid; place-items: center; font-size: 16px; font-weight: 800;">{{d.reorder}} {{d.unit}}</span>
+              <button type="button" onClick="{{d.up}}" aria-label="Raise the warning level" style="width: 44px; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; cursor: pointer; display: grid; place-items: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+            </span>
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="Main.dc.html" style="height: 46px; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font-weight: 800; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z"/><circle cx="12" cy="11" r="2"/></svg>Show pallets on map
+            </a>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+              <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Edit details</button>
+              <button type="button" style="height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Print labels</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <sc-if value="{{anySel}}" hint-placeholder-val="{{ false }}">
+      <div role="region" aria-label="Selected products" style="position: absolute; left: 28px; right: 28px; bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 10px 10px 18px; border-radius: 16px; background: #18233D; color: #FFFFFF; box-shadow: 0 10px 30px rgba(24,35,61,.3);">
+        <span style="font-weight: 800; flex: 1; min-width: 140px;">{{selCount}} selected</span>
+        <button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #44507A; border-radius: 12px; background: transparent; color: #FFFFFF; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Print labels</button>
+        <button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #44507A; border-radius: 12px; background: transparent; color: #FFFFFF; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Export list</button>
+        <button type="button" onClick="{{bulkWarn}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Set warning level for all</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      filter: 'all', pick: 'GLV-L', multi: false, sel: {}, toast: '',
+      items: [
+        { sku: 'GLV-L', name: 'Safety gloves (L)', unit: 'pairs', a: 0, s: 120, l: 0, reorder: 80, c: ['#F6E6CC', '#8A5E26'] },
+        { sku: 'VST-HV', name: 'Hi-vis vests', unit: 'vests', a: 40, s: 18, l: 12, reorder: 50, c: ['#FFF0C2', '#8A6A00'] },
+        { sku: 'HAT-WH', name: 'Hard hats (white)', unit: 'hats', a: 0, s: 64, l: 8, reorder: 30, c: ['#EEF3FF', '#2148A8'] },
+        { sku: 'TPE-48', name: 'Packing tape 48 mm', unit: 'rolls', a: 0, s: 22, l: 0, reorder: 60, c: ['#E6EDFB', '#3A4A72'] },
+        { sku: 'BOX-LG', name: 'Cardboard boxes (large)', unit: 'boxes', a: 200, s: 340, l: 60, reorder: 150, c: ['#F6E6CC', '#8A5E26'] },
+        { sku: 'WRP-500', name: 'Pallet wrap 500 mm', unit: 'rolls', a: 0, s: 9, l: 3, reorder: 20, c: ['#D3EFE8', '#0F5F59'] },
+        { sku: 'EAR-200', name: 'Ear plugs (box of 200)', unit: 'boxes', a: 0, s: 35, l: 0, reorder: 10, c: ['#FDE6D2', '#8E4A0E'] },
+        { sku: 'TIE-300', name: 'Cable ties 300 mm', unit: 'packs', a: 15, s: 48, l: 0, reorder: 25, c: ['#EDE6FB', '#4B2E99'] },
+        { sku: 'BOOT-10', name: 'Work boots (size 10)', unit: 'pairs', a: 0, s: 6, l: 2, reorder: 12, c: ['#E9E3DC', '#5A4632'] },
+        { sku: 'AID-KIT', name: 'First aid kits', unit: 'kits', a: 10, s: 14, l: 4, reorder: 8, c: ['#FDE2E0', '#A3221A'] }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var total = function (p) { return p.a + p.s + p.l; };
+    var isLow = function (p) { return total(p) < p.reorder; };
+    var lowCount = s.items.filter(isLow).length;
+    var chip = function (on) {
+      return 'height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid ' + (on ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#18233D') + ';';
+    };
+    var cnt = function (on) { return 'min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + (on ? 'rgba(255,255,255,.22)' : '#EEF3FF') + '; color: ' + (on ? '#FFFFFF' : '#2148A8') + ';'; };
+    var filters = [['all', 'All', s.items.length], ['low', 'Running low', lowCount]].map(function (f) {
+      var on = s.filter === f[0];
+      return { label: f[1], count: f[2], on: on, style: chip(on), countStyle: cnt(on), pick: function () { self.setState({ filter: f[0] }); } };
+    });
+    var icon = function (c, size) { return 'width: ' + size + 'px; height: ' + size + 'px; flex: none; border-radius: 14px; display: grid; place-items: center; background: ' + c[0] + '; color: ' + c[1] + ';'; };
+    var max = 400;
+    var tiles = s.items.filter(function (p) { return s.filter === 'all' || isLow(p); }).map(function (p) {
+      var low = isLow(p), picked = s.multi ? !!s.sel[p.sku] : s.pick === p.sku;
+      var pct = Math.max(4, Math.min(100, Math.round(total(p) / max * 100)));
+      return {
+        name: p.name, sku: p.sku, qty: total(p) + ' ' + p.unit, low: low, on: picked,
+        aria: p.name + ', ' + total(p) + ' ' + p.unit + (low ? ', running low' : ''),
+        showTick: s.multi && picked,
+        tickStyle: 'position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 7px; background: #2F6FE4; display: grid; place-items: center;',
+        iconStyle: icon(p.c, 52),
+        barStyle: 'display: block; height: 100%; width: ' + pct + '%; border-radius: 999px; background: ' + (low ? '#D9443A' : '#2F6FE4') + ';',
+        tileStyle: 'position: relative; text-align: left; font: inherit; color: #18233D; cursor: pointer; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; background: ' + (picked ? '#F2F6FF' : '#FFFFFF') + '; border: 2px solid ' + (picked ? '#2F6FE4' : (low ? '#F2B8B3' : '#E6EDFB')) + '; box-shadow: ' + (picked ? '0 8px 20px rgba(47,111,228,.18)' : '0 2px 6px rgba(24,35,61,.04)') + ';',
+        pick: function () {
+          if (s.multi) { var n = Object.assign({}, s.sel); n[p.sku] = !n[p.sku]; self.setState({ sel: n }); }
+          else self.setState({ pick: p.sku });
+        }
+      };
+    });
+    var cur = s.items.filter(function (p) { return p.sku === s.pick; })[0];
+    var step = function (dir) {
+      return function () {
+        var items = s.items.map(function (p) { return p.sku === cur.sku ? Object.assign({}, p, { reorder: Math.max(0, p.reorder + dir * 5) }) : p; });
+        self.setState({ items: items });
+      };
+    };
+    var selCount = Object.keys(s.sel).filter(function (k) { return s.sel[k]; }).length;
+    return {
+      filters: filters, tiles: tiles,
+      multi: s.multi, multiLabel: s.multi ? 'Done selecting' : 'Select many',
+      multiStyle: chip(s.multi) + ' margin-left: auto;',
+      toggleMulti: function () { self.setState({ multi: !s.multi, sel: {} }); },
+      d: {
+        name: cur.name, sku: 'SKU ' + cur.sku, unit: cur.unit, reorder: cur.reorder,
+        arriving: cur.a, stored: cur.s, leaving: cur.l,
+        iconStyle: icon(cur.c, 48), up: step(1), down: step(-1)
+      },
+      anySel: s.multi && selCount > 0, selCount: selCount,
+      bulkWarn: function () {
+        self.setState({ toast: 'Warning levels updated for ' + selCount + ' product' + (selCount === 1 ? '' : 's') });
+        clearTimeout(self._t);
+        self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS users panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Users and devices" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">ACCESS</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Users and devices</h1>
+        <div style="font-size: 13px; color: #5A6785;">Who can play, what they can do, and which scanner they hold.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #4A5672;">
+        Warehouse
+        <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+          <option>BAL-WH01 · Ballarat</option>
+          <option>MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <button type="button" onClick="{{addScanner}}" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Register scanner</button>
+      <button type="button" onClick="{{addOperator}}" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Add operator</button>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; padding: 0 28px 14px;">
+      <div style="flex: 1 1 220px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: #EEF3FF;">
+        <span style="width: 34px; height: 34px; flex: none; border-radius: 10px; background: #2F6FE4; color: #FFFFFF; display: grid; place-items: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        </span>
+        <span style="font-size: 13px; color: #18233D;"><b>Managers, desktop:</b> sign in with Microsoft. No new password.</span>
+      </div>
+      <div style="flex: 1 1 220px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: #D3EFE8;">
+        <span style="width: 34px; height: 34px; flex: none; border-radius: 10px; background: #0F5F59; color: #FFFFFF; display: grid; place-items: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+        </span>
+        <span style="font-size: 13px; color: #0F3F3B;"><b>Scanner workers:</b> badge, or username + 4-digit PIN.</span>
+      </div>
+      <div style="flex: 1 1 220px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: #FFF0C2;">
+        <span style="width: 34px; height: 34px; flex: none; border-radius: 10px; background: #7A5C00; color: #FFFFFF; display: grid; place-items: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </span>
+        <span style="font-size: 13px; color: #4D3A00;"><b>5 wrong PINs</b> locks the account (a supervisor unlocks). Signed out after <b>8 hours</b>.</span>
+      </div>
+    </div>
+
+    <div role="tablist" aria-label="Users sections" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="{{t.countStyle}}">{{t.count}}</span></button>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1; overflow: auto; padding: 16px 28px 40px;">
+
+      <sc-if value="{{onPeople}}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start;">
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px;">
+              <thead>
+                <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                  <th style="padding: 10px 8px; font-weight: 800;">NAME</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">SIGNS IN WITH</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">ROLE</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">WAREHOUSE</th>
+                  <th style="padding: 10px 8px; font-weight: 800;">STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{people}}" as="p" hint-placeholder-count="7">
+                  <tr style="{{p.rowStyle}}">
+                    <td style="padding: 6px 8px;">
+                      <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.on}}" style="min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; color: #18233D; text-align: left; cursor: pointer;">
+                        <span style="display: block; font-weight: 800;">{{p.name}}</span>
+                        <span style="display: block; font-size: 12px; color: #5A6785;">{{p.code}}</span>
+                      </button>
+                    </td>
+                    <td style="padding: 6px 8px; color: #4A5672;">{{p.login}}</td>
+                    <td style="padding: 6px 8px; color: #4A5672;">{{p.roleText}}</td>
+                    <td style="padding: 6px 8px;">{{p.wh}}</td>
+                    <td style="padding: 6px 8px;"><span style="{{p.chip}}">{{p.status}}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <aside aria-label="Person detail" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; background: #FFFFFF; display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">{{d.kind}}</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 22px; font-weight: 800;">{{d.name}}</span>
+                <span style="{{d.chip}}">{{d.status}}</span>
+              </div>
+              <div style="font-size: 13px; color: #5A6785;">{{d.ids}}</div>
+            </div>
+
+            <sc-if value="{{d.locked}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: #FDE2E0; color: #A3221A;">
+                <span style="font-size: 13px; font-weight: 700;">Locked after 5 wrong PINs. Only a supervisor can unlock.</span>
+                <button type="button" onClick="{{unlock}}" style="height: 44px; border: 0; border-radius: 12px; background: #A3221A; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Unlock as supervisor</button>
+              </div>
+            </sc-if>
+
+            <div>
+              <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #5A6785; margin-bottom: 6px;">ROLES <span style="font-weight: 600; letter-spacing: 0;">(tap to switch on or off)</span></div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <sc-for list="{{d.roles}}" as="r" hint-placeholder-count="5">
+                  <button type="button" aria-pressed="{{r.on}}" onClick="{{r.flip}}" style="{{r.style}}">{{r.mark}} {{r.label}}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <dl style="margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; font-size: 13px;">
+              <div><dt style="color: #5A6785;">Login</dt><dd style="margin: 0; font-weight: 700;">{{d.loginLong}}</dd></div>
+              <div><dt style="color: #5A6785;">Known devices</dt><dd style="margin: 0; font-weight: 700;">{{d.devices}}</dd></div>
+              <div><dt style="color: #5A6785;">Idle logout</dt><dd style="margin: 0; font-weight: 700;">{{d.idle}}</dd></div>
+              <div><dt style="color: #5A6785;">Lockout</dt><dd style="margin: 0; font-weight: 700;">{{d.lockout}}</dd></div>
+            </dl>
+
+            <sc-if value="{{d.showShift}}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;"><span>Shift sign-in</span><span style="color: #4A5672;">{{d.shiftText}}</span></div>
+                <div role="progressbar" aria-label="Time used of the 8 hour sign-in" aria-valuemin="0" aria-valuemax="480" aria-valuenow="{{d.shiftMin}}" style="height: 10px; margin-top: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="{{d.shiftBar}}"></div></div>
+                <div style="font-size: 12px; color: #5A6785; margin-top: 4px;">Signed out automatically at 8 hours, one shift.</div>
+              </div>
+            </sc-if>
+
+            <div>
+              <div style="font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #5A6785; margin-bottom: 6px;">CAN OVERRIDE WITH SUPERVISOR BADGE</div>
+              <div style="border: 1px solid #E6EDFB; border-radius: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid #EEF2FA;"><span>Short ship</span><b>Yes</b></div>
+                <div style="display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid #EEF2FA;"><span>Stock adjustment</span><b>Yes</b></div>
+                <div style="display: flex; justify-content: space-between; padding: 9px 12px;"><span>Putaway to other shelf</span><span style="color: #5A6785;">No badge needed</span></div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button type="button" onClick="{{resetPin}}" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">{{d.resetLabel}}</button>
+              <button type="button" onClick="{{deactivate}}" style="flex: 1; height: 44px; border: 1px solid #E8B4AF; border-radius: 12px; background: #FFFFFF; color: #A3221A; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">{{d.deactLabel}}</button>
+            </div>
+          </aside>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{onScanners}}" hint-placeholder-val="{{ false }}">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                <th style="padding: 10px 8px; font-weight: 800;">DEVICE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">MODEL</th>
+                <th style="padding: 10px 8px; font-weight: 800;">WAREHOUSE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">LAST SEEN</th>
+                <th style="padding: 10px 8px; font-weight: 800;">STATUS</th>
+                <th style="padding: 10px 8px; font-weight: 800;">BATTERY</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{scanners}}" as="c" hint-placeholder-count="5">
+                <tr style="border-top: 1px solid #EEF2FA; height: 56px;">
+                  <td style="padding: 6px 8px; font-weight: 800;">{{c.id}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{c.model}}</td>
+                  <td style="padding: 6px 8px;">{{c.wh}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{c.seen}}</td>
+                  <td style="padding: 6px 8px;"><span style="{{c.chip}}">{{c.status}}</span></td>
+                  <td style="padding: 6px 8px;">
+                    <div role="progressbar" aria-label="{{c.battAria}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{c.batt}}" style="display: flex; align-items: center; gap: 8px;">
+                      <span style="width: 70px; height: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><span style="{{c.bar}}"></span></span>
+                      <span style="font-size: 12px; color: #4A5672;">{{c.batt}}%</span>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{onAudit}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: #4A5672;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          Audit log. Cannot be edited, only added to.
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; min-width: 700px; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; color: #5A6785; font-size: 12px; letter-spacing: 1px;">
+                <th style="padding: 10px 8px; font-weight: 800;">WHEN</th>
+                <th style="padding: 10px 8px; font-weight: 800;">WHO</th>
+                <th style="padding: 10px 8px; font-weight: 800;">DEVICE</th>
+                <th style="padding: 10px 8px; font-weight: 800;">ACTION</th>
+                <th style="padding: 10px 8px; font-weight: 800;">RESULT</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{audit}}" as="a" hint-placeholder-count="5">
+                <tr style="border-top: 1px solid #EEF2FA; height: 52px;">
+                  <td style="padding: 6px 8px; font-weight: 800;">{{a.when}}</td>
+                  <td style="padding: 6px 8px;">{{a.who}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{a.dev}}</td>
+                  <td style="padding: 6px 8px; color: #4A5672;">{{a.what}}</td>
+                  <td style="padding: 6px 8px;"><span style="{{a.chip}}">{{a.result}}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: 'people', pick: 'op-017', toast: '', extra: 0,
+      people: [
+        { id: 'adm-001', name: 'Alex R.', login: 'Microsoft', loginLong: 'Microsoft (desktop) · 2FA on', roles: ['Admin'], wh: 'All', status: 'active', devices: 'Desktop', shift: 0 },
+        { id: 'sup-004', name: 'Kim R.', login: 'Microsoft', loginLong: 'Microsoft (desktop)', roles: ['Supervisor'], wh: 'BAL', status: 'active', devices: 'Desktop, SCN-BAL-02', shift: 0 },
+        { id: 'op-017', name: 'Sam K.', badge: '0042', login: 'Badge or PIN', loginLong: 'Badge, or username + 4-digit PIN', roles: ['Picker', 'Packer'], wh: 'BAL', status: 'floor', devices: 'SCN-BAL-07, -08', shift: 190 },
+        { id: 'op-019', name: 'Priya N.', badge: '0047', login: 'Badge or PIN', loginLong: 'Badge, or username + 4-digit PIN', roles: ['Picker', 'Counter'], wh: 'BAL', status: 'floor', devices: 'SCN-BAL-03', shift: 410 },
+        { id: 'op-021', name: 'Jo M.', badge: '0051', login: 'Badge or PIN', loginLong: 'Badge, or username + 4-digit PIN', roles: ['Receiver', 'Replen'], wh: 'BAL', status: 'floor', devices: 'SCN-BAL-02', shift: 95 },
+        { id: 'op-022', name: 'Ben T.', badge: '0055', login: 'Badge or PIN', loginLong: 'Badge, or username + 4-digit PIN', roles: ['Picker'], wh: 'BAL', status: 'locked', devices: 'SCN-BAL-08', shift: 0 },
+        { id: 'op-009', name: 'Old account', login: '—', loginLong: '—', roles: ['Picker'], wh: 'MEL', status: 'off', devices: '—', shift: 0 }
+      ],
+      scanners: [
+        { id: 'SCN-BAL-02', model: 'Handheld scanner, 5 inch', wh: 'BAL', seen: 'now', who: 'Jo', batt: 72 },
+        { id: 'SCN-BAL-03', model: 'Handheld scanner, 5 inch', wh: 'BAL', seen: 'now', who: 'Priya', batt: 31 },
+        { id: 'SCN-BAL-07', model: 'Handheld scanner, 4 inch', wh: 'BAL', seen: 'now', who: 'Sam', batt: 88 },
+        { id: 'SCN-BAL-08', model: 'Handheld scanner, 4 inch', wh: 'BAL', seen: 'Fri', who: 'charging', batt: 54 },
+        { id: 'SCN-MEL-01', model: 'Handheld scanner, 5 inch', wh: 'MEL', seen: 'Fri', who: 'idle', batt: 100 }
+      ],
+      audit: [
+        { when: '09:31', who: 'Sam K.', dev: 'SCN-BAL-07', what: 'Short pick GHI789 on 0080012345 · reason: not found · supervisor Kim R. badge', result: 'ok' },
+        { when: '09:20', who: 'Kim R.', dev: 'Desktop', what: 'Approved count variance CNT-0411 · −1 EA', result: 'ok' },
+        { when: '08:57', who: 'op-022', dev: 'SCN-BAL-08', what: 'PIN wrong 5 times', result: 'locked' },
+        { when: '08:40', who: 'Alex R.', dev: 'Desktop', what: 'Rotated API key: Carrier A', result: 'ok' }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var chipCss = function (bg, ink) { return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: ' + bg + '; color: ' + ink + ';'; };
+    var ST = {
+      active: ['Active', '#E3F5EA', '#145A31'],
+      floor: ['On the floor', '#D8E5FF', '#1F4FB0'],
+      locked: ['Locked', '#FDE2E0', '#A3221A'],
+      off: ['Deactivated', '#E6EDFB', '#4A5672']
+    };
+    var flash = function (msg) {
+      self.setState({ toast: msg });
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+    };
+    var log = function (what, result, who) {
+      return [{ when: 'now', who: who || 'Kim R.', dev: 'Desktop', what: what, result: result || 'ok' }].concat(s.audit);
+    };
+    var setPerson = function (id, patch) {
+      return s.people.map(function (p) { return p.id === id ? Object.assign({}, p, patch) : p; });
+    };
+
+    var tabDefs = [['people', 'People', s.people.length], ['scanners', 'Registered scanners', s.scanners.length], ['audit', 'Audit log', s.audit.length]];
+    var tabs = tabDefs.map(function (t) {
+      var on = s.tab === t[0];
+      return {
+        label: t[1], count: t[2], on: on,
+        pick: function () { self.setState({ tab: t[0] }); },
+        style: 'height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: 1px solid ' + (on ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (on ? '#2F6FE4' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#18233D') + ';',
+        countStyle: 'min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + (on ? 'rgba(255,255,255,.22)' : '#EEF3FF') + '; color: ' + (on ? '#FFFFFF' : '#2148A8') + ';'
+      };
+    });
+
+    var people = s.people.map(function (p) {
+      var st = ST[p.status], on = p.id === s.pick;
+      return {
+        name: p.name, code: p.id + (p.badge ? ' · badge ' + p.badge : ''), login: p.login,
+        roleText: p.roles.join(', ') + (p.roles[0] === 'Admin' ? ' · 2FA on' : ''),
+        wh: p.wh, status: st[0], chip: chipCss(st[1], st[2]), on: on,
+        rowStyle: 'border-top: 1px solid #EEF2FA; background: ' + (on ? '#F2F6FF' : '#FFFFFF') + ';',
+        pick: function () { self.setState({ pick: p.id }); }
+      };
+    });
+
+    var cur = s.people.filter(function (p) { return p.id === s.pick; })[0] || s.people[0];
+    var isWorker = !!cur.badge;
+    var allRoles = cur.roles[0] === 'Admin' ? ['Admin', 'Supervisor'] : ['Picker', 'Packer', 'Receiver', 'Counter', 'Replen', 'Supervisor'];
+    var roles = allRoles.map(function (r) {
+      var has = cur.roles.indexOf(r) >= 0;
+      return {
+        label: r, on: has, mark: has ? '✓' : '+',
+        style: 'height: 36px; padding: 0 12px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid ' + (has ? '#2F6FE4' : '#DDE5F5') + '; background: ' + (has ? '#EEF3FF' : '#FFFFFF') + '; color: ' + (has ? '#2148A8' : '#5A6785') + ';',
+        flip: function () {
+          var next = has ? cur.roles.filter(function (x) { return x !== r; }) : cur.roles.concat([r]);
+          if (next.length === 0) { flash('Everyone needs at least one role'); return; }
+          self.setState({ people: setPerson(cur.id, { roles: next }), audit: log((has ? 'Removed role ' : 'Added role ') + r + ' for ' + cur.name) });
+        }
+      };
+    });
+    var cst = ST[cur.status];
+    var hrs = Math.floor(cur.shift / 60), mins = cur.shift % 60;
+    var d = {
+      kind: isWorker ? 'OPERATOR' : (cur.id.indexOf('adm') === 0 ? 'ADMIN' : (cur.id.indexOf('sup') === 0 ? 'SUPERVISOR' : 'ACCOUNT')),
+      name: cur.name, status: cst[0], chip: chipCss(cst[1], cst[2]),
+      ids: cur.id + (cur.badge ? ' · badge ' + cur.badge : '') + ' · ' + (cur.wh === 'All' ? 'All warehouses' : cur.wh + '-WH01'),
+      locked: cur.status === 'locked',
+      roles: roles, loginLong: cur.loginLong, devices: cur.devices,
+      idle: isWorker ? '15 min' : '30 min',
+      lockout: isWorker ? '5 wrong PINs' : 'Handled by Microsoft',
+      showShift: cur.status === 'floor',
+      shiftMin: cur.shift,
+      shiftText: hrs + ' h ' + mins + ' m of 8 h',
+      shiftBar: 'height: 100%; border-radius: 999px; width: ' + Math.round(cur.shift / 480 * 100) + '%; background: ' + (cur.shift > 420 ? '#D98A1C' : '#2F6FE4') + ';',
+      resetLabel: isWorker ? 'Reset PIN' : 'Reset access',
+      deactLabel: cur.status === 'off' ? 'Reactivate' : 'Deactivate'
+    };
+
+    var scanners = s.scanners.map(function (c) {
+      var z = c.who === 'charging' ? ['Charging', '#FFF0C2', '#7A5C00'] : (c.who === 'idle' ? ['Idle', '#E6EDFB', '#4A5672'] : ['In use · ' + c.who, '#D3EFE8', '#0F5F59']);
+      return {
+        id: c.id, model: c.model, wh: c.wh, seen: c.seen, status: z[0], chip: chipCss(z[1], z[2]), batt: c.batt,
+        battAria: 'Battery ' + c.batt + ' percent',
+        bar: 'display: block; height: 100%; border-radius: 999px; width: ' + c.batt + '%; background: ' + (c.batt < 35 ? '#D98A1C' : '#2BA36B') + ';'
+      };
+    });
+
+    var audit = s.audit.map(function (a) {
+      var r = a.result === 'locked' ? ['Locked out', '#FDE2E0', '#A3221A'] : ['Allowed', '#E3F5EA', '#145A31'];
+      return { when: a.when, who: a.who, dev: a.dev, what: a.what, result: r[0], chip: chipCss(r[1], r[2]) };
+    });
+
+    return {
+      tabs: tabs, onPeople: s.tab === 'people', onScanners: s.tab === 'scanners', onAudit: s.tab === 'audit',
+      people: people, d: d, scanners: scanners, audit: audit,
+      unlock: function () {
+        self.setState({ people: setPerson(cur.id, { status: 'active' }), audit: log('Unlocked ' + cur.name + ' (supervisor badge)') });
+        flash('Ding! ' + cur.name + ' is unlocked and picks a new PIN');
+      },
+      resetPin: function () {
+        self.setState({ audit: log((isWorker ? 'Reset PIN for ' : 'Reset access for ') + cur.name) });
+        flash(isWorker ? 'PIN reset. ' + cur.name + ' sets a new one at the scanner' : 'Access reset for ' + cur.name);
+      },
+      deactivate: function () {
+        var back = cur.status === 'off';
+        self.setState({ people: setPerson(cur.id, { status: back ? 'active' : 'off' }), audit: log((back ? 'Reactivated ' : 'Deactivated ') + cur.name) });
+        flash(back ? 'Ding! ' + cur.name + ' is back in the game' : cur.name + ' deactivated. History is kept');
+      },
+      addOperator: function () {
+        var n = s.extra + 1, id = 'op-0' + (30 + n);
+        var p = { id: id, name: 'New operator ' + n, badge: '00' + (60 + n), login: 'Badge or PIN', loginLong: 'Badge, or username + 4-digit PIN', roles: ['Picker'], wh: 'BAL', status: 'active', devices: '—', shift: 0 };
+        self.setState({ extra: n, people: s.people.concat([p]), pick: id, tab: 'people', audit: log('Added operator ' + id) });
+        flash('Ding! New player added. Pick their roles');
+      },
+      addScanner: function () {
+        var n = s.scanners.length + 4;
+        var c = { id: 'SCN-BAL-' + (n < 10 ? '0' + n : n), model: 'Handheld scanner, 5 inch', wh: 'BAL', seen: 'now', who: 'idle', batt: 100 };
+        self.setState({ scanners: s.scanners.concat([c]), tab: 'scanners', audit: log('Registered scanner ' + c.id) });
+        flash('Ding! ' + c.id + ' registered');
+      },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

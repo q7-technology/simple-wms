@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS task board panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Task board" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 220px;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #145A31;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #22A05A;" aria-hidden="true"></span>BALLARAT · LIVE</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Task board</h1>
+        <div style="font-size: 13px; color: #5A6785;">Every job in the shed, from waiting to done. Tap a card to hand it out.</div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #5A6785;">Warehouse
+        <select style="height: 44px; padding: 0 10px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+          <option>BAL-WH01 · Ballarat</option>
+          <option>MEL-WH01 · Melbourne</option>
+        </select>
+      </label>
+      <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #4A5672;"><span style="width: 32px; height: 32px; border-radius: 999px; background: #EEF3FF; color: #2148A8; display: grid; place-items: center; font-size: 12px; font-weight: 800;">LL</span>Supervisor</span>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <div role="tablist" aria-label="Task type" style="display: flex; flex-wrap: wrap; gap: 6px;">
+        
+          <button type="button" role="tab" aria-selected="true" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #2F6FE4; background: #2F6FE4; color: #FFFFFF;">All</button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Pick</button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Receive</button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Replenish</button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Count</button>
+        
+          <button type="button" role="tab" aria-selected="false" style="height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #DDE5F5; background: #FFFFFF; color: #18233D;">Production</button>
+        
+      </div>
+      <span style="flex: 1;"></span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; background: #E3F5EA; color: #145A31; font-size: 12px; font-weight: 800;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"></path></svg>4 operators on floor
+      </span>
+      <button type="button" disabled style="height: 44px; padding: 0 16px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; font: inherit; font-weight: 700; font-size: 14px; cursor: not-allowed; color: #5A6785;">Assign</button>
+      <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Create task
+      </button>
+    </div>
+
+    
+
+    
+
+    <div style="flex: 1; overflow: auto; padding: 16px 28px 40px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; align-items: start;">
+        
+          <section aria-label="WAITING" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; min-width: 0;">
+            <h2 style="margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: 1px;"><span style="width: 10px; height: 10px; border-radius: 999px; background: #2F6FE4;" aria-hidden="true"></span>WAITING<span style="min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 12px; background: #EEF3FF; color: #2148A8;">9</span></h2>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012347</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Wendouree Motor Spares · 2 lines · due 11:00</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012348 · batch B-15</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">3 orders · 14 lines · due 11:30</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Replenish</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Replenish REP-1003</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">JKL012 · 60 EA → PF-01-06-A</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Count</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Count CNT-0413</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">PF-01-03 to PF-01-08</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #F2C9A5; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D8E5FF; color: #1F4FB0;">Receive</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FFF0C2; color: #7A5C00;">Truck waiting</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Receive PO-88816</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Miners Rest Brake Supply · truck at dock 2</span>
+                </button>
+                
+                
+              </div>
+            
+            
+              <div style="font-size: 12px; font-weight: 700; color: #5A6785; padding: 2px 4px;">+4 more</div>
+            
+          </section>
+        
+          <section aria-label="IN PROGRESS" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; min-width: 0;">
+            <h2 style="margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: 1px;"><span style="width: 10px; height: 10px; border-radius: 999px; background: #E08A2E;" aria-hidden="true"></span>IN PROGRESS<span style="min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 12px; background: #EEF3FF; color: #2148A8;">6</span></h2>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012345</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Sam · line 3 of 4 · 29 min</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 75%;"></div></div>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012346 · batch B-14</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Priya · 8 of 12 lines · 41 min</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 67%;"></div></div>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #F2C9A5; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D8E5FF; color: #1F4FB0;">Receive</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FFF0C2; color: #7A5C00;">Running long</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Receive PO-88815</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Jo · line 2 of 5 · 1 h 10 min</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 40%;"></div></div>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Replenish</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Replenish REP-1001</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Jo · queued behind receipt</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 0%;"></div></div>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E6EDFB; color: #2148A8;">Production</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Production receipt PRD-1000456</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Sam · 240 of 500 · pallet 3</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 48%;"></div></div>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E6EDFB; color: #2148A8;">Production</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Issue PRD-1000457</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Priya · 1 of 3 components</span>
+                </button>
+                
+                  <div style="height: 6px; margin-top: 8px; border-radius: 999px; background: #E6EDFB; overflow: hidden;" aria-hidden="true"><div style="height: 100%; border-radius: 999px; background: #2F6FE4; width: 33%;"></div></div>
+                
+                
+              </div>
+            
+            
+          </section>
+        
+          <section aria-label="NEEDS A SUPERVISOR" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; min-width: 0;">
+            <h2 style="margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: 1px;"><span style="width: 10px; height: 10px; border-radius: 999px; background: #C9372C;" aria-hidden="true"></span>NEEDS A SUPERVISOR<span style="min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 12px; background: #EEF3FF; color: #2148A8;">3</span></h2>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #F2C9A5; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE2E0; color: #A3221A;">Short</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Short pick · 0080012345 line 30</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">4 EA GHI789 not found · approve or recount</span>
+                </button>
+                
+                
+                  <div style="display: flex; gap: 6px; margin-top: 10px;">
+                    <button type="button" style="flex: 1; height: 44px; border: 0; border-radius: 10px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 13px; cursor: pointer;">Approve short</button>
+                    <button type="button" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 10px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;">Recount</button>
+                  </div>
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #F2C9A5; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E6EDFB; color: #2148A8;">Production</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE2E0; color: #A3221A;">Over</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Over tolerance · PRD-1000452</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">+12 EA above order · accept?</span>
+                </button>
+                
+                
+                  <div style="display: flex; gap: 6px; margin-top: 10px;">
+                    <button type="button" style="flex: 1; height: 44px; border: 0; border-radius: 10px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 13px; cursor: pointer;">Accept</button>
+                    <button type="button" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 10px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;">Recount</button>
+                  </div>
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #F2C9A5; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Count</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE2E0; color: #A3221A;">Variance</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Variance · CNT-0412</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">−2 EA at PF-01-02-A</span>
+                </button>
+                
+                
+                  <div style="display: flex; gap: 6px; margin-top: 10px;">
+                    <button type="button" style="flex: 1; height: 44px; border: 0; border-radius: 10px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 13px; cursor: pointer;">Accept count</button>
+                    <button type="button" style="flex: 1; height: 44px; border: 1px solid #CFDAF2; border-radius: 10px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;">Recount</button>
+                  </div>
+                
+              </div>
+            
+            
+          </section>
+        
+          <section aria-label="DONE TODAY" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 18px; background: #F7F9FE; border: 1px solid #E6EDFB; min-width: 0;">
+            <h2 style="margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: 1px;"><span style="width: 10px; height: 10px; border-radius: 999px; background: #22A05A;" aria-hidden="true"></span>DONE TODAY<span style="min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 12px; background: #EEF3FF; color: #2148A8;">31</span></h2>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E3F5EA; color: #145A31;">Done</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012340</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Sam · shipped 08:52 · short 1</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E3F5EA; color: #145A31;">Done</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012338</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Jo · packed 08:40</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #FDE6D2; color: #8E4A0E;">Pick</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E3F5EA; color: #145A31;">Done</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Pick 0080012336</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Jo · shipped 08:10</span>
+                </button>
+                
+                
+              </div>
+            
+              <div style="padding: 12px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E6EDFB; box-shadow: none;">
+                <button type="button" aria-pressed="false" style="display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;"><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #D3EFE8; color: #0F5F59;">Replenish</span><span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #E3F5EA; color: #145A31;">Done</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 800;">Replenish REP-0998</span>
+                  <span style="display: block; font-size: 12px; color: #4A5672; margin-top: 2px;">Jo · 07:50</span>
+                </button>
+                
+                
+              </div>
+            
+            
+              <div style="font-size: 12px; font-weight: 700; color: #5A6785; padding: 2px 4px;">+27 more</div>
+            
+          </section>
+        
+      </div>
+    </div>
+
+    
+  </section>
+</div>
+</body>
+</html>

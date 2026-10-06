@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple WMS all panels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="warehouse.svg" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="All panels" style="position: absolute; top: 0; right: 0; bottom: 0; width: 64%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">All panels</h1>
+        <div style="font-size: 13px; color: #5A6785;">Every part of the warehouse, like the main menu in a game.</div>
+      </div>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 22px;">
+      
+        <section style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">GOING OUT</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            
+              <a href="Orders.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #E07A1F;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Orders</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Every delivery waiting to go</span>
+                </span>
+                
+              </a>
+            
+              <a href="DeliveryDetail.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #E07A1F;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Delivery detail</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">One order, line by line</span>
+                </span>
+                
+              </a>
+            
+              <a href="BatchPick.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #E07A1F;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Batch pick builder</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">One walk for many orders</span>
+                </span>
+                
+              </a>
+            
+              <a href="TaskBoard.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #E07A1F;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Task board</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Who is doing what right now</span>
+                </span>
+                
+              </a>
+            
+          </div>
+        </section>
+      
+        <section style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">COMING IN</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            
+              <a href="Receiving.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #2F6FE4;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Receiving</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Trucks and pallets arriving</span>
+                </span>
+                
+              </a>
+            
+              <a href="Production.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #2F6FE4;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Production</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Parts to the line, pallets back</span>
+                </span>
+                
+              </a>
+            
+              <a href="Transfers.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #2F6FE4;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Transfers</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Stock moving between sites</span>
+                </span>
+                
+              </a>
+            
+          </div>
+        </section>
+      
+        <section style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">IN THE WAREHOUSE</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            
+              <a href="Stock.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #1F8A84;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Stock lookup</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Where is it, what is here</span>
+                </span>
+                
+              </a>
+            
+              <a href="Products.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #1F8A84;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Products</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Your inventory backpack</span>
+                </span>
+                
+              </a>
+            
+              <a href="Replenishment.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #1F8A84;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Top-ups and counts</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Refill shelves, count stock</span>
+                </span>
+                
+              </a>
+            
+              <a href="Locations.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #1F8A84;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Locations</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Every shelf and its rules</span>
+                </span>
+                
+              </a>
+            
+              <a href="Containers.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #1F8A84;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Containers</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Pallets, cartons and totes</span>
+                </span>
+                
+                  <span style="padding: 3px 8px; border-radius: 999px; background: #FFF0C2; color: #7A5C00; font-size: 11px; font-weight: 800;">LATER</span>
+                
+              </a>
+            
+          </div>
+        </section>
+      
+        <section style="display: flex; flex-direction: column; gap: 10px;">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">SCORES AND SETUP</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            
+              <a href="Reports.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Reports</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Your scoreboard</span>
+                </span>
+                
+              </a>
+            
+              <a href="Users.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Users and devices</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">People, scanners, history</span>
+                </span>
+                
+              </a>
+            
+              <a href="Integrations.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Integrations and printing</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Messages out, labels printed</span>
+                </span>
+                
+              </a>
+            
+              <a href="ImportExport.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Import and export</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Bring in a CSV file</span>
+                </span>
+                
+              </a>
+            
+              <a href="Owners.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Owners</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Stock for other businesses</span>
+                </span>
+                
+                  <span style="padding: 3px 8px; border-radius: 999px; background: #FFF0C2; color: #7A5C00; font-size: 11px; font-weight: 800;">LATER</span>
+                
+              </a>
+            
+              <a href="Settings.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 14px; border-radius: 14px; border: 1px solid #E6EDFB; background: #FFFFFF; text-decoration: none; box-shadow: 0 2px 6px rgba(24,35,61,.04);">
+                <span style="width: 12px; height: 12px; flex: none; border-radius: 4px; background: #5A6785;"></span>
+                <span style="flex: 1; min-width: 0;">
+                  <span style="display: block; font-size: 15px; font-weight: 800; color: #18233D;">Settings</span>
+                  <span style="display: block; font-size: 12px; color: #5A6785;">Sounds, weather, goals</span>
+                </span>
+                
+              </a>
+            
+          </div>
+        </section>
+      
+    </div>
+  </section>
+</div>
+</body>
+</html>

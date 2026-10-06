@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS reports panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Reports" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <div style="flex: 1; min-width: 180px;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">Reports</h1>
+        <div style="font-size: 13px; color: #5A6785;">Your scoreboard. How the warehouse is doing.</div>
+      </div>
+      <div role="group" aria-label="Time range" style="display: flex; gap: 6px; padding: 4px; border-radius: 999px; background: #F3F6FD;">
+        <sc-for list="{{ranges}}" as="r" hint-placeholder-count="2">
+          <button type="button" aria-pressed="{{r.on}}" onClick="{{r.pick}}" style="{{r.style}}">{{r.label}}</button>
+        </sc-for>
+      </div>
+      <button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #CFDAF2; border-radius: 12px; background: #FFFFFF; color: #18233D; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download
+      </button>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 18px;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">ORDERS SHIPPED</div>
+          <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">{{total}}</div>
+          <div style="font-size: 13px; color: #17663A; font-weight: 700;">{{totalNote}}</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">ON TIME</div>
+          <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">{{onTime}}</div>
+          <div style="font-size: 13px; color: #4A5672;">left before the truck's due time</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">GOALS HIT</div>
+          <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">{{goalsHit}}</div>
+          <div style="font-size: 13px; color: #4A5672;">days you beat the daily goal</div>
+        </div>
+        <div style="padding: 16px; border-radius: 16px; border: 1px solid #E6EDFB;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.2px; color: #5A6785;">BEST STREAK</div>
+          <div style="font-size: 32px; font-weight: 800; margin-top: 4px;">{{streak}}</div>
+          <div style="font-size: 13px; color: #4A5672;">on-time days in a row</div>
+        </div>
+      </div>
+
+      <section aria-label="Orders shipped each day" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 800;">Orders shipped each day</h2>
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4A5672;"><span style="width: 22px; border-top: 2px dashed #5A6785;"></span>Daily goal</span>
+        </div>
+        <div style="position: relative; height: 220px; display: flex; align-items: flex-end; gap: 4px; padding-top: 30px; border-bottom: 1px solid #CFDAF2;">
+          <div style="{{goalLineStyle}}"></div>
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+            <button type="button" onMouseEnter="{{b.hover}}" onFocus="{{b.hover}}" onMouseLeave="{{unhover}}" onBlur="{{unhover}}" aria-label="{{b.aria}}" style="flex: 1; height: 100%; min-width: 0; padding: 0; border: 0; background: transparent; cursor: default; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative;">
+              <sc-if value="{{b.showTip}}" hint-placeholder-val="{{ false }}">
+                <span style="{{b.tipStyle}}">{{b.tip}}</span>
+              </sc-if>
+              <span style="{{b.barStyle}}"></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 4px; font-size: 11px; color: #5A6785;">
+          <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+            <span style="flex: 1; min-width: 0; text-align: center; overflow: hidden; white-space: nowrap;">{{b.label}}</span>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 18px;">
+        <section aria-label="Where pallets spend their time" style="flex: 999 1 380px; min-width: 0; padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 800;">Where a pallet spends its time</h2>
+          <div style="font-size: 13px; color: #4A5672;">On average, from the truck dropping it off to the truck taking it away: <b style="color: #18233D;">2.5 days</b>.</div>
+          <div style="display: flex; height: 28px; gap: 2px; border-radius: 8px; overflow: hidden;">
+            <span style="width: 16%; background: #2F6FE4;"></span>
+            <span style="width: 72%; background: #1F8A84;"></span>
+            <span style="width: 12%; background: #E07A1F;"></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 13px;">
+            <div style="display: flex; gap: 8px;"><span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 3px; background: #2F6FE4; flex: none;"></span><span><b>Arriving</b><br>0.4 days</span></div>
+            <div style="display: flex; gap: 8px;"><span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 3px; background: #1F8A84; flex: none;"></span><span><b>Stored</b><br>1.8 days</span></div>
+            <div style="display: flex; gap: 8px;"><span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 3px; background: #E07A1F; flex: none;"></span><span><b>Leaving</b><br>0.3 days</span></div>
+          </div>
+        </section>
+
+        <section aria-label="Trophy case" style="flex: 1 1 300px; min-width: 0; padding: 18px; border-radius: 18px; background: #18233D; color: #FFFFFF; display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 800;">Trophy case</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+            <sc-for list="{{badges}}" as="g" hint-placeholder-count="6">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;">
+                <span style="{{g.ring}}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/></svg>
+                </span>
+                <span style="{{g.textStyle}}">{{g.name}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size: 12px; color: #B8C3DE;">Next up: ship 500 orders to unlock <b style="color: #FFFFFF;">Big Mover</b>.</div>
+        </section>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { range: 'week', hover: -1 };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var goal = 45;
+    var week = [['Mon', 38], ['Tue', 47], ['Wed', 44], ['Thu', 51], ['Fri', 46]];
+    var month = [];
+    var vals = [36, 41, 39, 44, 40, 42, 45, 38, 47, 43, 41, 46, 44, 49, 42, 38, 47, 44, 51, 46];
+    var days = ['M', 'T', 'W', 'T', 'F'];
+    for (var i = 0; i < vals.length; i++) month.push([days[i % 5], vals[i]]);
+    var data = s.range === 'week' ? week : month;
+    var max = 60;
+    var tot = data.reduce(function (a, d) { return a + d[1]; }, 0);
+    var hit = data.filter(function (d) { return d[1] >= goal; }).length;
+    var ranges = [['week', 'This week'], ['month', 'Last 4 weeks']].map(function (r) {
+      var on = s.range === r[0];
+      return {
+        label: r[1], on: on, pick: function () { self.setState({ range: r[0], hover: -1 }); },
+        style: 'height: 36px; padding: 0 14px; border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; background: ' + (on ? '#FFFFFF' : 'transparent') + '; color: ' + (on ? '#18233D' : '#4A5672') + '; box-shadow: ' + (on ? '0 2px 6px rgba(24,35,61,.12)' : 'none') + ';'
+      };
+    });
+    var bars = data.map(function (d, i) {
+      var h = Math.round(d[1] / max * 100);
+      var hov = s.hover === i;
+      var beat = d[1] >= goal;
+      return {
+        label: d[0], showTip: hov,
+        tip: d[1] + ' orders' + (beat ? ' · goal hit' : ''),
+        aria: d[0] + ': ' + d[1] + ' orders shipped' + (beat ? ', goal hit' : ''),
+        hover: function () { self.setState({ hover: i }); },
+        tipStyle: 'position: absolute; bottom: calc(' + h + '% + 8px); left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 8px; background: #18233D; color: #FFFFFF; font-size: 12px; font-weight: 700; white-space: nowrap; z-index: 2;',
+        barStyle: 'display: block; width: 100%; max-width: 56px; height: ' + h + '%; border-radius: 4px 4px 0 0; background: ' + (hov ? '#1E4FB8' : '#2F6FE4') + ';'
+      };
+    });
+    var earned = ['Clean Dock', 'On-time Week', 'First 100'];
+    var locked = ['Big Mover', 'Zero Late', 'Speedy Stock'];
+    var badges = earned.map(function (n) {
+      return { name: n, ring: 'width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #F7C247; color: #5A3D00;', textStyle: 'font-size: 12px; font-weight: 700; color: #FFFFFF;' };
+    }).concat(locked.map(function (n) {
+      return { name: n, ring: 'width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: transparent; border: 2px dashed #44507A; color: #6F7BA0;', textStyle: 'font-size: 12px; font-weight: 700; color: #B8C3DE;' };
+    }));
+    return {
+      ranges: ranges, bars: bars,
+      unhover: function () { self.setState({ hover: -1 }); },
+      goalLineStyle: 'position: absolute; left: 0; right: 0; bottom: ' + (goal / max * 190) + 'px; border-top: 2px dashed #5A6785; pointer-events: none; z-index: 1;',
+      total: tot, totalNote: s.range === 'week' ? 'up 12 on last week' : 'up 38 on the 4 weeks before',
+      onTime: s.range === 'week' ? '97%' : '96%',
+      goalsHit: hit + ' of ' + data.length,
+      streak: s.range === 'week' ? '6 days' : '9 days',
+      badges: badges
+    };
+  }
+}
+</script>
+</body>
+</html>

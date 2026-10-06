@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simple WMS print template panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F6FD}
+a{color:#2557C9}a:hover{color:#1A3F99}
+@media (max-width: 960px){
+.drawer{position:static !important;width:auto !important;border-radius:0 !important}
+.dim{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Manrope, system-ui, sans-serif; color: #18233D; background: #F3F6FD; position: relative; overflow: hidden;">
+
+  <div class="dim" aria-hidden="true" style="position: absolute; inset: 0;">
+    <img src="/_blob/da4428b0458976bb60e501687b333de2" alt="" style="display: block; width: 100%; max-width: 1540px; height: auto; margin: 0 auto; filter: blur(2px);">
+    <div style="position: absolute; inset: 0; background: rgba(24,35,61,.38);"></div>
+  </div>
+
+  <section class="drawer" aria-label="Print point" style="position: absolute; top: 0; right: 0; bottom: 0; width: 72%; min-width: 0; background: #FFFFFF; border-radius: 24px 0 0 24px; box-shadow: -20px 0 50px rgba(24,35,61,.25); display: flex; flex-direction: column;">
+
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px 28px 14px; border-bottom: 1px solid #E6EDFB;">
+      <a href="Main.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; border-radius: 12px; background: #F3F6FD; color: #18233D; display: grid; place-items: center; text-decoration: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </a>
+      <a href="Integrations.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: 12px; background: #EEF3FF; color: #2148A8; font-size: 13px; font-weight: 700; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Integrations
+      </a>
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #2F6FE4;">PRINT POINT</div>
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;">{{title}}</h1>
+        <div style="font-size: 13px; color: #5A6785;">Pick when it prints, what label, and which printer. Platen draws it.</div>
+      </div>
+      <button type="button" onClick="{{sendTest}}" style="height: 44px; padding: 0 14px; border: 1px solid #E9C46A; border-radius: 12px; background: #FFF0C2; color: #7A5C00; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;">Send a test</button>
+      <button type="button" onClick="{{save}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #2F6FE4; color: #FFFFFF; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer;">Save</button>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 20px 28px 40px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: start;">
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <section aria-labelledby="when-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="when-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">1</span>When</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Event
+              <select onChange="{{setEvent}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                <sc-for list="{{events}}" as="o" hint-placeholder-count="5">
+                  <option value="{{o.v}}" selected="{{o.sel}}">{{o.label}}</option>
+                </sc-for>
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Warehouse
+              <select style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                <option>BAL-WH01</option>
+                <option>MEL-WH01</option>
+                <option>All</option>
+              </select>
+            </label>
+            <div style="display: flex; align-items: center; gap: 12px; padding-top: 6px; border-top: 1px solid #F0F3FA;">
+              <span style="flex: 1;">
+                <span style="display: block; font-weight: 800; font-size: 15px;">Enabled</span>
+                <span style="display: block; font-size: 13px; color: #5A6785;">{{enabledHint}}</span>
+              </span>
+              <button type="button" role="switch" aria-checked="{{enabled}}" aria-label="Enabled" onClick="{{flipEnabled}}" style="{{track}}"><span style="{{knob}}"></span></button>
+            </div>
+          </section>
+
+          <section aria-labelledby="what-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="what-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">2</span>What</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Template name (in Platen)
+              <input type="text" value="{{template}}" onInput="{{setTemplate}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Version
+              <input type="text" value="{{version}}" onInput="{{setVersion}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Copies
+              <select onChange="{{setCopies}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                <sc-for list="{{copyOpts}}" as="o" hint-placeholder-count="3">
+                  <option value="{{o.v}}" selected="{{o.sel}}">{{o.label}}</option>
+                </sc-for>
+              </select>
+            </label>
+          </section>
+
+          <section aria-labelledby="where-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="where-h" style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2F6FE4; color: #FFFFFF; font-size: 13px; display: grid; place-items: center;">3</span>Where</h2>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700;">
+              Printer
+              <select onChange="{{setPrinter}}" style="height: 44px; padding: 0 12px; border: 1px solid #CFDAF2; border-radius: 12px; font: inherit; font-size: 14px; color: #18233D; background: #FFFFFF;">
+                <sc-for list="{{printers}}" as="o" hint-placeholder-count="5">
+                  <option value="{{o.v}}" selected="{{o.sel}}">{{o.label}}</option>
+                </sc-for>
+              </select>
+              <span style="font-weight: 500; color: #5A6785;">Printer names come from Platen.</span>
+            </label>
+          </section>
+        </div>
+
+        <section aria-labelledby="data-h" style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+          <h2 id="data-h" style="margin: 0; font-size: 17px; font-weight: 800;">Data sent to Platen</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: #5A6785;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #E6EDFB; color: #2148A8;">Fixed shape</span>
+            Same fields every time, so the label never breaks.
+          </div>
+          <pre style="margin: 0; padding: 18px; border-radius: 18px; background: #18233D; color: #E6EDFB; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre;">{{json}}</pre>
+        </section>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <section aria-labelledby="jobs-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 10px;">
+            <h2 id="jobs-h" style="margin: 0; font-size: 17px; font-weight: 800;">Recent jobs</h2>
+            <div role="progressbar" aria-label="Labels printed today" aria-valuemin="0" aria-valuemax="{{jobTotal}}" aria-valuenow="{{jobDone}}">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;"><span>Printed today</span><span style="color: #4A5672;">{{jobDone}} of {{jobTotal}}</span></div>
+              <div style="height: 10px; margin-top: 6px; border-radius: 999px; background: #E6EDFB; overflow: hidden;"><div style="{{jobBar}}"></div></div>
+            </div>
+            <div style="border: 1px solid #E6EDFB; border-radius: 12px; font-size: 13px;">
+              <sc-for list="{{jobs}}" as="j" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid #EEF2FA;">
+                  <span style="font-weight: 700;">{{j.ref}}</span>
+                  <span style="{{j.chip}}">{{j.status}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section aria-labelledby="fields-h" style="padding: 18px; border-radius: 18px; border: 1px solid #E6EDFB; display: flex; flex-direction: column; gap: 10px;">
+            <h2 id="fields-h" style="margin: 0; font-size: 17px; font-weight: 800;">Fields Platen may use</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <sc-for list="{{fields}}" as="f" hint-placeholder-count="9">
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; background: #EEF3FF; color: #2148A8;">{{f.name}}</span>
+              </sc-for>
+            </div>
+            <div style="display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #FFF0C2; color: #4D3A00; font-size: 13px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span>Adding a field here is a new version. Old versions keep working.</span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{toastOn}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="position: absolute; top: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 999px; background: #18233D; color: #FFFFFF; font-weight: 800; font-size: 14px; box-shadow: 0 10px 30px rgba(24,35,61,.25); white-space: nowrap;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7CDB9E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>{{toast}}
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      event: 'delivery.packed', enabled: true, template: 'carton-label', version: 'v3',
+      copies: 'carton1', printer: 'packing-bench-2', toast: '', tests: 0,
+      jobs: [
+        { ref: '0080012338 · carton 1', status: 'printed', time: '08:40' },
+        { ref: '0080012340 · carton 1', status: 'printed', time: '08:52' },
+        { ref: '0080012340 · carton 2', status: 'printed', time: '08:52' },
+        { ref: '0080012345 · carton 1', status: 'waiting', time: '' }
+      ]
+    };
+  }
+  renderVals() {
+    var s = this.state, self = this;
+    var chipCss = function (bg, ink) { return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: ' + bg + '; color: ' + ink + ';'; };
+    var flash = function (msg) {
+      self.setState({ toast: msg });
+      clearTimeout(self._t);
+      self._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200);
+    };
+    var opts = function (list, cur) { return list.map(function (o) { return { v: o[0], label: o[1], sel: o[0] === cur }; }); };
+    var EV = [['delivery.packed', 'delivery.packed · order packed'], ['receipt.confirmed', 'receipt.confirmed · truck unloaded (Arriving)'], ['production.received', 'production.received · pallet off the line'], ['delivery.allocated', 'delivery.allocated · order given stock'], ['transfer.shipped', 'transfer.shipped · transfer Leaving']];
+    var CP = [['carton1', '1 per carton', 1], ['delivery1', '1 per delivery', 1], ['carton2', '2 per carton', 2]];
+    var PR = [['packing-bench-2', 'Packing bench 2'], ['packing-bench-1', 'Packing bench 1'], ['receiving-dock', 'Receiving dock'], ['line-3', 'Line 3 label printer'], ['office', 'Office']];
+    var copiesNum = CP.filter(function (c) { return c[0] === s.copies; })[0][2];
+
+    var json = JSON.stringify({
+      job_id: 'uuid', template: s.template, version: s.version, printer: s.printer, copies: copiesNum,
+      reference: { type: 'delivery', ref: '0080012345', package_no: 1 },
+      data: {
+        ship_to: { name: 'Ridgeline Hardware', address: '12 Example St', suburb: 'Geelong', state: 'VIC', postcode: '3220' },
+        delivery_ref: '0080012345', package_no: 1, package_count: 2, weight_kg: 8.4,
+        carrier: null, tracking_no: null, sscc: null,
+        lines: [{ sku: 'ABC123', qty: 10, uom: 'EA' }]
+      }
+    }, null, 2);
+
+    var jobs = s.jobs.map(function (j) {
+      var st = j.status === 'printed' ? ['Printed ' + j.time, '#E3F5EA', '#145A31'] : (j.status === 'test' ? ['Test ' + j.time, '#D8E5FF', '#1F4FB0'] : ['Waiting · not packed', '#FFF0C2', '#7A5C00']);
+      return { ref: j.ref, status: st[0], chip: chipCss(st[1], st[2]) };
+    });
+    var done = s.jobs.filter(function (j) { return j.status !== 'waiting'; }).length;
+
+    return {
+      title: s.template + ' ' + s.version + ' · ' + s.event,
+      events: opts(EV, s.event), copyOpts: opts(CP, s.copies), printers: opts(PR, s.printer),
+      setEvent: function (e) { self.setState({ event: e.target.value }); },
+      setCopies: function (e) { self.setState({ copies: e.target.value }); },
+      setPrinter: function (e) { self.setState({ printer: e.target.value }); },
+      setTemplate: function (e) { self.setState({ template: e.target.value }); },
+      setVersion: function (e) { self.setState({ version: e.target.value }); },
+      template: s.template, version: s.version,
+      enabled: s.enabled, enabledHint: s.enabled ? 'Fires on every event' : 'Switched off. Nothing prints',
+      flipEnabled: function () { self.setState({ enabled: !s.enabled }); },
+      track: 'position: relative; width: 56px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: ' + (s.enabled ? '#2F6FE4' : '#B9C4DC') + ';',
+      knob: 'position: absolute; top: 4px; left: ' + (s.enabled ? '28px' : '4px') + '; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,.25);',
+      json: json, jobs: jobs, jobDone: done, jobTotal: s.jobs.length,
+      jobBar: 'height: 100%; border-radius: 999px; background: #2BA36B; width: ' + Math.round(done / s.jobs.length * 100) + '%;',
+      fields: ['ship_to', 'delivery_ref', 'package_no', 'package_count', 'weight_kg', 'carrier', 'tracking_no', 'sscc', 'lines[]'].map(function (n) { return { name: n }; }),
+      sendTest: function () {
+        var n = s.tests + 1;
+        self.setState({ tests: n, jobs: [{ ref: 'TEST-' + n + ' · ' + s.template + ' ' + s.version, status: 'test', time: 'now' }].concat(s.jobs) });
+        flash('Ding! Test label sent to ' + PR.filter(function (p) { return p[0] === s.printer; })[0][1]);
+      },
+      save: function () { flash(s.enabled ? 'Ding! Print point saved' : 'Saved. This print point is off'); },
+      toastOn: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
