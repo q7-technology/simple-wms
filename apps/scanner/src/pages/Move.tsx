@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import type { ScanResult, StockAtShelf, StockLine } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty } from "../lib/format";
-import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
   OfflineBanner, ScanInput, WrongScan, allowsDecimals, describeError, firstName, sameCode, siteOf, useScanStep, type Expecting,
 } from "./task-shared";
@@ -110,6 +110,7 @@ export function Move() {
         label: `Move ${fmtQty(qty, product.uom)} ${product.sku} · ${from} → ${to}`,
       });
       if (item.status === "failed") { setError(describeError(item)); return; }
+      ding(`Moved ${fmtQty(qty, product.uom)} ${product.sku}`);
       setOk(item.status === "sent" ? `Moved ${fmtQty(qty, product.uom)} to ${to}` : `Move of ${fmtQty(qty, product.uom)} to ${to} queued · will send when back`);
       reset();
     } finally {
@@ -134,7 +135,7 @@ export function Move() {
                 <span className="text-xs leading-4 text-muted">On this shelf · tap or scan the one to move</span>
                 {here.stock.map((l) => (
                   <Button key={`${l.sku}|${l.batch ?? ""}`} variant="quiet" className="text-left flex items-center justify-between gap-3" onClick={() => { setProduct(l); setQty(l.available); }}>
-                    <span className="truncate"><span className="font-semibold">{l.sku}</span> <span className="text-muted">{l.name}</span></span>
+                    <span className="truncate"><span className="font-extrabold">{l.sku}</span> <span className="text-muted">{l.name}</span></span>
                     <span className="text-muted text-sm shrink-0">{fmtQty(l.on_hand, l.uom)}{l.batch ? ` · ${l.batch}` : ""}</span>
                   </Button>
                 ))}
@@ -152,12 +153,12 @@ export function Move() {
                   <QtyStepper label="Quantity" value={qty} onChange={setQty} decimals={allowsDecimals(product.uom)} />
                   <span className="text-xs leading-4 text-muted">{onHand}</span>
                 </div>
-                <BigLocation eyebrow="To" code={to ?? "—"} hint="Scan the destination shelf" hint2="Mixed-product shelves are allowed here" />
+                <BigLocation eyebrow="To" code={to ?? "—"} tone="go" hint="Scan the destination shelf" hint2="Mixed-product shelves are allowed here" />
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs leading-4 text-muted">Reason</span>
+                  <span className="text-sm leading-5 font-extrabold">Reason</span>
                   <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Reason">
                     {REASONS.map((r) => (
-                      <Button key={r.code} role="radio" aria-checked={reason === r.code} variant={reason === r.code ? "primary" : "quiet"} className="h-11 px-3 text-sm grow-0" onClick={() => setReason(r.code)}>{r.label}</Button>
+                      <Button key={r.code} role="radio" aria-checked={reason === r.code} variant={reason === r.code ? "primary" : "quiet"} className="h-14 px-4 text-[15px] grow-0" onClick={() => setReason(r.code)}>{r.label}</Button>
                     ))}
                   </div>
                 </div>

@@ -4,8 +4,9 @@ The execution surface: do the work, confirm it, move on. A PWA for Android
 handhelds (390 px wide, 56 px touch targets), installed from the browser,
 served by Caddy at `/scan/`.
 
-Vite + React 19 + TypeScript + Tailwind v4. Screens follow
-`design/screens/Scanner*.html` and `docs/screens.md`.
+Vite + React 19 + TypeScript + Tailwind v4. This is the Game Mode version.
+Screens follow `design/game-mode/screens/Scanner*.html`. The first version
+is kept in `archive/scanner-v1/`.
 
 ## Run
 

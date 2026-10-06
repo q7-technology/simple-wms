@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Page, ScanResult, Task, TaskStatus } from "../api/types";
 import { useSession } from "../auth/Session";
 import { useScanWedge } from "../lib/useScanWedge";
-import { Header, Input, Main, Notice, Pill, ScanHint, Screen, Tile } from "../ui";
+import { fmtClock, initials } from "../lib/format";
+import { Button, CheckIcon, DeviceChip, Icon, Input, Notice, Pill, ScanIcon, Screen, Tile, WifiOffIcon, cx } from "../ui";
 import { errorText } from "./SignIn";
 
 const LATER = "That task type comes with a later step.";
@@ -33,25 +34,36 @@ function TaskPill({ task }: { task: Task }) {
   return <Pill>Waiting</Pill>;
 }
 
-function Icon({ children }: { children: ReactNode }) {
-  return (
-    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
-  );
-}
+const TILE_ICON = (d: string) => <Icon><path d={d} /></Icon>;
 const ICON = {
-  pick: <Icon><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></Icon>,
-  production: <Icon><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M17 18h1" /><path d="M12 18h1" /><path d="M7 18h1" /></Icon>,
-  receive: <Icon><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></Icon>,
-  move: <Icon><path d="m16 3 4 4-4 4" /><path d="M20 7H4" /><path d="m8 21-4-4 4-4" /><path d="M4 17h16" /></Icon>,
-  count: <Icon><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></Icon>,
-  pack: <Icon><path d="M12 3v6" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /></Icon>,
-  lookup: <Icon><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></Icon>,
-  sort: <Icon><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></Icon>,
-  transfer: <Icon><path d="M2 9V6a2 2 0 0 1 2-2h11v11H2" /><path d="M15 8h3.5a1 1 0 0 1 .8.4l2.5 3.3a1 1 0 0 1 .2.6V17a1 1 0 0 1-1 1h-2" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M8 18h7" /></Icon>,
+  pick: TILE_ICON("M5 4h14v4H5ZM6 8v12h12V8M10 12h4"),
+  pack: TILE_ICON("M12 3 20 7.5v9L12 21 4 16.5v-9ZM4 7.5l8 4.5 8-4.5M12 12v9"),
+  sort: TILE_ICON("M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"),
+  receive: TILE_ICON("M12 4v11M7 10l5 5 5-5M5 20h14"),
+  production: TILE_ICON("M3 20V10l6 4V10l6 4V6h6v14ZM3 20h18"),
+  transfer: TILE_ICON("M2 9V6a2 2 0 0 1 2-2h11v11H2M15 8h3.5l3.5 4.5V17h-2M6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 18h7"),
+  move: TILE_ICON("M5 12h14M13 6l6 6-6 6"),
+  count: TILE_ICON("M9 5h10M9 12h10M9 19h10M4 5h1M4 12h1M4 19h1"),
+  lookup: TILE_ICON("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM20 20l-4-4"),
 };
+
+/** The coloured bar on a task row: where in the warehouse the work is. */
+function taskBar(type: string): string {
+  if (type === "receive" || type === "transfer_receive") return "bg-brand";
+  if (type === "count" || type === "move") return "bg-[#1B8A7E]";
+  return "bg-[#E07A1F]";
+}
+
+/** When the idle logout lands if nobody touches the scanner from now on. */
+export function signOutAt(now: number, idleLeftSeconds: number, idleMinutes: number): Date {
+  const left = idleLeftSeconds > 0 ? idleLeftSeconds : idleMinutes * 60;
+  return new Date(now + left * 1000);
+}
 
 export function Menu() {
   const { session, device, warehouse, online, queued, idleLeftSeconds, signOut } = useSession();
+  const [asking, setAsking] = useState(false);
+  const askId = useId();
   const navigate = useNavigate();
   const code = session?.operator.code ?? "";
   const wh = warehouse || session?.warehouses[0] || "";
@@ -128,76 +140,114 @@ export function Menu() {
   if (!session) return null;
 
   const pending = queued > 0 || !online;
-  const idleMinutes = idleLeftSeconds > 0 ? Math.ceil(idleLeftSeconds / 60) : session.idle_logout_minutes;
+  const first = firstName(session.operator.name);
+  const outAt = fmtClock(signOutAt(Date.now(), idleLeftSeconds, session.idle_logout_minutes));
+  const switchWorker = () => { setAsking(false); signOut(); navigate("/sign-in", { replace: true }); };
 
   return (
     <Screen>
-      <Header
-        back={null}
-        eyebrow={`Hi ${firstName(session.operator.name)}`}
-        title={`${wh} · ${device || session.device} · ${online ? "online" : "offline"}`}
-        right={
-          <button type="button" onClick={() => { signOut(); navigate("/sign-in", { replace: true }); }} className="h-11 px-2 -mr-2 bg-transparent border-0 text-brand text-xs font-medium cursor-pointer">
-            Sign out
-          </button>
-        }
-      />
-      <Main>
-        <div className="flex flex-col gap-2">
-          <ScanHint sub="A location, product, delivery or production order">Scan anything to start</ScanHint>
-          <Input data-scan="true" aria-label="Scan or type a code" placeholder="or type a code and press Enter" autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go" className="mono" />
+      <header className="px-5 pt-5 pb-1 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <span aria-hidden="true" className="w-11 h-11 shrink-0 rounded-full bg-brand text-white grid place-items-center font-extrabold">{initials(session.operator.name)}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg leading-6 font-extrabold truncate">Hi, {first}</span>
+            <span className="flex items-center gap-1.5 text-xs leading-4 text-muted font-semibold">
+              <span aria-hidden="true" className={cx("w-2 h-2 rounded-full shrink-0", online ? "bg-ok-fill" : "bg-gold")} />
+              <span>{wh} · {online ? "online" : "offline"}</span>
+            </span>
+          </div>
         </div>
+        <DeviceChip>{device || session.device}</DeviceChip>
+      </header>
+
+      <main className="grow min-h-0 px-5 pt-2 flex flex-col gap-3">
+        <section className="shrink-0 p-3 rounded-[18px] border-2 border-dashed border-brand bg-card flex flex-col gap-2.5">
+          <div className="flex items-center gap-3.5">
+            <span className="w-12 h-12 shrink-0 rounded-[14px] bg-brand text-white grid place-items-center"><ScanIcon /></span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-lg leading-6 font-extrabold">Scan anything to start</span>
+              <span className="text-xs leading-4 text-muted">A location, product, delivery or production order</span>
+            </div>
+          </div>
+          <Input data-scan="true" aria-label="Scan or type a code" placeholder="or type a code and press Enter" autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go" className="mono" />
+        </section>
 
         {notice && <Notice tone="gold">{notice}</Notice>}
 
-        <div className="flex flex-col gap-2">
-          <span className="eyebrow text-muted">My tasks</span>
-          {tasksState === "loading" && <span className="text-sm leading-5 text-muted">Loading your tasks…</span>}
-          {tasksState === "failed" && <Notice tone="gold">Could not load your tasks. Scan a delivery or start one below.</Notice>}
-          {tasksState === "ready" && tasks.length === 0 && (
-            <span className="text-sm leading-5 text-muted">Nothing waiting for you. Scan a delivery or start a task below.</span>
-          )}
-          {tasks.length > 0 && (
-            <div className="card flex flex-col divide-y divide-line">
-              {tasks.map((t) => {
-                const total = t.progress.total;
-                const line = total ? Math.min(t.progress.done + 1, total) : 0;
-                return (
-                  <button
-                    key={t.wms_id} type="button" onClick={() => openTask(t)}
-                    className="min-h-14 px-4 py-3 flex items-center justify-between gap-3 bg-transparent border-0 text-left text-ink cursor-pointer active:bg-brand-tint"
-                  >
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-base leading-6 font-semibold truncate">{t.title}</span>
-                      <span className="text-xs leading-4 text-muted">Line {line} of {total} · {STATUS_TEXT[t.status]}</span>
-                    </div>
-                    <TaskPill task={t} />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <section aria-label="My tasks" className="grow min-h-0 flex flex-col gap-2">
+          <span className="eyebrow text-faint shrink-0">My tasks</span>
+          <div className="grow min-h-0 overflow-y-auto flex flex-col gap-2">
+            {tasksState === "loading" && <span className="text-sm leading-5 text-muted">Loading your tasks…</span>}
+            {tasksState === "failed" && <Notice tone="gold">Could not load your tasks. Scan a delivery or start one below.</Notice>}
+            {tasksState === "ready" && tasks.length === 0 && (
+              <span className="text-sm leading-5 text-muted">Nothing waiting for you. Scan a delivery or start a task below.</span>
+            )}
+            {tasks.map((t) => {
+              const total = t.progress.total;
+              const line = total ? Math.min(t.progress.done + 1, total) : 0;
+              return (
+                <button
+                  key={t.wms_id} type="button" onClick={() => openTask(t)}
+                  className="min-h-14 shrink-0 px-3 py-2 rounded-2xl bg-card border border-line flex items-center gap-3 text-left text-ink cursor-pointer active:bg-brand-tint"
+                >
+                  <span aria-hidden="true" className={cx("w-2.5 h-9 shrink-0 rounded-md", taskBar(t.type))} />
+                  <span className="flex flex-col grow min-w-0">
+                    <span className="text-[15px] leading-5 font-extrabold truncate">{t.title}</span>
+                    <span className="text-xs leading-4 text-muted">Line {line} of {total} · {STATUS_TEXT[t.status]}</span>
+                  </span>
+                  <TaskPill task={t} />
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-        <div className="flex flex-col gap-2">
-          <span className="eyebrow text-muted">Start a task</span>
-          <div className="grid grid-cols-2 gap-3">
-            <Tile to="/pick" label="Pick" icon={ICON.pick} />
-            <Tile to="/sort" label="Batch sort" icon={ICON.sort} />
-            <Tile to="/pack" label="Pack" icon={ICON.pack} />
-            <Tile to="/production" label="Production receipt" icon={ICON.production} />
-            <Tile to="/receive" label="Receive" icon={ICON.receive} />
-            <Tile to="/transfer-in" label="Receive transfer" icon={ICON.transfer} />
-            <Tile to="/move" label="Move" icon={ICON.move} />
-            <Tile to="/count" label="Count" icon={ICON.count} />
+        <section aria-label="Start a task" className="shrink-0 flex flex-col gap-2">
+          <span className="eyebrow text-faint">Start a task</span>
+          <div className="grid grid-cols-3 gap-2">
+            <Tile to="/pick" label="Pick" icon={ICON.pick} tone="leaving" />
+            <Tile to="/pack" label="Pack" icon={ICON.pack} tone="leaving" />
+            <Tile to="/sort" label="Batch sort" icon={ICON.sort} tone="leaving" />
+            <Tile to="/receive" label="Receive" icon={ICON.receive} tone="arriving" />
+            <Tile to="/production" label="Production receipt" icon={ICON.production} tone="arriving" />
+            <Tile to="/transfer-in" label="Receive transfer" icon={ICON.transfer} tone="arriving" />
+            <Tile to="/move" label="Move" icon={ICON.move} tone="stored" />
+            <Tile to="/count" label="Count" icon={ICON.count} tone="stored" />
             <Tile to="/lookup" label="Look up" icon={ICON.lookup} />
           </div>
+        </section>
+      </main>
+
+      <footer className="px-5 pt-3 pb-4 flex flex-col gap-2.5 shrink-0">
+        <div className="flex justify-between items-center gap-3 text-xs leading-4 font-semibold text-muted">
+          <span className={cx("flex items-center gap-1.5", pending ? "text-warn-ink" : "text-ok")}>
+            {pending ? <WifiOffIcon size={14} /> : <CheckIcon size={14} />}
+            {queued} waiting · {pending ? "sending when back" : "all sent"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Icon size={14} stroke={2.2}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>
+            Auto sign-out {outAt} if idle
+          </span>
         </div>
-      </Main>
-      <footer className="p-4 border-t border-line shrink-0 flex justify-between gap-3 text-xs leading-4 text-muted">
-        <span className={pending ? "text-gold" : undefined}>{queued} queued · {pending ? "sending when back" : "all synced"}</span>
-        <span>Idle logout in {idleMinutes} min</span>
+        {/* stays in the layout while the question floats over it, so nothing jumps */}
+        <Button variant="outline" onClick={() => setAsking(true)} className={cx("flex items-center justify-center gap-2.5", asking && "invisible")}>
+          <Icon size={22} stroke={2.2}><path d="M7 7h11l-3-3M17 17H6l3 3" /></Icon>Switch worker
+        </Button>
       </footer>
+
+      {asking && (
+        <div
+          role="alertdialog" aria-modal="false" aria-labelledby={`${askId}-t`} aria-describedby={`${askId}-d`}
+          className="absolute left-4 right-4 bottom-4 z-20 p-3.5 rounded-[18px] bg-card border-2 border-ink shadow-float flex flex-col gap-2.5"
+        >
+          <span id={`${askId}-t`} className="text-base leading-6 font-extrabold">Hand the scanner over?</span>
+          <span id={`${askId}-d`} className="text-sm leading-5 text-muted">{first} gets signed out now, so the next person scans under their own name.</span>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button variant="quiet" autoFocus onClick={() => setAsking(false)}>Not now</Button>
+            <Button variant="ink" onClick={switchWorker}>Yes, switch</Button>
+          </div>
+        </div>
+      )}
     </Screen>
   );
 }

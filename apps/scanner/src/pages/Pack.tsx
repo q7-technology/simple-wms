@@ -4,8 +4,8 @@ import { api, ApiError } from "../api/client";
 import type { Delivery, DeliveryLine, Page, ScanResult, Task } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty, plural } from "../lib/format";
-import { Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
-import { DoneCard, OfflineBanner, ScanInput, WrongScan, allowsDecimals, describeError, firstName, siteOf, useScanStep } from "./task-shared";
+import { Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
+import { DoneCard, LIST_ROW, OfflineBanner, ScanInput, WrongScan, allowsDecimals, describeError, firstName, siteOf, useScanStep } from "./task-shared";
 
 /* --- decimal strings ------------------------------------------------------
  * Quantities are decimals with a unit of measure and never floats, so the
@@ -85,9 +85,9 @@ function PackList() {
             {error && <Notice tone="gold">{error}</Notice>}
             <div className="flex flex-col gap-2">
               {tasks.map((t) => (
-                <Link key={t.wms_id} to={`/pack/${t.source_ref ?? t.wms_id}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+                <Link key={t.wms_id} to={`/pack/${t.source_ref ?? t.wms_id}`} className={LIST_ROW}>
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate">Pack {t.source_ref ?? t.title}</span>
+                    <span className="font-extrabold truncate">Pack {t.source_ref ?? t.title}</span>
                     {t.note && <span className="text-xs leading-4 text-muted truncate">{t.note}</span>}
                   </span>
                   <Pill tone={t.status === "in_progress" ? "info" : "muted"}>{t.status === "in_progress" ? "In progress" : "Waiting"}</Pill>
@@ -227,6 +227,7 @@ function PackDelivery({ deliveryRef }: { deliveryRef: string }) {
       });
       if (item.status === "failed") { setError(describeError(item)); return; }
       const reply = item.reply as { delivery?: { status?: string } } | null;
+      ding(`Packed ${plural(cartons.length, "carton")}`);
       setDone({ cartons: cartons.length, packed: (reply?.delivery?.status ?? "packed") === "packed" });
     } finally {
       setBusy(false);
@@ -271,7 +272,7 @@ function PackDelivery({ deliveryRef }: { deliveryRef: string }) {
 
             <div className="flex flex-col gap-2">
               <span className="eyebrow text-muted">Packages</span>
-              <div className="flex flex-col rounded-lg border border-line">
+              <div className="flex flex-col rounded-2xl bg-card border border-line overflow-hidden shrink-0">
                 {delivery.packages.map((p) => (
                   <div key={`wms-${p.package_no}`} className="flex justify-between items-center gap-3 px-3 py-2.5 text-sm leading-5 border-b border-line-soft last:border-b-0">
                     <span className="truncate">Carton {p.package_no}{p.weight_kg ? ` · ${p.weight_kg} kg` : ""}</span>
@@ -286,7 +287,7 @@ function PackDelivery({ deliveryRef }: { deliveryRef: string }) {
                 ))}
                 <div className="flex justify-between items-center gap-3 px-3 py-2.5 text-sm leading-5 border-b border-line-soft last:border-b-0">
                   <span className="truncate">Carton {currentNo} · open</span>
-                  <span className="shrink-0 text-brand">{fmtQty(cartonQty(current))} items</span>
+                  <span className="shrink-0 text-brand-dark font-extrabold">{fmtQty(cartonQty(current))} items</span>
                 </div>
               </div>
               {delivery.packages.length + closed.length === 0 && <span className="text-xs leading-4 text-muted">Nothing closed yet. Closing a carton prints its label.</span>}
@@ -300,10 +301,10 @@ function PackDelivery({ deliveryRef }: { deliveryRef: string }) {
               {toPack.map((l) => (
                 <button
                   key={l.delivery_line} type="button" onClick={() => addOne(l)}
-                  className="card min-h-14 px-4 py-3 flex items-center justify-between gap-3 bg-transparent text-left text-ink cursor-pointer active:bg-brand-tint"
+                  className="card min-h-14 px-4 py-3 flex items-center justify-between gap-3 text-left text-ink cursor-pointer active:bg-brand-tint shrink-0"
                 >
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate"><span className="mono">{l.sku}</span> · {l.name}</span>
+                    <span className="font-extrabold truncate"><span className="mono">{l.sku}</span> · {l.name}</span>
                     {l.batch && <span className="text-xs leading-4 text-muted">Batch {l.batch}</span>}
                   </span>
                   <span className="text-xs leading-4 text-muted shrink-0">{fmtQty(remainingOf(l), l.uom)} left</span>
@@ -327,7 +328,7 @@ function PackDelivery({ deliveryRef }: { deliveryRef: string }) {
               <Input value={current.weight_kg} onChange={(e) => setCurrent((c) => ({ ...c, weight_kg: e.target.value }))} inputMode="decimal" placeholder="kg" aria-label="Weight (kg)" />
             </Field>
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs leading-4 text-muted">Length / Width / Height (cm)</span>
+              <span className="text-sm leading-5 font-extrabold">Length / Width / Height (cm)</span>
               <div className="flex gap-2">
                 <Input value={current.length_cm} onChange={(e) => setCurrent((c) => ({ ...c, length_cm: e.target.value }))} inputMode="decimal" placeholder="L" aria-label="Length (cm)" className="min-w-0" />
                 <Input value={current.width_cm} onChange={(e) => setCurrent((c) => ({ ...c, width_cm: e.target.value }))} inputMode="decimal" placeholder="W" aria-label="Width (cm)" className="min-w-0" />

@@ -66,7 +66,7 @@ decimals and always carry a unit of measure.
   (the first line is off the shelf), `picked`, `packing` (a carton is closed
   but not the last), `packed`, `shipped`, `cancelled`.
 - `GET /v1/deliveries?warehouse=&status=` lists (soonest required first, then
-  priority); `GET /v1/deliveries/{ref}` returns the delivery with its lines,
+  priority; `status` takes several, comma separated); `GET /v1/deliveries/{ref}` returns the delivery with its lines,
   packages, both tasks and the events sent.
 - `POST /v1/deliveries/{ref}/ship` — `{ message_id, carrier, tracking_no,
   shipped_by }`. Writes one ledger line per carton line out of staging.
@@ -97,7 +97,8 @@ Creates the receipt and one `receive` task with a line per receipt line.
 `batch` may be left null on a batch-tracked product; the scanner reads it
 off the label and the API refuses a different batch from the one given.
 `GET /v1/receipts?warehouse=&status=` lists (statuses `expected`,
-`arrived`, `receiving`, `complete`, `closed_short`, `cancelled`);
+`arrived`, `receiving`, `complete`, `closed_short`, `cancelled`, several
+comma separated);
 `GET /v1/receipts/{ref}` returns the receipt with its lines, the task, every
 put-away ledger line and the events sent. `POST /v1/receipts/{ref}/arrived`
 with `{ message_id, dock, carrier }` marks the truck at the dock.

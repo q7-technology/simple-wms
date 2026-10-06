@@ -389,7 +389,7 @@ function UserPanel({ user, isMe, admin, onChanged }: { user: User; isMe: boolean
   };
   const startSetup = async () => {
     const got = await action.run(() =>
-      api.post<{ secret: string; otpauth_url: string }>("/v1/auth/2fa/setup"));
+      api.post<{ secret: string; otpauth_url: string }>("/v1/auth/2fa/setup"), { ding: false });
     if (got) { setSetup(got); setCode(""); }
   };
   const finishSetup = async (e: FormEvent) => {

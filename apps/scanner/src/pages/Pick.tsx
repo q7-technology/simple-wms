@@ -5,9 +5,9 @@ import type { Page, ScanResult, ShortReason, Task, TaskLine } from "../api/types
 import { useSession } from "../auth/Session";
 import { fmtQty, plural } from "../lib/format";
 import type { QueueItem } from "../lib/queue";
-import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, CheckIcon, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
   needsSupervisor, patchLine, sameCode, siteOf, useScanStep, useTask, type Expecting,
 } from "./task-shared";
 
@@ -86,9 +86,9 @@ function PickList() {
             {error && <Notice tone="gold">{error}</Notice>}
             <div className="flex flex-col gap-2">
               {tasks.map((t) => (
-                <Link key={t.wms_id} to={`/pick/${t.wms_id}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+                <Link key={t.wms_id} to={`/pick/${t.wms_id}`} className={LIST_ROW}>
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate">Pick {t.source_ref ?? t.title}</span>
+                    <span className="font-extrabold truncate">Pick {t.source_ref ?? t.title}</span>
                     <span className="text-xs leading-4 text-muted truncate">{[t.note, plural(t.progress.total, "line")].filter(Boolean).join(" · ")}</span>
                   </span>
                   <Pill tone={t.status === "in_progress" ? "info" : "muted"}>{t.status === "in_progress" ? "In progress" : "Waiting"}</Pill>
@@ -181,6 +181,7 @@ function PickTask({ taskId }: { taskId: string }) {
       });
       if (item.status === "failed") { setError(describeError(item)); return; }
       applyItem(item, (t) => patchLine(t, line.line_no, { actual_qty: qty, status: "done" }));
+      ding(`Picked ${fmtQty(qty, line.uom)} ${line.sku}`);
     } finally {
       setBusy(false);
     }
@@ -252,7 +253,7 @@ function PickTask({ taskId }: { taskId: string }) {
         {line && !wrong && !shorting && (
           <>
             <BigLocation
-              eyebrow="Go to" code={line.from_location ?? "—"}
+              eyebrow="Go to" code={line.from_location ?? "—"} tone="go"
               hint={`Walk order · line ${lineIndex} of ${total}`}
               hint2={shelf ? "Scanned · take the stock from this shelf" : "Scan the shelf label when you get there"}
             />
@@ -271,7 +272,7 @@ function PickTask({ taskId }: { taskId: string }) {
         {line && !wrong && shorting && (
           <>
             <Card strong>
-              <span className="text-xl leading-7 font-bold">Picked {fmtQty(qty || "0")} of {fmtQty(left)}</span>
+              <span className="text-xl leading-7 font-extrabold">Picked {fmtQty(qty || "0")} of {fmtQty(left)}</span>
               <span className="text-sm leading-5 text-muted">{fmtQty(missing, line.uom)} missing from {atShelf}</span>
             </Card>
             <div className="flex flex-col gap-2">
@@ -279,11 +280,11 @@ function PickTask({ taskId }: { taskId: string }) {
               {REASONS.map((r) => (
                 <Button
                   key={r.reason} variant={reason === r.reason ? "gold" : "quiet"}
-                  className={reason === r.reason ? "text-left bg-gold-tint" : "text-left"}
+                  className="text-left flex items-center justify-between gap-3"
                   aria-pressed={reason === r.reason}
                   onClick={() => { setReason(r.reason); setError(null); }}
                 >
-                  {r.label}
+                  {r.label}{reason === r.reason && <CheckIcon size={20} />}
                 </Button>
               ))}
             </div>

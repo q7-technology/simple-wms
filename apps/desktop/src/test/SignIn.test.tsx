@@ -15,7 +15,7 @@ function renderSignIn() {
       <AuthProvider>
         <Routes>
           <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/stock" element={<div>Stock page</div>} />
+          <Route path="/" element={<div>Map home</div>} />
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
@@ -31,7 +31,7 @@ describe("SignIn", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("signs in and lands on stock", async () => {
+  it("signs in and lands on the map", async () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (url === "/v1/auth/login") return jsonResponse(200, { token: "t", refresh_token: "r", expires_in: 900, user: {} });
       if (url === "/v1/auth/me") return jsonResponse(200, { wms_id: "1", username: "leighton", display_name: "Leighton L.", role: "admin", warehouses: ["*"], scopes: ["*"], kind: "user" });
@@ -43,7 +43,7 @@ describe("SignIn", () => {
     await user.type(await screen.findByLabelText("Username"), "leighton");
     await user.type(screen.getByLabelText("Password"), "correct horse");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByText("Stock page")).toBeInTheDocument();
+    expect(await screen.findByText("Map home")).toBeInTheDocument();
     const loginCall = fetchMock.mock.calls.find((c) => c[0] === "/v1/auth/login");
     expect(JSON.parse(loginCall![1].body)).toEqual({ username: "leighton", password: "correct horse" });
   });
@@ -99,7 +99,7 @@ describe("SignIn with a second factor", () => {
     expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
     await user.type(code, "123456");
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(await screen.findByText("Stock page")).toBeInTheDocument();
+    expect(await screen.findByText("Map home")).toBeInTheDocument();
   });
 
   it("says plainly when the code is wrong, and keeps the step open", async () => {
@@ -159,7 +159,7 @@ describe("SignIn with single sign-on", () => {
     expect(screen.queryByRole("button", { name: /Sign in with/ })).not.toBeInTheDocument();
   });
 
-  it("offers the provider by name and sends the browser to it", async () => {
+  it("makes Microsoft the big button and sends the browser to it", async () => {
     const assign = vi.fn();
     vi.stubGlobal("location", { ...window.location, assign });
     fetchMock.mockImplementation(async (url: string) => {
@@ -172,7 +172,21 @@ describe("SignIn with single sign-on", () => {
     });
     renderSignIn();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Sign in with Entra ID" }));
+    const big = await screen.findByRole("button", { name: "Sign in with Microsoft" });
+    // the password form is still there, below it, for anyone without an account there
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    await user.click(big);
     expect(assign).toHaveBeenCalledWith("https://login.example/authorize?x=1");
+  });
+
+  it("calls any other provider plain single sign-on", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/v1/auth/sso" ? jsonResponse(200, { enabled: true, name: "Okta" })
+                             : jsonResponse(404, {}));
+    renderSignIn();
+    expect(await screen.findByRole("button", { name: "Sign in with single sign-on" })).toBeInTheDocument();
+    expect(screen.getByText("Uses your work account (Okta). No new password to remember.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).not.toBeInTheDocument();
   });
 });

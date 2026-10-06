@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
+import { ding } from "../ui/toast";
 
 /** Load something from the API and keep it fresh on demand. */
 export function useApi<T>(load: (() => Promise<T>) | null, deps: unknown[]) {
@@ -31,17 +32,21 @@ export function useApi<T>(load: (() => Promise<T>) | null, deps: unknown[]) {
   return { data, error, loading, reload: run, setData };
 }
 
-/** A pending action with its error, for buttons that call the API. */
-export function useAction() {
+/** A pending action with its error, for buttons that call the API. A
+ * successful action says "Ding!" unless it only looked (a preview, a try). */
+export function useAction(opts: { ding?: boolean } = {}) {
+  const dings = opts.ding !== false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const run = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
+  const run = useCallback(async <T,>(fn: () => Promise<T>, runOpts: { ding?: boolean } = {}): Promise<T | undefined> => {
     setBusy(true);
     setError(null);
     setFieldErrors({});
     try {
-      return await fn();
+      const out = await fn();
+      if (dings && runOpts.ding !== false) ding();
+      return out;
     } catch (e) {
       if (e instanceof ApiError) {
         setError(e.message);
@@ -53,6 +58,6 @@ export function useAction() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [dings]);
   return { busy, error, fieldErrors, run, clear: () => { setError(null); setFieldErrors({}); } };
 }

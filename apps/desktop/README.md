@@ -4,8 +4,10 @@ The control surface: create, watch, approve, configure. An ordinary API
 client with a session token; nothing here can do what a partner can't do
 with an API key.
 
-Vite + React 19 + TypeScript + Tailwind v4. Screens follow
-`design/screens/*.html` and `docs/screens.md`.
+Vite + React 19 + TypeScript + Tailwind v4. This is the Game Mode version:
+the manager runs the warehouse from a map, and every screen opens as a
+panel over it. Screens follow `design/game-mode/screens/*.html`. The first
+version is kept in `archive/desktop-v1/`.
 
 ## Run
 

@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 import { SessionProvider } from "../auth/Session";
-import { Menu } from "../pages/Menu";
+import { Menu, signOutAt } from "../pages/Menu";
+import { fmtClock } from "../lib/format";
 
 const SESSION = {
   token: "tok", expires_in: 43200,
@@ -72,8 +73,9 @@ describe("Menu", () => {
 
   it("greets the operator and lists my tasks plus open receive and count tasks, once each", async () => {
     renderMenu();
-    expect(screen.getByText("Hi Sam")).toBeInTheDocument();
-    expect(screen.getByText("BAL-WH01 · SCN-BAL-07 · online")).toBeInTheDocument();
+    expect(screen.getByText("Hi, Sam")).toBeInTheDocument();
+    expect(screen.getByText("BAL-WH01 · online")).toBeInTheDocument();
+    expect(screen.getByText("SCN-BAL-07")).toBeInTheDocument();
 
     expect(await screen.findByText("Receive PO-88815")).toBeInTheDocument();
     expect(screen.getAllByText("Receive PO-88815")).toHaveLength(1);
@@ -87,14 +89,14 @@ describe("Menu", () => {
     expect(urls).toContain("/v1/tasks?warehouse=BAL-WH01&status=waiting%2Cin_progress&assigned_to=op-017");
     expect(urls).toContain("/v1/tasks?warehouse=BAL-WH01&status=waiting");
 
-    expect(screen.getByText("0 queued · all synced")).toBeInTheDocument();
-    expect(screen.getByText("Idle logout in 15 min")).toBeInTheDocument();
+    expect(screen.getByText("0 waiting · all sent")).toBeInTheDocument();
+    expect(screen.getByText(/^Auto sign-out \d{1,2}:\d{2} (am|pm) if idle$/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Look up" })).toHaveAttribute("href", "/lookup");
     // every kind of work the scanner does now has a tile
     for (const [label, href] of [
       ["Pick", "/pick"], ["Pack", "/pack"], ["Batch sort", "/sort"],
       ["Production receipt", "/production"], ["Receive transfer", "/transfer-in"],
-      ["Receive", "/receive"], ["Move", "/move"], ["Count", "/count"],
+      ["Receive", "/receive"], ["Move", "/move"], ["Count", "/count"], ["Look up", "/lookup"],
     ] as const) {
       expect(screen.getByRole("link", { name: label })).toHaveAttribute("href", href);
     }
@@ -119,11 +121,45 @@ describe("Menu", () => {
     expect(await screen.findByText("Receive task 4411")).toBeInTheDocument();
   });
 
-  it("signs out", async () => {
+  it("switches worker: asks first, then signs out to the sign-in screen", async () => {
     const user = userEvent.setup();
     renderMenu();
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
+    await user.click(screen.getByRole("button", { name: "Switch worker" }));
+    const ask = screen.getByRole("alertdialog", { name: "Hand the scanner over?" });
+    expect(ask).toHaveTextContent("Sam gets signed out now, so the next person scans under their own name.");
+    await user.click(screen.getByRole("button", { name: "Yes, switch" }));
     expect(await screen.findByText("Sign in page")).toBeInTheDocument();
     expect(window.localStorage.getItem("wms.scanner.session")).toBeNull();
+  });
+
+  it("keeps the operator signed in when they say not now", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: "Switch worker" }));
+    await user.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Hi, Sam")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Switch worker" })).toBeInTheDocument();
+    expect(screen.queryByText("Sign in page")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("wms.scanner.session")).not.toBeNull();
+  });
+
+  it("says when the idle sign-out lands if nobody touches the scanner", async () => {
+    // freeze the clock only (timers stay real): 4:45 pm plus the warehouse's 15 idle minutes
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 6, 16, 45, 0));
+    try {
+      renderMenu();
+      expect(screen.getByText("Auto sign-out 5:00 pm if idle")).toBeInTheDocument();
+      await screen.findByText("Receive PO-88815");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("works out the sign-out time from the idle seconds left", () => {
+    const now = new Date(2026, 9, 6, 9, 0, 0).getTime();
+    expect(fmtClock(signOutAt(now, 0, 480))).toBe("5:00 pm");
+    expect(fmtClock(signOutAt(now, 90 * 60, 480))).toBe("10:30 am");
   });
 });

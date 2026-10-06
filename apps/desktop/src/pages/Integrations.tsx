@@ -293,7 +293,7 @@ function KeyDetail({ row, admin, revealed, onRevealed, reload }: {
       {admin && row.active && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button onClick={() => void rotate()} disabled={action.busy}>Rotate key</Button>
             <Button variant="gold" onClick={() => void revoke()} disabled={action.busy}>Revoke</Button>
           </div>
@@ -376,7 +376,7 @@ function SubscriberDetail({ sub, admin, revealed, reload }: {
       {admin && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button variant="primary" onClick={() => void save()} disabled={action.busy || !url.trim()}>Save</Button>
           </div>
         </>
@@ -431,7 +431,7 @@ function NewKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
       </div>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !name.trim() || scopes.length === 0}>Create key</Button>
       </div>
@@ -507,7 +507,7 @@ function NewSubscriberForm({ onCancel, onCreated }: { onCancel: () => void; onCr
       </div>
       {action.error && !sapErrorShown(action.fieldErrors) && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button
           variant="primary"
@@ -535,7 +535,7 @@ function PatternForm({ row, startRaw, onSaved, onCancel, reload }: {
 }) {
   const { warehouses, warehouse } = useAuth();
   const save = useAction();
-  const trying = useAction();
+  const trying = useAction({ ding: false });
   const [name, setName] = useState(row?.name ?? "");
   const [type, setType] = useState(row?.type ?? "product");
   const [pattern, setPattern] = useState(row?.pattern ?? "");
@@ -631,7 +631,7 @@ function PatternForm({ row, startRaw, onSaved, onCancel, reload }: {
       {trying.error && !patternError && <Notice tone="gold">{trying.error}</Notice>}
       {saved && !save.error && <Notice tone="ok">Saved.</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         {row && row.active
           ? <Button variant="gold" onClick={() => void turnOff()} disabled={save.busy}>Turn off</Button>
           : <Button onClick={onCancel} disabled={save.busy}>Cancel</Button>}

@@ -9,7 +9,7 @@ import { fmtDate, fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Eyebrow, Field, Input, KeyValue, Muted, Notice, PageHeader,
-  SearchInput, Section, Select, StatTile, Table, type Column,
+  LocCode, SearchInput, Section, Select, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -270,15 +270,15 @@ export function Stock() {
   const moveGeneralError = move.error && Object.keys(move.fieldErrors).length === 0 ? move.error : null;
 
   const columns: Column<StockBySku["locations"][number]>[] = [
-    { key: "warehouse", header: "Warehouse", width: "130px", render: (r) => r.warehouse },
-    { key: "location", header: "Location", width: "150px", render: (r) => <b>{r.location}</b> },
-    { key: "zone", header: "Zone", width: "120px", render: (r) => r.zone },
-    { key: "batch", header: "Batch", width: "110px", render: (r) => r.batch ?? <Muted>—</Muted> },
-    { key: "on_hand", header: "On hand", width: "100px", render: (r) => fmtQty(r.on_hand) },
-    { key: "reserved", header: "Reserved", width: "100px", render: (r) => fmtQty(r.reserved) },
-    { key: "available", header: "Available", width: "100px", render: (r) => fmtQty(r.available) },
+    { key: "warehouse", header: "Warehouse", width: "110px", render: (r) => r.warehouse },
+    { key: "location", header: "Location", width: "140px", render: (r) => <LocCode>{r.location}</LocCode> },
+    { key: "zone", header: "Zone", width: "110px", render: (r) => <Muted>{r.zone}</Muted> },
+    { key: "batch", header: "Batch", width: "90px", render: (r) => r.batch ?? <Muted>—</Muted> },
+    { key: "on_hand", header: "On hand", width: "90px", render: (r) => <b>{fmtQty(r.on_hand)}</b> },
+    { key: "reserved", header: "Reserved", width: "90px", render: (r) => fmtQty(r.reserved) },
+    { key: "available", header: "Available", width: "90px", render: (r) => <b className={Number(r.available) > 0 ? "text-ok" : "text-muted"}>{fmtQty(r.available)}</b> },
     {
-      key: "received", header: "Received",
+      key: "received", header: "Received", width: "minmax(130px, 1fr)",
       render: (r, ) => <Muted>{fmtDate(r.received_at)}{r === rows[0] && rows.length > 1 && r.received_at ? " · FIFO first" : ""}</Muted>,
     },
   ];
@@ -312,11 +312,11 @@ export function Stock() {
           </>}
         />
         <form
-          className="flex gap-2 items-end"
+          className="flex flex-wrap gap-2 items-center"
           onSubmit={(e) => { e.preventDefault(); setParams(draft.trim() ? { sku: draft.trim() } : {}); setBatch(null); }}
         >
           <SearchInput
-            className="w-[360px]"
+            className="flex-[1_1_240px] max-w-[360px]"
             placeholder="Scan or type a SKU"
             aria-label="SKU"
             value={draft}
@@ -328,15 +328,15 @@ export function Stock() {
             {allWarehouses ? "All warehouses" : warehouse?.code ?? "This warehouse"}
           </Button>
           {batches.length > 0 && (
-            <div className="flex items-center gap-1 h-10">
+            <div className="flex flex-wrap items-center gap-1">
               <Chip active={batch === null} onClick={() => setBatch(null)}>Batch: any</Chip>
               {batches.map((b) => <Chip key={b} active={batch === b} onClick={() => setBatch(b)}>{b}</Chip>)}
             </div>
           )}
-          <div className="flex items-center gap-1 h-10">
+          <div className="flex flex-wrap items-center gap-1">
             {asksOwner && ownerCodes.length > 0 ? (
               <>
-                <Muted className="text-xs leading-4">Owner</Muted>
+                <Muted className="text-xs leading-4 font-bold px-1">Owner</Muted>
                 {ownerCodes.map((code) => (
                   <Chip key={code} active={owner === code} onClick={() => setOwner(code)}>{code}</Chip>
                 ))}
@@ -352,7 +352,7 @@ export function Stock() {
 
         {stock.data && (
           <>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
               <StatTile
                 label="On hand"
                 value={fmtQty(stock.data.total_on_hand)}
@@ -414,7 +414,7 @@ export function Stock() {
               Counting writes nothing when it matches. A difference is approved here and lands as one adjustment in the ledger.
             </Muted>
             {adjustGeneralError && <Notice tone="gold">{adjustGeneralError}</Notice>}
-            <div className="flex gap-2 [&>*]:grow">
+            <div className="flex flex-wrap gap-2 [&>*]:grow">
               <Button small type="button" onClick={() => setAdjustOpen(false)}>Cancel</Button>
               <Button small type="submit" variant="primary" disabled={adjust.busy || !adjustQty.trim() || !adjustReason}>
                 {adjust.busy ? "Adjusting…" : "Adjust"}
@@ -447,7 +447,7 @@ export function Stock() {
               </div>
             </Field>
             {moveGeneralError && <Notice tone="gold">{moveGeneralError}</Notice>}
-            <div className="flex gap-2 [&>*]:grow">
+            <div className="flex flex-wrap gap-2 [&>*]:grow">
               <Button small type="button" onClick={() => setMoveOpen(false)}>Cancel</Button>
               <Button small type="submit" variant="primary" disabled={move.busy || !moveQty.trim() || !moveTo.trim()}>
                 {move.busy ? "Moving…" : "Move"}
@@ -464,7 +464,7 @@ export function Stock() {
               <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
             </Field>
             <Muted className="text-xs leading-4">{batch ? `Batch ${batch}` : "Every batch"}</Muted>
-            <div className="flex gap-2 [&>*]:grow">
+            <div className="flex flex-wrap gap-2 [&>*]:grow">
               <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
               <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
                 {printBusy ? "Printing…" : "Print"}

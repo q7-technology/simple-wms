@@ -3,11 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useSession } from "../auth/Session";
 import { useScanWedge } from "../lib/useScanWedge";
-import { Button, Field, Footer, Header, Input, Main, Notice, Screen, SupervisorPanel } from "../ui";
-import { errorText, Keypad, PIN_MAX, PinDots } from "./SignIn";
-
-const LINK_PRIMARY = "h-14 flex items-center justify-center rounded-md bg-brand border border-brand text-ground text-base font-semibold no-underline";
-const LINK_QUIET = "h-14 flex items-center justify-center rounded-md bg-transparent border border-line-strong text-ink text-base font-medium no-underline";
+import { Button, Field, Footer, Input, LockIcon, Notice, Screen, SupervisorPanel, linkButton } from "../ui";
+import { BrandRow, errorText, Keypad, PIN_MAX, PinDots } from "./SignIn";
 
 export function Locked() {
   const { device, warehouse } = useSession();
@@ -43,22 +40,18 @@ export function Locked() {
 
   return (
     <Screen>
-      <Header back={null} eyebrow="Simple WMS" title={configured ? `${device} · ${warehouse} · known device` : "set up this scanner"} />
-      <Main>
-        <section className="rounded-xl border border-gold-line bg-card px-5 py-6 flex flex-col items-center gap-3 text-center">
-          <div className="w-16 h-16 rounded-full bg-gold-tint flex items-center justify-center">
-            <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f7941d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <h1 className="m-0 text-2xl leading-tight font-bold text-gold">Account locked</h1>
-          <p className="m-0 text-sm leading-5 text-ink"><span className="mono">{operator || "This operator"}</span> entered the wrong PIN 5 times.</p>
-          <p className="m-0 text-xs leading-4 text-muted">A supervisor can unlock it here or on the desktop. Every try is in the audit log.</p>
+      <BrandRow line={configured ? `${device} · ${warehouse} · known device` : "set up this scanner"} />
+      <main className="grow min-h-0 px-6 pt-3 pb-3 flex flex-col gap-3.5 overflow-y-auto">
+        <section className="flex flex-col items-center gap-3 text-center shrink-0">
+          <span className="w-[88px] h-[88px] rounded-[28px] bg-bad-tint text-bad-ink grid place-items-center"><LockIcon size={44} /></span>
+          <h1 className="m-0 text-[28px] leading-9 font-extrabold tracking-tight">Account locked</h1>
+          <p className="m-0 text-[15px] leading-[22px] text-muted"><b className="mono text-ink">{operator || "This operator"}</b> entered the wrong PIN 5 times.</p>
+          <p className="m-0 text-xs leading-4 text-faint">A supervisor can unlock it here or on the desktop. Every try is in the audit log.</p>
         </section>
 
         {done ? (
           <Notice tone="ok">
-            Unlocked. Sign in with the new PIN. <Link to="/sign-in" className="text-brand font-medium">Back to sign in</Link>
+            Unlocked. Sign in with the new PIN. <Link to="/sign-in" className="text-ok font-extrabold">Back to sign in</Link>
           </Notice>
         ) : (
           <>
@@ -69,27 +62,27 @@ export function Locked() {
                 autoComplete="off" autoCapitalize="none" spellCheck={false} enterKeyHint="done" disabled={busy} className="mono"
               />
             </Field>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs leading-4 text-muted">New PIN for <span className="mono">{operator || "the operator"}</span></span>
+            <div className="flex flex-col gap-2 shrink-0">
+              <span className="text-sm leading-5 font-extrabold">New PIN for <span className="mono">{operator || "the operator"}</span></span>
               <PinDots length={pin.length} />
             </div>
             <Keypad
               disabled={busy}
               onDigit={(d) => { setError(null); setPin((p) => (p.length < PIN_MAX ? p + d : p)); }}
               onDelete={() => setPin((p) => p.slice(0, -1))}
+              onClear={() => setPin("")}
             />
             {error && <Notice tone="gold">{error}</Notice>}
           </>
         )}
 
-        <div className="flex flex-col gap-2 pt-2">
-          <span className="text-xs leading-4 text-muted">Or sign in as someone else</span>
-          <Link to="/sign-in" className={LINK_QUIET}>Sign in</Link>
+        <div className="flex flex-col gap-2 pt-1 shrink-0">
+          <Link to="/sign-in" className={linkButton("outline")}>Sign in as someone else</Link>
         </div>
-      </Main>
+      </main>
       <Footer>
         {done
-          ? <Link to="/sign-in" className={LINK_PRIMARY}>Back to sign in</Link>
+          ? <Link to="/sign-in" className={linkButton("primary")}>Back to sign in</Link>
           : <Button variant="primary" onClick={() => void unlock()} disabled={busy || !configured}>Unlock</Button>}
       </Footer>
     </Screen>

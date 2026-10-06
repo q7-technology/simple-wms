@@ -9,7 +9,7 @@ import { fmtDateTime, fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill,
-  Section, SegmentedChoice, StatTile, Table, type Column,
+  Progress, Section, SegmentedChoice, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -209,7 +209,7 @@ function OrderDetail({ order, write, reload }: {
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       {made && <Muted className="text-xs leading-4">Finished goods have already come back</Muted>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button variant="quiet" onClick={() => navigate("/tasks")}>View issue task</Button>
         {write && !made && order.status !== "cancelled" && (
           <Button variant="gold" onClick={() => void cancel()} disabled={action.busy}>Cancel order</Button>
@@ -323,7 +323,7 @@ function NewOrderForm({ warehouse, onCancel, onCreated }: {
       </Section>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Create and allocate</Button>
       </div>
@@ -362,33 +362,44 @@ export function Production() {
   const receivedUom = new Set(receivedToday.map((o) => o.output.uom)).size === 1 ? receivedToday[0].output.uom : undefined;
   const short = items.filter((o) => isShort(o) && o.status !== "cancelled");
 
-  const rows = items.filter((o) => {
-    switch (filter) {
+  const inFilter = (o: ProductionOrder, f: Filter) => {
+    switch (f) {
       case "all": return true;
       case "issuing": return o.status === "issuing" || o.status === "new";
-      default: return o.status === filter;
+      default: return o.status === f;
     }
-  });
+  };
+  const rows = items.filter((o) => inFilter(o, filter));
 
   const columns: Column<ProductionOrder>[] = [
-    { key: "ref", header: "Order", width: "150px", render: (o) => <b>{o.external_ref}</b> },
-    { key: "makes", header: "Makes", render: (o) => <>{o.output.sku} <Muted>· {o.output.name}</Muted></> },
+    { key: "ref", header: "Order", width: "120px", render: (o) => <b className="text-brand-dark">{o.external_ref}</b> },
+    { key: "makes", header: "Makes", width: "minmax(160px, 1fr)", render: (o) => <>{o.output.sku} <Muted>· {o.output.name}</Muted></> },
     { key: "batch", header: "Batch", width: "100px", render: (o) => o.output.batch ?? <Muted>—</Muted> },
     {
-      key: "qty", header: "Quantity", width: "140px",
-      render: (o) => `${fmtQty(o.output.qty_received)} / ${fmtQty(o.output.qty, o.output.uom)}`,
+      key: "qty", header: "Quantity", width: "130px",
+      render: (o) => (
+        <span className="flex flex-col gap-1 pr-4">
+          <span>{`${fmtQty(o.output.qty_received)} / ${fmtQty(o.output.qty, o.output.uom)}`}</span>
+          <Progress
+            done={Number(o.output.qty_received)}
+            total={Number(o.output.qty)}
+            tone={o.status === "complete" ? "ok" : "brand"}
+            label={`${o.external_ref} made`}
+          />
+        </span>
+      ),
     },
     {
-      key: "components", header: "Components", width: "150px",
+      key: "components", header: "Components", width: "140px",
       render: (o) => <Muted>{issued(o.components)}/{o.components.length} lines issued</Muted>,
     },
-    { key: "required", header: "Required", width: "130px", render: (o) => fmtDateTime(o.required_by) },
+    { key: "required", header: "Required", width: "110px", render: (o) => fmtDateTime(o.required_by) },
     {
       key: "status", header: "Status", width: "160px",
       render: (o) => (
         <span className="flex items-center gap-1.5">
           {statusPill(o.status)}
-          {isShort(o) && o.status !== "cancelled" && <Pill tone="warn">Short</Pill>}
+          {isShort(o) && o.status !== "cancelled" && <Pill tone="warning">Short</Pill>}
         </span>
       ),
     },
@@ -407,7 +418,7 @@ export function Production() {
           actions={write ? <Button variant="primary" onClick={() => { setAllocation(null); setMode("create"); }}>Create order</Button> : null}
         />
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile
             label="Waiting to issue"
             value={String(waiting.length)}
@@ -433,8 +444,12 @@ export function Production() {
           />
         </div>
 
-        <div className="flex items-center gap-1">
-          {FILTERS.map((f) => <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</Chip>)}
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map((f) => (
+            <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)} count={items.filter((o) => inFilter(o, f.value)).length}>
+              {f.label}
+            </Chip>
+          ))}
         </div>
 
         {list.error && <Notice tone="gold">{list.error}</Notice>}

@@ -91,10 +91,10 @@ describe("Task board", () => {
 
   it("shows the four columns with counts and the story under each card", async () => {
     renderBoard();
-    expect(await screen.findByText("Waiting · 1")).toBeInTheDocument();
-    expect(screen.getByText("In progress · 1")).toBeInTheDocument();
-    expect(screen.getByText("Needs a supervisor · 1")).toBeInTheDocument();
-    expect(screen.getByText("Done today · 1")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Waiting · 1" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "In progress · 1" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Needs a supervisor · 1" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Done today · 1" })).toBeInTheDocument();
 
     expect(screen.getByText("2 lines · delivery")).toBeInTheDocument();
     expect(screen.getByText("Jo · line 2 of 5 · 29 min")).toBeInTheDocument();

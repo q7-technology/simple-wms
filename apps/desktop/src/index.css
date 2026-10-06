@@ -1,24 +1,50 @@
 @import "tailwindcss";
 
-/* Q7 Technology design system. See docs/screens.md. */
+/* Game Mode look: a light, friendly warehouse. The token names are the ones
+ * every page already uses; only their values changed from the dark theme. */
 @theme {
-  --color-ground: #0d1117;
-  --color-ink: #ccd6f6;
-  --color-muted: #8892b0;
-  --color-brand: #29abe2;
-  --color-gold: #f7941d;
-  --color-ok: #4ade80;
-  --color-line: rgba(41, 171, 226, 0.2);
-  --color-line-soft: rgba(41, 171, 226, 0.1);
-  --color-line-strong: rgba(41, 171, 226, 0.3);
-  --color-brand-tint: rgba(41, 171, 226, 0.1);
-  --color-card: rgba(13, 17, 23, 0.6);
-  --color-gold-line: rgba(247, 148, 29, 0.3);
-  --color-ok-line: rgba(74, 222, 128, 0.3);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --color-ground: #F3F6FD;
+  --color-ink: #18233D;
+  --color-ink-2: #4A5672;
+  --color-muted: #5A6785;
+  --color-brand: #2F6FE4;
+  --color-brand-dark: #2148A8;
+  --color-gold: #A8560F;
+  --color-gold-ink: #8E4A0E;
+  --color-gold-tint: #FFF1E3;
+  --color-ok: #145A31;
+  --color-ok-fill: #22A35A;
+  --color-ok-tint: #E3F5EA;
+  --color-line: #DDE5F5;
+  --color-line-soft: #E6EDFB;
+  --color-line-strong: #CFDAF2;
+  --color-brand-tint: #EEF3FF;
+  --color-card: #FFFFFF;
+  --color-field: #F7F9FE;
+  --color-gold-line: rgba(168, 86, 15, 0.35);
+  --color-ok-line: rgba(34, 163, 90, 0.35);
+
+  /* zones and states: background, then the ink that reads on it */
+  --color-arriving: #D8E5FF;
+  --color-arriving-ink: #1F4FB0;
+  --color-stored: #D3EFE8;
+  --color-stored-ink: #0F5F59;
+  --color-leaving: #FDE6D2;
+  --color-leaving-ink: #8E4A0E;
+  --color-problem: #FDE2E0;
+  --color-problem-ink: #A3221A;
+  --color-warning: #FFF0C2;
+  --color-warning-ink: #7A5C00;
+
+  --font-sans: Manrope, ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shadow-soft: 0 6px 20px rgba(24, 35, 61, 0.08);
+  --shadow-lift: 0 10px 30px rgba(24, 35, 61, 0.12);
 }
 
+/* In the base layer, so a utility class on a link (white text on a blue
+ * button, say) wins over the default link colour. */
+@layer base {
 html, body, #root { min-height: 100%; }
 body {
   margin: 0;
@@ -27,26 +53,75 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--color-brand); }
-a:hover { color: #64ffda; }
+a { color: #2557C9; }
+a:hover { color: #1A3F99; }
+:focus-visible { outline: 3px solid rgba(47, 111, 228, 0.45); outline-offset: 2px; }
 
 input, select, textarea, button { font: inherit; }
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+}
 
 @layer components {
 .input {
-  height: 40px; box-sizing: border-box; padding: 0 12px; border-radius: 6px;
-  background: var(--color-ground); border: 1px solid var(--color-line);
+  height: 44px; box-sizing: border-box; padding: 0 14px; border-radius: 12px;
+  background: #FFFFFF; border: 1px solid var(--color-line-strong);
   color: var(--color-ink); font-size: 14px; width: 100%;
 }
-.input:focus { outline: none; border-color: var(--color-brand); }
-.input:disabled { color: var(--color-muted); }
-select.input { appearance: none; padding-right: 32px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 10px center; }
+.input::placeholder { color: var(--color-muted); }
+.input:focus { outline: none; border-color: var(--color-brand); box-shadow: 0 0 0 3px rgba(47, 111, 228, 0.18); }
+.input:disabled { color: var(--color-muted); background: var(--color-ground); }
+select.input { appearance: none; padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235A6785' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; }
 
-.eyebrow { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-.card { border-radius: 8px; border: 1px solid var(--color-line); background: var(--color-card); }
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.card { border-radius: 16px; border: 1px solid var(--color-line-soft); background: var(--color-card); box-shadow: 0 2px 6px rgba(24, 35, 61, 0.04); }
+.float-card { border-radius: 16px; background: var(--color-card); box-shadow: var(--shadow-soft); }
+/* A box that scrolls sideways shows a soft shadow on the edge with more to
+ * see, so a column past the edge reads as "scroll", not "cut off". */
+.scroll-x-hint {
+  background:
+    linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(24, 35, 61, 0.16), rgba(24, 35, 61, 0)) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(24, 35, 61, 0.16), rgba(24, 35, 61, 0)) right center / 14px 100% no-repeat scroll,
+    #fff;
+}
 .row-line { border-bottom: 1px solid var(--color-line-soft); }
 .mono { font-family: var(--font-mono); }
+}
+
+/* A detail panel with nothing picked yet steps aside on a wide drawer. */
+@container (min-width: 64rem) {
+  .wm-detail:has(> [data-idle]:only-child) { display: none; }
+}
+
+/* --- the map's moving parts ----------------------------------------------
+ * Small, slow and optional. Translations are in the picture's own units: one
+ * step along the road is (0.866, 0.5). */
+@keyframes wm-fork-a { from { transform: translate(0, 0); } to { transform: translate(-31px, -18px); } }
+@keyframes wm-fork-b { from { transform: translate(0, 0); } to { transform: translate(26px, 15px); } }
+@keyframes wm-drive-in {
+  from { transform: translate(-346px, -200px); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: translate(0, 0); opacity: 1; }
+}
+@keyframes wm-drive-off {
+  0% { transform: translate(0, 0); opacity: 1; }
+  50% { transform: translate(390px, 225px); opacity: 0; }
+  50.1% { transform: translate(0, 0); opacity: 0; }
+  100% { transform: translate(0, 0); opacity: 1; }
+}
+.wm-fork-a { animation: wm-fork-a 7s ease-in-out infinite alternate; }
+.wm-fork-b { animation: wm-fork-b 9s ease-in-out 1.5s infinite alternate; }
+.wm-drive-in { animation: wm-drive-in 2.6s ease-out both; }
+.wm-drive-off { animation: wm-drive-off 5s ease-in-out both; }
+@keyframes wm-drawer-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.wm-drawer { animation: wm-drawer-in 0.22s ease-out; }
+@keyframes wm-toast-in { from { transform: translateY(12px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.wm-toast { animation: wm-toast-in 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-fork-a, .wm-fork-b, .wm-drive-in, .wm-drive-off, .wm-drawer, .wm-toast { animation: none !important; }
+  * { transition-duration: 0s !important; }
 }

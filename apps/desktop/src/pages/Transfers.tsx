@@ -90,10 +90,10 @@ function reasonWords(reason: string) {
 function statusPill(status: TransferStatus) {
   switch (status) {
     case "allocated":
-    case "picking": return <Pill tone="info">Picking</Pill>;
-    case "picked": return <Pill tone="info">Picked</Pill>;
+    case "picking": return <Pill tone="leaving">Picking</Pill>;
+    case "picked": return <Pill tone="leaving">Picked</Pill>;
     case "in_transit": return <Pill tone="info">In transit</Pill>;
-    case "receiving": return <Pill tone="info">Receiving</Pill>;
+    case "receiving": return <Pill tone="arriving">Receiving</Pill>;
     case "received": return <Pill tone="ok">Received</Pill>;
     case "variance": return <Pill tone="warn">Variance</Pill>;
     case "closed": return <Pill tone="muted">Closed</Pill>;
@@ -251,7 +251,7 @@ function TransferDetail({ transfer, write, reload }: {
             <Input value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="TOLL-99123" aria-label="Tracking number" />
           </Field>
           <Muted className="text-xs leading-4">Shipping moves the stock off the bench into the in-transit bucket at {transfer.to_warehouse}.</Muted>
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button small type="button" onClick={() => setForm("none")} disabled={action.busy}>Cancel</Button>
             <Button small type="submit" variant="primary" disabled={action.busy}>Ship transfer</Button>
           </div>
@@ -274,7 +274,7 @@ function TransferDetail({ transfer, write, reload }: {
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="One carton crushed on arrival" aria-label="Note" />
           </Field>
           <Muted className="text-xs leading-4">Writes whatever is left in the bucket off with a reason, one stock.adjusted per ledger line.</Muted>
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button small type="button" onClick={() => setForm("none")} disabled={action.busy}>Keep open</Button>
             <Button small type="submit" variant="gold" disabled={action.busy}>Write it off</Button>
           </div>
@@ -285,7 +285,7 @@ function TransferDetail({ transfer, write, reload }: {
       )}
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">{footer()}</div>
+      <div className="flex flex-wrap gap-2 [&>*]:grow">{footer()}</div>
     </>
   );
 }
@@ -397,7 +397,7 @@ function NewTransferForm({ from, codes, onCancel, onCreated }: {
       </Section>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Create and allocate</Button>
       </div>
@@ -442,8 +442,8 @@ export function Transfers() {
   const varianceLines = variance.flatMap((t) => t.lines);
   const varianceQty = sumQty(varianceLines.map((l) => l.variance));
 
-  const rows = items.filter((t) => {
-    switch (filter) {
+  const inFilter = (t: Transfer, f: Filter) => {
+    switch (f) {
       case "all": return true;
       case "picking": return PICKING.includes(t.status);
       case "arrived": return ARRIVED.includes(t.status);
@@ -453,20 +453,21 @@ export function Transfers() {
       case "cancelled": return t.status === "cancelled";
       default: return true;
     }
-  });
+  };
+  const rows = items.filter((t) => inFilter(t, filter));
 
   const qtyCell = (lines: TransferLine[]) => fmtQty(sumQty(lines.map((l) => l.qty_requested)), sharedUom(lines));
 
   const columns: Column<Transfer>[] = [
-    { key: "ref", header: "Transfer", width: "140px", render: (t) => <b>{t.external_ref}</b> },
-    { key: "from", header: "From", width: "120px", render: (t) => t.from_warehouse },
-    { key: "to", header: "To", width: "120px", render: (t) => t.to_warehouse },
-    { key: "lines", header: "Lines", width: "70px", render: (t) => String(t.lines.length) },
-    { key: "qty", header: "Qty", width: "110px", render: (t) => qtyCell(t.lines) },
-    { key: "required", header: "Required", width: "100px", render: (t) => fmtDate(t.required_by) },
+    { key: "ref", header: "Transfer", width: "130px", render: (t) => <b className="text-brand-dark">{t.external_ref}</b> },
+    { key: "from", header: "From", width: "minmax(100px, 1fr)", render: (t) => t.from_warehouse },
+    { key: "to", header: "To", width: "minmax(100px, 1fr)", render: (t) => t.to_warehouse },
+    { key: "lines", header: "Lines", width: "56px", render: (t) => String(t.lines.length) },
+    { key: "qty", header: "Qty", width: "90px", render: (t) => qtyCell(t.lines) },
+    { key: "required", header: "Required", width: "90px", render: (t) => fmtDate(t.required_by) },
     { key: "status", header: "Status", width: "120px", render: (t) => statusPill(t.status) },
     {
-      key: "progress", header: "Progress", width: "120px",
+      key: "progress", header: "Progress", width: "100px",
       render: (t) => (
         <ProgressBar pct={percent(sumQty(t.lines.map((l) => l.qty_received)), sumQty(t.lines.map((l) => l.qty_requested)))} />
       ),
@@ -486,7 +487,7 @@ export function Transfers() {
           actions={write ? <Button variant="primary" onClick={() => { setAllocation(null); setMode("create"); }}>Create transfer</Button> : null}
         />
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile
             label="Picking"
             value={String(picking.length)}
@@ -514,12 +515,16 @@ export function Transfers() {
           />
         </div>
 
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {DIRECTIONS.map((d) => (
             <Chip key={d.value} active={direction === d.value} onClick={() => setDirection(d.value)}>{d.label}</Chip>
           ))}
-          <span className="w-4" />
-          {FILTERS.map((f) => <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</Chip>)}
+          <span aria-hidden="true" className="w-px h-7 bg-line-strong mx-1.5" />
+          {FILTERS.map((f) => (
+            <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)} count={items.filter((t) => inFilter(t, f.value)).length}>
+              {f.label}
+            </Chip>
+          ))}
         </div>
 
         {list.error && <Notice tone="gold">{list.error}</Notice>}

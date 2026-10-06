@@ -124,6 +124,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** For shared chrome (the header's device chip) that may render outside a provider. */
+export function useSessionOptional(): State | null {
+  return useContext(Ctx);
+}
+
 export function useSession(): State {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useSession outside SessionProvider");

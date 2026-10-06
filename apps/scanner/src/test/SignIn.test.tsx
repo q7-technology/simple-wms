@@ -68,7 +68,7 @@ describe("SignIn", () => {
     await user.click(screen.getByRole("button", { name: "9" }));
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText(/wrong PIN/i)).toBeInTheDocument();
+    expect(await screen.findByText("Wrong PIN · 4 tries left")).toBeInTheDocument();
     expect(screen.queryByText("Menu")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "0 digits entered" })).toBeInTheDocument();
   });

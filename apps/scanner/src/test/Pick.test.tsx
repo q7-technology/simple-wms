@@ -105,6 +105,9 @@ describe("Pick", () => {
 
     await user.click(confirm);
     expect(await screen.findByText("Line 2 of 2")).toBeInTheDocument();
+    // a short green "Ding!" says the line went in
+    const toast = screen.getByText("Ding! Picked 6 EA GHI789");
+    expect(toast.closest('[role="status"]')).not.toBeNull();
     expect(screen.getByText("JKL012")).toBeInTheDocument();
     expect(screen.getByText("PF-01-05-C")).toBeInTheDocument();
 

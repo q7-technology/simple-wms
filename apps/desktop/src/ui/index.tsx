@@ -8,10 +8,10 @@ function cx(...parts: (string | false | null | undefined)[]) {
 
 type Variant = "primary" | "quiet" | "gold" | "ghost";
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-brand border-brand text-ground font-semibold hover:brightness-110",
-  quiet: "bg-transparent border-line-strong text-ink font-medium hover:bg-brand-tint",
-  gold: "bg-transparent border-gold text-gold font-medium hover:bg-[rgba(247,148,29,0.1)]",
-  ghost: "bg-transparent border-transparent text-muted font-medium hover:text-ink",
+  primary: "bg-brand border-brand text-white font-bold hover:bg-brand-dark hover:border-brand-dark",
+  quiet: "bg-card border-line-strong text-ink font-bold hover:bg-brand-tint",
+  gold: "bg-card border-gold-line text-gold font-bold hover:bg-gold-tint",
+  ghost: "bg-transparent border-transparent text-ink-2 font-bold hover:text-ink hover:bg-ground",
 };
 
 export function Button({
@@ -21,8 +21,8 @@ export function Button({
     <button
       type="button"
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-md border px-4 text-sm cursor-pointer whitespace-nowrap",
-        small ? "h-8 px-3" : "h-10",
+        "inline-flex items-center justify-center gap-2 rounded-xl border text-sm cursor-pointer whitespace-nowrap transition-colors",
+        small ? "min-h-11 px-3 text-[13px]" : "min-h-11 px-4",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         VARIANTS[variant], className,
       )}
@@ -39,15 +39,14 @@ export function Eyebrow({ children, tone = "brand", className }: { children: Rea
 
 export function PageHeader({ eyebrow, title, accent, actions }: { eyebrow: ReactNode; title: ReactNode; accent?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="flex items-end gap-4">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div className="flex flex-col gap-1 min-w-0 grow">
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h1 className="m-0 text-[30px] leading-9 font-bold">
+        <h1 className="m-0 text-[26px] leading-9 font-extrabold tracking-[-0.3px]">
           {accent ? <><span className="text-brand">{accent}</span> {title}</> : title}
         </h1>
       </div>
-      <div className="grow" />
-      {actions}
+      {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </div>
   );
 }
@@ -60,51 +59,98 @@ export function Muted({ children, className }: { children: ReactNode; className?
 
 export function Card({ children, className, tone }: { children: ReactNode; className?: string; tone?: "gold" }) {
   return (
-    <div className={cx("card", tone === "gold" && "border-gold-line", className)}>{children}</div>
+    <div className={cx("card", tone === "gold" && "border-gold-line bg-gold-tint", className)}>{children}</div>
   );
 }
 
 export function StatTile({ label, value, hint, tone }: { label: ReactNode; value: ReactNode; hint?: ReactNode; tone?: "gold" }) {
   return (
-    <Card tone={tone} className="p-5 flex flex-col gap-1.5">
-      <span className="text-xs leading-4 text-muted">{label}</span>
-      <span className={cx("text-4xl leading-10 font-bold truncate", tone === "gold" ? "text-gold" : "text-ink")}>{value}</span>
-      {hint !== undefined && <span className="text-xs leading-4 text-muted">{hint}</span>}
+    <Card tone={tone} className="px-4 py-3.5 flex flex-col gap-1 min-w-0">
+      <span className={cx("eyebrow !tracking-[0.06em]", tone === "gold" ? "text-gold" : "text-ink-2")}>{label}</span>
+      <span className={cx("text-[30px] leading-9 font-extrabold truncate", tone === "gold" ? "text-gold" : "text-ink")}>{value}</span>
+      {hint !== undefined && <span className={cx("text-[13px] leading-[18px]", tone === "gold" ? "text-gold-ink" : "text-muted")}>{hint}</span>}
     </Card>
+  );
+}
+
+/** A thin progress bar. The numbers beside it say the same thing in words. */
+export function Progress({ done, total, tone = "brand", label }: { done: number; total: number; tone?: "brand" | "ok" | "gold"; label?: string }) {
+  const pct = total > 0 ? Math.max(0, Math.min(100, (done / total) * 100)) : 0;
+  const fill = tone === "ok" ? "bg-ok-fill" : tone === "gold" ? "bg-[#E07A1F]" : "bg-brand";
+  return (
+    <span
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={done}
+      className="block h-1.5 w-full min-w-10 rounded-full bg-line-soft overflow-hidden"
+    >
+      <span className={cx("block h-full rounded-full", fill)} style={{ width: `${pct}%` }} />
+    </span>
   );
 }
 
 /* --- pills and chips ----------------------------------------------------- */
 
-type PillTone = "ok" | "warn" | "muted" | "info";
+/** Status colour always comes with the word inside the pill. */
+type PillTone = "ok" | "warn" | "muted" | "info" | "arriving" | "stored" | "leaving" | "problem" | "warning";
 const PILLS: Record<PillTone, string> = {
-  ok: "border-ok-line text-ok",
-  warn: "border-gold-line text-gold",
-  muted: "border-line text-muted",
-  info: "border-line-strong bg-brand-tint text-ink",
+  ok: "bg-ok-tint text-ok",
+  warn: "bg-gold-tint text-gold",
+  muted: "bg-ground text-ink-2",
+  info: "bg-brand-tint text-brand-dark",
+  arriving: "bg-arriving text-arriving-ink",
+  stored: "bg-stored text-stored-ink",
+  leaving: "bg-leaving text-leaving-ink",
+  problem: "bg-problem text-problem-ink",
+  warning: "bg-warning text-warning-ink",
 };
 
 export function Pill({ tone = "info", children }: { tone?: PillTone; children: ReactNode }) {
   return (
-    <span className={cx("inline-block rounded-full border px-2 py-0.5 text-xs leading-4 font-semibold whitespace-nowrap", PILLS[tone])}>
+    <span className={cx("inline-block rounded-full px-2.5 py-1 text-xs leading-4 font-extrabold whitespace-nowrap", PILLS[tone])}>
       {children}
     </span>
   );
 }
 
-export function Chip({ active, children, onClick }: { active?: boolean; children: ReactNode; onClick?: () => void }) {
+/** A filter chip. The count is a visual extra; the chip's name stays its word. */
+export function Chip({ active, children, onClick, count }: { active?: boolean; children: ReactNode; onClick?: () => void; count?: number }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={onClick ? !!active : undefined}
       className={cx(
-        "inline-block rounded-full border px-2 py-0.5 text-xs leading-4 font-semibold whitespace-nowrap cursor-pointer",
-        active ? "border-line-strong bg-brand-tint text-ink" : "border-line text-muted hover:text-ink",
+        "inline-flex items-center gap-2 min-h-11 rounded-full border px-3.5 text-[13px] leading-4 font-bold whitespace-nowrap cursor-pointer transition-colors",
+        active ? "border-brand bg-brand text-white" : "border-line bg-card text-ink hover:bg-brand-tint",
       )}
     >
-      {children}
+      {count === undefined ? children : <span>{children}</span>}
+      {count !== undefined && (
+        <span aria-hidden="true" className={cx(
+          "min-w-6 rounded-full px-1.5 py-0.5 text-[11px] leading-4 font-extrabold text-center",
+          active ? "bg-white/25 text-white" : "bg-brand-tint text-brand-dark",
+        )}>{count}</span>
+      )}
     </button>
   );
+}
+
+/** Zone kinds the API names, as the three map colours. Kinds with no obvious
+ * place on the map (in transit, overflow, line side) get no colour. */
+export function zoneLook(kind: string | null | undefined): { tone: "stored" | "leaving"; word: string } | null {
+  switch (kind) {
+    case "bulk": case "pickface": return { tone: "stored", word: "Stored" };
+    case "packing": case "staging": return { tone: "leaving", word: "Leaving" };
+    default: return null;
+  }
+}
+
+/** A location code as a small tile, as the map labels them. */
+export function LocCode({ children }: { children: ReactNode }) {
+  return <span className="inline-block rounded-lg bg-ground px-2 py-1 mono text-[13px] leading-4 font-bold text-ink whitespace-nowrap">{children}</span>;
 }
 
 /* --- forms --------------------------------------------------------------- */
@@ -112,9 +158,9 @@ export function Chip({ active, children, onClick }: { active?: boolean; children
 export function Field({ label, hint, error, children, className }: { label: ReactNode; hint?: ReactNode; error?: string; children: ReactNode; className?: string }) {
   return (
     <label className={cx("flex flex-col gap-1.5 min-w-0", className)}>
-      <span className="text-xs leading-4 text-muted">{label}</span>
+      <span className="text-[13px] leading-4 font-bold text-ink-2">{label}</span>
       {children}
-      {error ? <span className="text-xs leading-4 text-gold">{error}</span>
+      {error ? <span className="text-xs leading-4 font-semibold text-gold">{error}</span>
         : hint ? <span className="text-xs leading-4 text-muted">{hint}</span> : null}
     </label>
   );
@@ -132,18 +178,19 @@ export function SearchInput({ className, ...props }: InputHTMLAttributes<HTMLInp
   return (
     <label className={cx("relative flex items-center", className)}>
       <span className="absolute left-3 flex" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892b0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
       </span>
-      <input type="search" className="input pl-9" {...props} />
+      <input type="search" className="input pl-10 bg-field border-line" {...props} />
     </label>
   );
 }
 
-export function Toggle({ checked, onChange, label, hint, disabled }: { checked: boolean; onChange?: (v: boolean) => void; label: ReactNode; hint?: ReactNode; disabled?: boolean }) {
+export function Toggle({ checked, onChange, label, hint, disabled, icon }: { checked: boolean; onChange?: (v: boolean) => void; label: ReactNode; hint?: ReactNode; disabled?: boolean; icon?: ReactNode }) {
   return (
-    <label className={cx("flex items-center justify-between gap-4 py-2.5 row-line last:border-b-0", disabled && "opacity-60")}>
-      <span className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-sm leading-5 text-ink">{label}</span>
+    <label className={cx("flex items-center justify-between gap-4 py-2.5 min-h-11 row-line last:border-b-0", disabled && "opacity-60")}>
+      {icon && <span aria-hidden="true" className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-brand-tint text-brand">{icon}</span>}
+      <span className="flex flex-col gap-0.5 min-w-0 grow">
+        <span className="text-sm leading-5 font-bold text-ink">{label}</span>
         {hint && <span className="text-xs leading-4 text-muted">{hint}</span>}
       </span>
       <button
@@ -153,13 +200,13 @@ export function Toggle({ checked, onChange, label, hint, disabled }: { checked: 
         disabled={disabled}
         onClick={() => onChange?.(!checked)}
         className={cx(
-          "relative shrink-0 w-10 h-6 rounded-full border transition-colors cursor-pointer disabled:cursor-not-allowed",
-          checked ? "bg-brand border-brand" : "bg-transparent border-line-strong",
+          "relative shrink-0 w-14 h-8 rounded-full border-0 p-0 transition-colors cursor-pointer disabled:cursor-not-allowed",
+          checked ? "bg-brand" : "bg-line-strong",
         )}
       >
         <span className={cx(
-          "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-          checked ? "left-[18px] bg-ground" : "left-0.5 bg-muted",
+          "absolute top-1 w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-all",
+          checked ? "left-7" : "left-1",
         )} />
       </button>
     </label>
@@ -181,12 +228,16 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, selectedKey, empty
   onRowClick?: (row: T) => void; selectedKey?: string | null; empty?: ReactNode;
 }) {
   const template = columns.map((c) => c.width ?? "minmax(0, 1fr)").join(" ");
+  // Wide tables scroll sideways in their own box rather than getting cut off
+  // by the drawer: the row never gets narrower than its columns need.
+  const minWidth = columns.reduce((sum, c) => sum + minColumnWidth(c.width), 40 + COLUMN_GAP * (columns.length - 1));
   return (
-    <div className="card overflow-hidden flex flex-col">
-      <div className="grid px-6 py-3 eyebrow text-muted border-b border-line" style={{ gridTemplateColumns: template }}>
-        {columns.map((c) => <span key={c.key} className={cx("truncate", c.align === "right" && "text-right")}>{c.header}</span>)}
+    <div className="card scroll-x-hint overflow-x-auto overflow-y-hidden">
+    <div className="flex flex-col" style={{ minWidth }}>
+      <div className="grid gap-x-4 px-5 py-3 eyebrow text-muted border-b border-line-soft" style={{ gridTemplateColumns: template }}>
+        {columns.map((c) => <span key={c.key} className={cx("truncate", c.align === "right" && "text-right pr-4")}>{c.header}</span>)}
       </div>
-      {rows.length === 0 && <div className="px-6 py-8 text-sm text-muted">{empty ?? "Nothing here yet."}</div>}
+      {rows.length === 0 && <div className="px-5 py-8 text-sm text-muted">{empty ?? "Nothing here yet."}</div>}
       {rows.map((row) => {
         const k = rowKey(row);
         const selected = selectedKey === k;
@@ -198,36 +249,56 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, selectedKey, empty
             onClick={onRowClick ? () => onRowClick(row) : undefined}
             onKeyDown={onRowClick ? (e) => { if (e.key === "Enter") onRowClick(row); } : undefined}
             className={cx(
-              "grid px-6 py-3.5 text-sm leading-5 items-center row-line last:border-b-0",
-              onRowClick && "cursor-pointer hover:bg-brand-tint",
-              selected && "bg-brand-tint",
+              "grid gap-x-4 px-5 py-3.5 min-h-11 text-sm leading-5 items-center row-line last:border-b-0",
+              onRowClick && "cursor-pointer hover:bg-[#F2F6FF]",
+              selected && "bg-brand-tint shadow-[inset_3px_0_0_var(--color-brand)]",
             )}
             style={{ gridTemplateColumns: template }}
           >
-            {columns.map((c) => <span key={c.key} className={cx("min-w-0 truncate", c.align === "right" && "text-right")}>{c.render(row)}</span>)}
+            {columns.map((c) => <span key={c.key} className={cx("min-w-0 truncate", c.align === "right" && "text-right pr-4")}>{c.render(row)}</span>)}
           </div>
         );
       })}
     </div>
+    </div>
   );
+}
+
+/** Space between columns (gap-x-4), so a truncated cell never touches the next. */
+const COLUMN_GAP = 16;
+
+/** The least a grid column should get: its fixed width, its minmax floor, or
+ * a sensible 120px for a flexible column. */
+function minColumnWidth(width: string | undefined): number {
+  if (!width) return 120;
+  const px = /^(\d+(?:\.\d+)?)px$/.exec(width.trim());
+  if (px) return Number(px[1]);
+  const mm = /^minmax\(\s*(\d+(?:\.\d+)?)px/.exec(width.trim());
+  if (mm) return Math.max(Number(mm[1]), 60);
+  return 120;
 }
 
 /* --- detail panel -------------------------------------------------------- */
 
 export function DetailPanel({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
-    <aside aria-label="Detail" className="w-[400px] shrink-0 border-l border-line bg-card p-6 flex flex-col gap-5 overflow-y-auto">
+    <aside
+      aria-label="Detail"
+      className="wm-detail shrink-0 mx-6 mb-6 rounded-[18px] border border-line bg-field p-5 flex flex-col gap-5 @5xl:mx-0 @5xl:mr-6 @5xl:mt-2 @5xl:w-[340px] @5xl:self-start @5xl:max-h-[calc(100%-2rem)] @5xl:overflow-y-auto"
+    >
       {children}
-      {footer && <><div className="grow" /><div className="flex gap-2 [&>*]:grow">{footer}</div></>}
+      {footer && <div className="flex flex-wrap gap-2 [&>*]:grow">{footer}</div>}
     </aside>
   );
 }
 
 export function DetailHeader({ eyebrow, title, subtitle }: { eyebrow: ReactNode; title: ReactNode; subtitle?: ReactNode }) {
+  // A dash title is the "nothing picked yet" hint. On a wide drawer a panel
+  // holding only that steps aside, so the list gets the room.
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1" data-idle={title === "—" ? "" : undefined}>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <div className="text-2xl leading-none font-semibold tracking-tight">{title}</div>
+      <div className="text-[22px] leading-7 font-extrabold tracking-tight break-words">{title}</div>
       {subtitle && <span className="text-sm leading-5 text-muted">{subtitle}</span>}
     </div>
   );
@@ -239,7 +310,7 @@ export function KeyValue({ items }: { items: { label: ReactNode; value: ReactNod
       {items.map((it, i) => (
         <div key={i} className="flex flex-col gap-0.5 min-w-0">
           <span className="text-xs leading-4 text-muted">{it.label}</span>
-          <span className="text-sm leading-5 text-ink truncate">{it.value}</span>
+          <span className="text-sm leading-5 font-bold text-ink truncate">{it.value}</span>
         </div>
       ))}
     </div>
@@ -259,8 +330,10 @@ export function Section({ title, children, action }: { title: ReactNode; childre
 }
 
 export function Notice({ tone = "muted", children }: { tone?: "muted" | "gold" | "ok"; children: ReactNode }) {
-  const cls = tone === "gold" ? "border-gold-line text-gold" : tone === "ok" ? "border-ok-line text-ok" : "border-line text-muted";
-  return <div className={cx("rounded-md border px-3 py-2 text-sm", cls)}>{children}</div>;
+  const cls = tone === "gold" ? "border-gold-line bg-gold-tint text-gold"
+    : tone === "ok" ? "border-ok-line bg-ok-tint text-ok"
+    : "border-line-soft bg-brand-tint text-ink-2";
+  return <div className={cx("rounded-xl border px-3.5 py-2.5 text-sm leading-5", cls)}>{children}</div>;
 }
 
 export function SegmentedChoice<T extends string>({ value, options, onChange, disabled }: { value: T; options: { value: T; label: ReactNode }[]; onChange: (v: T) => void; disabled?: boolean }) {

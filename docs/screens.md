@@ -1,5 +1,9 @@
 # Simple WMS — screens
 
+> The apps now follow the Game Mode design in `design/game-mode/`. This
+> page describes the first version's screens, kept for reference with the
+> first apps in `archive/`. The features and build steps below still apply.
+
 Designed in the Claude Design file "Simple WMS UI" and exported to
 `design/screens/` (one HTML file per screen; `design/index.html` is the
 gallery). Desktop is 1440 wide with a 64 px top bar, a main column and a 400 px

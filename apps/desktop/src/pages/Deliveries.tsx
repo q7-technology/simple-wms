@@ -87,10 +87,10 @@ function reasonWords(reason: string) {
 function statusPill(status: DeliveryStatus) {
   switch (status) {
     case "allocated": return <Pill tone="info">Waiting</Pill>;
-    case "picking": return <Pill tone="info">Picking</Pill>;
-    case "picked": return <Pill tone="info">Picked</Pill>;
-    case "packing": return <Pill tone="info">Packing</Pill>;
-    case "packed": return <Pill tone="info">Packed</Pill>;
+    case "picking": return <Pill tone="leaving">Picking</Pill>;
+    case "picked": return <Pill tone="leaving">Picked</Pill>;
+    case "packing": return <Pill tone="leaving">Packing</Pill>;
+    case "packed": return <Pill tone="leaving">Packed</Pill>;
     case "shipped": return <Pill tone="ok">Shipped</Pill>;
     case "cancelled": return <Pill tone="muted">Cancelled</Pill>;
     default: return <Pill tone="info">New</Pill>;
@@ -208,7 +208,7 @@ function DeliveryDetailPanel({ delivery, write, reload }: {
       )}
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button variant="quiet" onClick={() => navigate(full)}>Open full page</Button>
         {primary()}
       </div>
@@ -346,7 +346,7 @@ function NewDeliveryForm({ warehouse, onCancel, onCreated }: {
       </Section>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Create and allocate</Button>
       </div>
@@ -385,31 +385,38 @@ export function Deliveries() {
   const lastShipped = [...shippedToday].sort((a, b) => (b.shipped_at ?? "").localeCompare(a.shipped_at ?? ""))[0];
 
   const needle = search.trim().toLowerCase();
+  const inFilter = (d: Delivery, f: Filter) => {
+    switch (f) {
+      case "all": return true;
+      case "short": return d.short && d.status !== "cancelled";
+      case "packed": return d.status === "packed" || d.status === "packing";
+      default: return d.status === f;
+    }
+  };
   const rows = items.filter((d) => {
     const matches = !needle
       || d.external_ref.toLowerCase().includes(needle)
       || d.ship_to.name.toLowerCase().includes(needle)
       || d.lines.some((l) => l.sku.toLowerCase().includes(needle));
-    if (!matches) return false;
-    switch (filter) {
-      case "all": return true;
-      case "short": return d.short && d.status !== "cancelled";
-      case "packed": return d.status === "packed" || d.status === "packing";
-      default: return d.status === filter;
-    }
+    return matches && inFilter(d, filter);
   });
 
   const qtyCell = (lines: DeliveryLine[]) => fmtQty(sumQty(lines.map((l) => l.qty_ordered)), sharedUom(lines));
 
   const columns: Column<Delivery>[] = [
-    { key: "ref", header: "Delivery", width: "140px", render: (d) => <b>{d.external_ref}</b> },
+    { key: "ref", header: "Delivery", width: "120px", render: (d) => <b className="text-brand-dark">{d.external_ref}</b> },
     {
-      key: "ship_to", header: "Ship to",
-      render: (d) => <>{d.ship_to.name}{d.ship_to.suburb ? <Muted> · {d.ship_to.suburb}</Muted> : null}</>,
+      key: "ship_to", header: "Ship to", width: "minmax(160px, 1fr)",
+      render: (d) => (
+        <span className="flex flex-col min-w-0">
+          <span className="font-bold text-ink truncate" title={d.ship_to.name}>{d.ship_to.name}</span>
+          {d.ship_to.suburb ? <Muted className="text-xs leading-4 truncate">{d.ship_to.suburb}</Muted> : null}
+        </span>
+      ),
     },
-    { key: "lines", header: "Lines", width: "70px", render: (d) => String(d.lines.length) },
-    { key: "qty", header: "Qty", width: "110px", render: (d) => qtyCell(d.lines) },
-    { key: "required", header: "Required", width: "100px", render: (d) => fmtDate(d.required_by) },
+    { key: "lines", header: "Lines", width: "60px", render: (d) => String(d.lines.length) },
+    { key: "qty", header: "Qty", width: "90px", render: (d) => qtyCell(d.lines) },
+    { key: "required", header: "Required", width: "90px", render: (d) => fmtDate(d.required_by) },
     {
       key: "priority", header: "Priority", width: "90px",
       render: (d) => d.priority === "high" ? <Pill tone="warn">High</Pill> : <Muted>Normal</Muted>,
@@ -419,12 +426,12 @@ export function Deliveries() {
       render: (d) => (
         <span className="flex items-center gap-1.5">
           {statusPill(d.status)}
-          {d.short && d.status !== "cancelled" && <Pill tone="warn">Short</Pill>}
+          {d.short && d.status !== "cancelled" && <Pill tone="warning">Short</Pill>}
         </span>
       ),
     },
     {
-      key: "progress", header: "Picked", width: "120px",
+      key: "progress", header: "Picked", width: "100px",
       render: (d) => (
         <ProgressBar pct={percent(sumQty(d.lines.map((l) => l.qty_picked)), sumQty(d.lines.map((l) => l.qty_ordered)))} />
       ),
@@ -448,7 +455,7 @@ export function Deliveries() {
           </>}
         />
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile
             label="Waiting to pick"
             value={String(waiting.length)}
@@ -471,15 +478,21 @@ export function Deliveries() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3">
           <SearchInput
-            className="w-[320px]"
+            className="w-full max-w-[420px]"
             placeholder="Search reference, customer or SKU"
             aria-label="Search deliveries"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {FILTERS.map((f) => <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</Chip>)}
+          <div className="flex flex-wrap items-center gap-2">
+            {FILTERS.map((f) => (
+              <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)} count={items.filter((d) => inFilter(d, f.value)).length}>
+                {f.label}
+              </Chip>
+            ))}
+          </div>
         </div>
 
         {list.error && <Notice tone="gold">{list.error}</Notice>}

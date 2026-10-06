@@ -276,7 +276,7 @@ export function Products() {
   }
 
   const columns: Column<Product>[] = [
-    { key: "sku", header: "SKU", width: "120px", render: (p) => <b>{p.sku}</b> },
+    { key: "sku", header: "SKU", width: "120px", render: (p) => <b className="text-brand-dark">{p.sku}</b> },
     { key: "name", header: "Name", render: (p) => p.name },
     { key: "uom", header: "Unit", width: "70px", render: (p) => p.uom },
     { key: "batch", header: "Batch", width: "70px", render: (p) => (p.batch_tracked ? "Yes" : "No") },
@@ -314,7 +314,7 @@ export function Products() {
 
         <div className="flex gap-3 items-center flex-wrap">
           <SearchInput
-            className="w-[300px]"
+            className="flex-[1_1_240px] max-w-[320px]"
             placeholder="SKU or name"
             aria-label="Find a product"
             value={q}
@@ -404,7 +404,7 @@ export function Products() {
                     <Input inputMode="decimal" value={printQty} onChange={(e) => setPrintQty(e.target.value)} placeholder="Optional" />
                   </Field>
                 </div>
-                <div className="flex gap-2 [&>*]:grow">
+                <div className="flex flex-wrap gap-2 [&>*]:grow">
                   <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
                   <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
                     {printBusy ? "Printing…" : "Print"}
@@ -599,7 +599,7 @@ export function Products() {
                               />
                             </Field>
                             {batchError && <Notice tone="gold">{batchError}</Notice>}
-                            <div className="flex gap-2 [&>*]:grow">
+                            <div className="flex flex-wrap gap-2 [&>*]:grow">
                               <Button small type="button" aria-label={`Cancel ${b.code}`} onClick={() => setBatchForm(null)}>
                                 Cancel
                               </Button>

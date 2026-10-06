@@ -8,9 +8,9 @@ import { api } from "../api/client";
 import type { Page, ScanResult, Task, TaskLine } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty } from "../lib/format";
-import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, WrongScan, allowsDecimals, describeError, firstName,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, WrongScan, allowsDecimals, describeError, firstName,
   patchLine, siteOf, useScanStep, useTask, type Expecting,
 } from "./task-shared";
 
@@ -67,9 +67,9 @@ function TransferList() {
             {error && <Notice tone="gold">{error}</Notice>}
             <div className="flex flex-col gap-2">
               {tasks.map((t) => (
-                <Link key={t.wms_id} to={`/transfer-in/${t.wms_id}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+                <Link key={t.wms_id} to={`/transfer-in/${t.wms_id}`} className={LIST_ROW}>
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate">{t.source_ref ?? t.title}{t.note ? ` · ${t.note}` : ""}</span>
+                    <span className="font-extrabold truncate">{t.source_ref ?? t.title}{t.note ? ` · ${t.note}` : ""}</span>
                     <span className="text-xs leading-4 text-muted">{t.progress.done} of {t.progress.total} lines</span>
                   </span>
                   <Pill tone={t.status === "in_progress" ? "info" : "muted"}>{t.status === "in_progress" ? "In progress" : "Waiting"}</Pill>
@@ -131,6 +131,7 @@ function TransferTask({ taskId }: { taskId: string }) {
       });
       if (item.status === "failed") { setError(describeError(item)); return; }
       applyItem(item, (t) => patchLine(t, line.line_no, { actual_qty: qty, status: "done", to_location: dest }));
+      ding(`Received ${fmtQty(qty, line.uom)} ${line.sku}`);
     } finally {
       setBusy(false);
     }
@@ -186,7 +187,7 @@ function TransferTask({ taskId }: { taskId: string }) {
         {line && !wrong && (
           <>
             <Card strong>
-              <span className="text-xl leading-7 font-bold">Shipped {fmtQty(shipped, line.uom)}</span>
+              <span className="text-xl leading-7 font-extrabold">Shipped {fmtQty(shipped, line.uom)}</span>
               <span className="text-sm leading-5 text-muted">
                 {[task.note, line.batch ? `batch ${line.batch}` : null, "received date kept for FIFO"].filter(Boolean).join(" · ")}
               </span>
@@ -199,7 +200,7 @@ function TransferTask({ taskId }: { taskId: string }) {
               </Notice>
             )}
             <BigLocation
-              eyebrow="Put it at" code={dest ?? "—"}
+              eyebrow="Put it at" code={dest ?? "—"} tone="go"
               hint={dest ? "Scanned · the ledger records where it really went" : "Scan a shelf that allows this product"}
               hint2="Out of the in-transit bucket and onto the shelf"
             />

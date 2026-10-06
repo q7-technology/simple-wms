@@ -77,7 +77,7 @@ function BatchDetail({ batch, write, reload }: {
       <Muted className="text-xs leading-4">Only the grouping goes; every order keeps its task and its stock.</Muted>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         {write && open && (
           <Button variant="gold" onClick={() => void cancel()} disabled={action.busy}>Cancel batch</Button>
         )}
@@ -170,7 +170,7 @@ export function BatchPick() {
             aria-label="Back to deliveries"
             className="w-10 h-10 shrink-0 flex items-center justify-center rounded-md border border-line no-underline"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccd6f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m12 19-7-7 7-7" /><path d="M19 12H5" />
             </svg>
           </Link>
@@ -182,7 +182,7 @@ export function BatchPick() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4 items-start">
           <Card className="p-5 flex flex-col gap-3">
             <Eyebrow tone="muted">Waiting orders · tick to add</Eyebrow>
             {waiting.error && <Notice tone="gold">{waiting.error}</Notice>}
@@ -219,7 +219,7 @@ export function BatchPick() {
 
           <Card className="p-5 flex flex-col gap-4">
             <Eyebrow tone="muted">This batch</Eyebrow>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 items-start">
               <StatTile label="Orders" value={String(chosen.length)} />
               <StatTile label="Lines" value={String(chosenLines)} />
               <StatTile

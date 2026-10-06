@@ -365,7 +365,7 @@ export function Reports() {
       {(listing.loading || result.loading) && !data && <Muted className="text-sm leading-5">Loading…</Muted>}
 
       {tiles.length > 0 && (
-        <div className="grid grid-cols-4 gap-4">
+        <div role="group" aria-label="Totals" className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
           {tiles.map(([key, value]) => <StatTile key={key} label={sentence(key)} value={totalValue(value)} />)}
         </div>
       )}

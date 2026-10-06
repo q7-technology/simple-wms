@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useAction, useApi } from "../lib/useApi";
 import { Button, Card, Chip, Eyebrow, Field, Input, Muted, Notice, PageHeader, SegmentedChoice, Toggle } from "../ui";
 import { Main } from "../ui/Shell";
+import { useGamePrefs } from "../lib/gamePrefs";
 
 type BoolKey = { [K in keyof WarehouseSettings]: WarehouseSettings[K] extends boolean ? K : never }[keyof WarehouseSettings];
 type NumKey = { [K in keyof WarehouseSettings]: WarehouseSettings[K] extends number ? K : never }[keyof WarehouseSettings];
@@ -99,7 +100,7 @@ export function Settings() {
             <span
               title="Defaults live in the API for now"
               aria-disabled="true"
-              className="inline-block rounded-full border border-line px-2 py-0.5 text-xs leading-4 font-semibold whitespace-nowrap text-muted opacity-50 cursor-not-allowed"
+              className="inline-block rounded-full border border-dashed border-line-strong bg-ground px-2.5 py-1 text-xs leading-4 font-bold whitespace-nowrap text-muted cursor-not-allowed"
             >
               Global defaults
             </span>
@@ -109,6 +110,12 @@ export function Settings() {
         </>}
       />
 
+      <GameFeel />
+
+      <div className="flex flex-col gap-1">
+        <h2 className="m-0 text-[17px] font-extrabold">Warehouse settings</h2>
+        <Muted className="text-[13px]">Saved to the WMS for everyone at {code ?? "this warehouse"}. Changes need Save changes.</Muted>
+      </div>
       {loaded.error && <Notice tone="gold">{loaded.error}</Notice>}
       {action.error && (
         <Notice tone="gold">
@@ -210,5 +217,54 @@ function Group({ title, children }: { title: ReactNode; children: ReactNode }) {
       <Eyebrow>{title}</Eyebrow>
       {children}
     </Card>
+  );
+}
+
+/** Viewer preferences. They live in this browser only and never reach the
+ * API, so they are kept well apart from the warehouse's own switches. */
+function GameFeel() {
+  const [prefs, setPrefs] = useGamePrefs();
+  return (
+    <section aria-labelledby="game-feel-h" className="card p-6 flex flex-col gap-2">
+      <div className="flex flex-col gap-1 pb-1">
+        <h2 id="game-feel-h" className="m-0 text-[17px] font-extrabold">Game feel</h2>
+        <Muted className="text-[13px]">Just for you, on this computer. Saved in this browser, not in the WMS, and nobody else sees them.</Muted>
+      </div>
+      <Toggle
+        label="Sounds"
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5 6 9H3v6h3l5 4Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>}
+        hint="A beep when a truck arrives, a ding when an order ships"
+        checked={prefs.sound}
+        onChange={(v) => setPrefs({ sound: v })}
+      />
+      <label className="flex items-center gap-3 py-2 pl-14 min-h-11 row-line text-[13px] font-bold text-ink-2">
+        <span>Volume</span>
+        <input
+          type="range" min={0} max={100} step={5}
+          value={prefs.volume}
+          disabled={!prefs.sound}
+          onChange={(e) => setPrefs({ volume: Number(e.target.value) })}
+          className="grow accent-brand h-7"
+        />
+        <span className="w-10 text-right text-ink">{prefs.volume}%</span>
+      </label>
+      <Toggle
+        label="Day and night"
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" /></svg>}
+        hint="The map gets darker as the day ends, on the warehouse's own clock"
+        checked={prefs.dayNight}
+        onChange={(v) => setPrefs({ dayNight: v })}
+      />
+      <Toggle
+        label="Moving trucks and forklifts"
+        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h10v9H3zM13 10h4l3 3v3h-7" /><circle cx="7" cy="17.5" r="1.6" /><circle cx="17" cy="17.5" r="1.6" /></svg>}
+        hint="Turn off if the computer feels slow. Always off when your computer asks for less motion."
+        checked={prefs.motion}
+        onChange={(v) => setPrefs({ motion: v })}
+      />
+      <Muted className="text-xs leading-4 pt-1">
+        No weather on the map: the WMS has no weather feed, so the sky only follows day and night.
+      </Muted>
+    </section>
   );
 }

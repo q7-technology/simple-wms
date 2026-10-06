@@ -4,9 +4,9 @@ import { api } from "../api/client";
 import type { Accepted, Page, ScanResult, Task, TaskLine } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty, plural } from "../lib/format";
-import { BigLocation, Button, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
   needsSupervisor, patchLine, sameCode, siteOf, useScanStep, useTask, type Expecting,
 } from "./task-shared";
 
@@ -58,9 +58,9 @@ function CountList() {
             {error && <Notice tone="gold">{error}</Notice>}
             <div className="flex flex-col gap-2">
               {tasks.map((t) => (
-                <Link key={t.wms_id} to={`/count/${t.wms_id}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+                <Link key={t.wms_id} to={`/count/${t.wms_id}`} className={LIST_ROW}>
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate">Count {t.source_ref ?? t.title} · {plural(shelvesOf(t).length, "shelf", "shelves")}</span>
+                    <span className="font-extrabold truncate">Count {t.source_ref ?? t.title} · {plural(shelvesOf(t).length, "shelf", "shelves")}</span>
                     <span className="text-xs leading-4 text-muted">{t.progress.done} of {t.progress.total} lines</span>
                   </span>
                   <Pill tone={t.status === "needs_supervisor" ? "warn" : t.status === "in_progress" ? "info" : "muted"}>
@@ -145,6 +145,7 @@ function CountTask({ taskId }: { taskId: string }) {
       }
       const reply = applyItem(item, (t) => patchLine(t, line.line_no, { actual_qty: qty, status: "done" }));
       if (reply?.line && reply.line.status === "variance") setVariance(reply.line);
+      else ding(`Counted ${fmtQty(qty, line.uom)} ${line.sku}`);
     } finally {
       setBusy(false);
     }
@@ -162,6 +163,7 @@ function CountTask({ taskId }: { taskId: string }) {
       if (item.status === "failed") { setError(describeError(item)); return; }
       setNeedBadge(false);
       applyItem(item, (t) => patchLine(t, line.line_no, { status: "done" }));
+      ding(`Count approved · ${line.sku}`);
     } finally {
       setBusy(false);
     }
@@ -212,7 +214,7 @@ function CountTask({ taskId }: { taskId: string }) {
           <>
             <BigLocation
               eyebrow="Count"
-              code={line.from_location ?? "—"}
+              code={line.from_location ?? "—"} tone="go"
               hint={line.expected_qty === null ? "Blind count · expected quantity is hidden" : "Count everything of this product on the shelf"}
               hint2={atShelf ? "Scanned · count everything of this product on the shelf" : undefined}
             />
@@ -228,15 +230,15 @@ function CountTask({ taskId }: { taskId: string }) {
                     figure spots an obvious mistake; one who is handed it
                     stops counting. */}
                 {line.expected_qty !== null && !variance && (
-                  <span className="text-sm text-muted">System says {fmtQty(line.expected_qty, line.uom)}</span>
+                  <span className="text-sm font-semibold text-muted">System says {fmtQty(line.expected_qty, line.uom)}</span>
                 )}
                 {!variance && <QtyStepper label="Quantity on shelf" value={qty} onChange={setQty} decimals={allowsDecimals(line.uom)} />}
                 {variance && (
                   <>
                     <Notice tone="gold">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-medium">Differs from expected · variance {fmtQty(variance.variance, line.uom)}</span>
-                        <span className="text-xs leading-4 text-muted">Recount, or submit and a supervisor decides</span>
+                        <span className="font-extrabold">Differs from expected · variance {fmtQty(variance.variance, line.uom)}</span>
+                        <span className="text-xs leading-4">Recount, or submit and a supervisor decides</span>
                       </div>
                     </Notice>
                     <SupervisorCapture sub="Approving writes one adjustment to the ledger" onBadge={(b) => void approve(b)}>Supervisor: scan your badge to approve</SupervisorCapture>

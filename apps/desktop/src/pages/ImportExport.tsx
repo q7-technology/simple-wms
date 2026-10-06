@@ -109,7 +109,7 @@ export function ImportExport() {
   const [imported, setImported] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const preview = useAction();
+  const preview = useAction({ ding: false });
   const commit = useAction();
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -202,7 +202,7 @@ export function ImportExport() {
       />
       {exportError && <Notice tone="gold">{exportError}</Notice>}
 
-      <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-6 grow min-h-0 items-start">
+      <div className="grid grid-cols-1 @3xl:grid-cols-[340px_minmax(0,1fr)] gap-5 grow min-h-0 items-start">
         {/* --- left: upload and templates --- */}
         <div className="flex flex-col gap-4">
           <Card className="p-5 flex flex-col gap-4">
@@ -275,9 +275,10 @@ export function ImportExport() {
                   <span className="mono">{t}.csv</span>
                   <button
                     type="button"
-                    className="bg-transparent border-0 p-0 text-brand hover:text-[#64ffda] cursor-pointer text-sm"
+                    className="inline-flex items-center gap-1.5 min-h-9 rounded-lg bg-brand-tint border-0 px-2.5 text-brand-dark hover:bg-[#DFE8FF] cursor-pointer text-[13px] font-bold"
                     onClick={() => { setTemplateError(null); downloadTemplate(t).catch((e: Error) => setTemplateError(e.message)); }}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
                     download
                   </button>
                 </div>
@@ -294,7 +295,7 @@ export function ImportExport() {
           {commit.error && <Notice tone="gold">{commit.error}</Notice>}
           {result ? (
             <>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
                 <StatTile label="Rows read" value={String(result.rows_read)} hint={file?.name ?? "pasted CSV"} />
                 <StatTile label="Ready to import" value={String(result.ready)} hint={result.summary || "rows"} />
                 <StatTile label="Rows with problems" value={String(result.problems)} tone={result.problems > 0 ? "gold" : undefined} hint={result.problems > 0 ? "fix or skip" : "none"} />
@@ -321,10 +322,15 @@ export function ImportExport() {
             </>
           ) : (
             !imported && (
-              <Muted className="text-sm leading-5">
-                Choose a file or paste CSV, say what it is and press Preview. The preview checks every row and writes nothing;
-                nothing is written until Import is pressed.
-              </Muted>
+              <div className="rounded-2xl border-2 border-dashed border-line-strong bg-field px-6 py-10 flex flex-col items-center gap-3 text-center">
+                <span aria-hidden="true" className="grid place-items-center w-12 h-12 rounded-xl bg-brand-tint text-brand">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>
+                </span>
+                <Muted className="text-sm leading-5 max-w-[440px]">
+                  Choose a file or paste CSV, say what it is and press Preview. The preview checks every row and writes nothing;
+                  nothing is written until Import is pressed.
+                </Muted>
+              </div>
             )
           )}
         </div>

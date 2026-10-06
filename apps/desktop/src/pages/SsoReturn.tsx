@@ -32,7 +32,7 @@ export function SsoReturn() {
     void (async () => {
       try {
         await signInWithSso(code, state);
-        navigate("/stock", { replace: true });
+        navigate("/", { replace: true });
       } catch (err) {
         setError(err instanceof ApiError
           ? err.message
@@ -42,12 +42,12 @@ export function SsoReturn() {
   }, [code, state, refused, params, signInWithSso, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-[420px] p-8 rounded-xl border border-line bg-card flex flex-col gap-5">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-line-soft">
+      <div className="w-full max-w-[440px] p-8 rounded-[28px] bg-card shadow-[0_24px_60px_rgba(24,35,61,0.18)] flex flex-col gap-5">
         <div className="flex items-center gap-3">
           <Logo size={48} />
           <div className="flex flex-col gap-0.5">
-            <span className="text-2xl leading-none font-semibold tracking-tight">Simple WMS</span>
+            <span className="text-2xl leading-none font-extrabold tracking-tight">Simple WMS</span>
             <span className="text-xs leading-4 text-muted">
               {error ? "Single sign-on" : "Signing you in…"}
             </span>

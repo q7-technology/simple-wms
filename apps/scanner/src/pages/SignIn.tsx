@@ -1,9 +1,9 @@
-import { useReducer, useRef, useState } from "react";
+import { useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useSession } from "../auth/Session";
 import { useScanWedge } from "../lib/useScanWedge";
-import { Button, Card, Field, Footer, Header, Input, Main, Notice, ScanHint, Screen } from "../ui";
+import { Button, Card, Field, Icon, Input, LockIcon, Notice, ScanHint, Screen } from "../ui";
 
 export const PIN_MAX = 8;
 
@@ -20,18 +20,21 @@ export function errorText(e: unknown): string {
   return sentence(e.message);
 }
 
-const KEY = "h-16 rounded-lg bg-card border border-line text-ink text-2xl font-semibold cursor-pointer active:bg-brand-tint disabled:opacity-50 disabled:cursor-not-allowed";
+const KEY = "h-14 rounded-2xl bg-card border border-line text-ink text-2xl font-extrabold cursor-pointer active:bg-brand-tint disabled:opacity-50 disabled:cursor-not-allowed";
+const KEY_SOFT = "h-14 rounded-2xl bg-transparent border-0 text-muted text-[15px] font-extrabold cursor-pointer grid place-items-center active:bg-brand-tint disabled:opacity-50 disabled:cursor-not-allowed";
 
-/** Numeric keypad: 1 to 9, 0 and delete. Keys are 64 px, above the 56 px floor. */
-export function Keypad({ onDigit, onDelete, disabled }: { onDigit: (digit: string) => void; onDelete: () => void; disabled?: boolean }) {
+/** Numeric keypad: 1 to 9, clear, 0 and delete. Keys are 56 px, the scanner floor. */
+export function Keypad({ onDigit, onDelete, onClear, disabled }: { onDigit: (digit: string) => void; onDelete: () => void; onClear?: () => void; disabled?: boolean }) {
   return (
-    <div className="grid grid-cols-3 gap-2" role="group" aria-label="PIN keypad">
+    <div className="grid grid-cols-3 gap-2 shrink-0" role="group" aria-label="PIN keypad">
       {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
         <button key={d} type="button" className={KEY} disabled={disabled} onClick={() => onDigit(d)}>{d}</button>
       ))}
-      <div />
+      {onClear ? <button type="button" aria-label="Clear PIN" className={KEY_SOFT} disabled={disabled} onClick={onClear}>Clear</button> : <div />}
       <button type="button" className={KEY} disabled={disabled} onClick={() => onDigit("0")}>0</button>
-      <button type="button" aria-label="Delete" className={KEY} disabled={disabled} onClick={onDelete}>⌫</button>
+      <button type="button" aria-label="Delete" className={KEY_SOFT} disabled={disabled} onClick={onDelete}>
+        <Icon size={26}><path d="M21 5H9l-6 7 6 7h12Z" /><path d="m12 9 6 6M18 9l-6 6" /></Icon>
+      </button>
     </div>
   );
 }
@@ -40,19 +43,38 @@ export function Keypad({ onDigit, onDelete, disabled }: { onDigit: (digit: strin
 export function PinDots({ length, slots = 4 }: { length: number; slots?: number }) {
   const n = Math.max(slots, length);
   return (
-    <div className="flex justify-center gap-4 py-2" role="img" aria-label={`${length} digits entered`}>
+    <div className="flex justify-center gap-[18px] py-0.5" role="img" aria-label={`${length} digits entered`}>
       {Array.from({ length: n }, (_, i) => (
-        <span key={i} className={i < length ? "w-4 h-4 rounded-full bg-brand" : "w-4 h-4 rounded-full border border-line-strong"} />
+        <span key={i} className={i < length ? "w-[18px] h-[18px] box-border rounded-full bg-brand border-2 border-brand" : "w-[18px] h-[18px] box-border rounded-full border-2 border-brand"} />
       ))}
     </div>
   );
 }
 
-function LockIcon() {
+/** The scanner's brand row on the sign-in screens: logo, name, which scanner. */
+export function BrandRow({ line, action }: { line: ReactNode; action?: ReactNode }) {
   return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892b0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
+    <header className="px-6 pt-6 pb-1 flex items-center justify-between gap-3 shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span aria-hidden="true" className="w-10 h-10 shrink-0 rounded-xl bg-brand text-white grid place-items-center">
+          <Icon size={22}><path d="M12 3 20 7.5v9L12 21 4 16.5v-9ZM4 7.5l8 4.5 8-4.5M12 12v9" /></Icon>
+        </span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[17px] leading-6 font-extrabold">Simple WMS</span>
+          <span className="text-xs leading-4 text-muted font-semibold truncate">{line}</span>
+        </div>
+      </div>
+      {action}
+    </header>
+  );
+}
+
+/** "or type it in" between the badge box and the keypad. */
+export function OrDivider({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 eyebrow text-faint shrink-0">
+      <span aria-hidden="true" className="grow border-t border-line-strong" />{children}<span aria-hidden="true" className="grow border-t border-line-strong" />
+    </div>
   );
 }
 
@@ -134,20 +156,18 @@ export function SignIn() {
 
   return (
     <Screen>
-      <Header
-        back={null}
-        eyebrow="Simple WMS"
-        title={configured ? `${device} · ${warehouse} · known device` : "set up this scanner"}
-        right={configured && (
-          <button type="button" onClick={() => setSetup((s) => !s)} className="h-11 px-2 -mr-2 bg-transparent border-0 text-brand text-xs font-medium cursor-pointer">
+      <BrandRow
+        line={configured ? `${device} · ${warehouse} · known device` : "set up this scanner"}
+        action={configured && (
+          <button type="button" onClick={() => setSetup((s) => !s)} className="h-11 px-3 -mr-2 bg-transparent border-0 text-brand-dark text-sm font-extrabold cursor-pointer">
             {setup ? "close" : "change"}
           </button>
         )}
       />
-      <Main>
+      <main className="grow min-h-0 px-6 pt-2 pb-4 flex flex-col gap-3 overflow-y-auto">
         {setup && (
           <Card strong>
-            <span className="eyebrow text-muted">This scanner</span>
+            <span className="eyebrow text-faint">This scanner</span>
             <Field label="Device ID">
               <Input value={deviceDraft} onChange={(e) => setDeviceDraft(e.target.value)} placeholder="SCN-BAL-07" autoComplete="off" autoCapitalize="characters" spellCheck={false} className="mono" />
             </Field>
@@ -158,7 +178,11 @@ export function SignIn() {
           </Card>
         )}
 
-        <ScanHint sub="or type your operator ID and PIN">Scan your badge</ScanHint>
+        <h1 className="m-0 text-[28px] leading-9 font-extrabold tracking-tight shrink-0">Ready to scan?</h1>
+
+        <ScanHint sub="Quickest way in. Hold your badge to the scanner.">Scan your badge</ScanHint>
+
+        <OrDivider>or type it in</OrDivider>
 
         <Field label="Operator ID">
           <Input
@@ -167,27 +191,26 @@ export function SignIn() {
           />
         </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs leading-4 text-muted">PIN</span>
+        <div className="flex flex-col gap-2 shrink-0">
+          <span className="text-sm leading-5 font-extrabold">PIN</span>
           <PinDots length={pin.length} />
         </div>
         <Keypad
           disabled={busy}
           onDigit={(d) => { setError(null); setPin((p) => (p.length < PIN_MAX ? p + d : p)); }}
           onDelete={() => setPin((p) => p.slice(0, -1))}
+          onClear={() => setPin("")}
         />
 
         {error && <Notice tone="gold">{error}</Notice>}
 
-        <div className="grow" />
-        <div className="flex items-center gap-2">
-          <LockIcon />
-          <span className="text-xs leading-4 text-muted">5 wrong tries locks this account. A supervisor can unlock it.</span>
+        <Button variant="primary" className="shrink-0" onClick={submit} disabled={busy || !configured}>Sign in</Button>
+
+        <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-center text-xs leading-4 text-faint shrink-0">
+          <LockIcon size={14} />
+          <span>5 wrong PINs locks your account. A supervisor can unlock it.</span>
         </div>
-      </Main>
-      <Footer>
-        <Button variant="primary" onClick={submit} disabled={busy || !configured}>Sign in</Button>
-      </Footer>
+      </main>
     </Screen>
   );
 }

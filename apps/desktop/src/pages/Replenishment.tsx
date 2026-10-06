@@ -6,7 +6,7 @@ import { fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill,
-  Section, StatTile, Table, type Column,
+  LocCode, Section, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -62,7 +62,7 @@ function sourceLabel(task: Task): string {
 function statusPill(task: Task) {
   switch (task.status) {
     case "waiting": return <Pill tone="info">Waiting</Pill>;
-    case "in_progress": return <Pill tone="info">In progress</Pill>;
+    case "in_progress": return <Pill tone="stored">In progress</Pill>;
     case "needs_supervisor": {
       const v = varianceLine(task);
       return <Pill tone="warn">{v ? `Variance ${signed(v.variance)}` : "Needs a supervisor"}</Pill>;
@@ -172,7 +172,7 @@ function VarianceDetail({ task, line, product, reload }: { task: Task; line: Tas
       {(canWrite || canApprove) && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             {canWrite && <Button onClick={() => void recount()} disabled={action.busy}>Ask for recount</Button>}
             {canApprove && (
               <Button variant="primary" onClick={() => void approve()} disabled={action.busy || !reason}>Approve adjustment</Button>
@@ -217,7 +217,7 @@ function TaskDetail({ task, reload }: { task: Task; reload: () => Promise<void> 
       {can("tasks:write") && task.status !== "done" && task.status !== "cancelled" && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button variant="gold" onClick={() => void cancel()} disabled={action.busy}>Cancel task</Button>
           </div>
         </>
@@ -259,7 +259,7 @@ function NewCountForm({ warehouse, onCancel, onCreated }: { warehouse: string; o
       </div>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Start count</Button>
       </div>
@@ -314,7 +314,7 @@ function NewReplenForm({ warehouse, onCancel, onCreated }: { warehouse: string; 
       </div>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Raise replenishment</Button>
       </div>
@@ -373,9 +373,9 @@ export function Replenishment() {
   const productMap = useMemo(() => new Map((products.data?.items ?? []).map((p) => [p.sku, p])), [products.data]);
 
   const columns: Column<Task>[] = [
-    { key: "task", header: "Task", width: "130px", render: (t) => <b>{t.source_ref ?? t.title}</b> },
+    { key: "task", header: "Task", width: "120px", render: (t) => <b className="text-brand-dark">{t.source_ref ?? t.title}</b> },
     {
-      key: "product", header: "Product", width: "220px",
+      key: "product", header: "Product", width: "minmax(170px, 1.4fr)",
       render: (t) => {
         const l = primaryLine(t);
         if (!l) return <Muted>—</Muted>;
@@ -384,12 +384,22 @@ export function Replenishment() {
       },
     },
     {
-      key: "from", header: "From", width: "140px",
-      render: (t) => { const l = primaryLine(t); return t.type === "count" ? "—" : l?.from_location ?? "FIFO"; },
+      key: "from", header: "From", width: "130px",
+      render: (t) => {
+        const l = primaryLine(t);
+        if (t.type === "count") return "—";
+        return l?.from_location ? <LocCode>{l.from_location}</LocCode> : "FIFO";
+      },
     },
-    { key: "to", header: "To", width: "140px", render: (t) => (t.type === "count" ? "—" : primaryLine(t)?.to_location ?? "—") },
     {
-      key: "qty", header: "Qty", width: "110px",
+      key: "to", header: "To", width: "130px",
+      render: (t) => {
+        const to = t.type === "count" ? null : primaryLine(t)?.to_location;
+        return to ? <LocCode>{to}</LocCode> : "—";
+      },
+    },
+    {
+      key: "qty", header: "Qty", width: "90px",
       render: (t) => {
         const l = primaryLine(t);
         if (!l) return "—";
@@ -397,9 +407,9 @@ export function Replenishment() {
         return fmtQty(l.expected_qty, l.uom);
       },
     },
-    { key: "source", header: "Source", width: "130px", render: sourceLabel },
-    { key: "status", header: "Status", width: "120px", render: statusPill },
-    { key: "operator", header: "Operator", render: operatorCell },
+    { key: "source", header: "Source", width: "110px", render: sourceLabel },
+    { key: "status", header: "Status", width: "130px", render: statusPill },
+    { key: "operator", header: "Operator", width: "minmax(120px, 1fr)", render: operatorCell },
   ];
 
   const created = async (id: string) => {
@@ -422,7 +432,7 @@ export function Replenishment() {
           </> : undefined}
         />
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile
             label="Below minimum"
             value={withMin.length === 0 ? (products.loading ? "…" : "—") : belowMin.loading || belowMin.data === null ? "…" : String(belowMin.data)}
@@ -442,11 +452,11 @@ export function Replenishment() {
           />
         </div>
 
-        <div className="flex items-center gap-1">
-          <Chip active={filter === "all"} onClick={() => setFilter("all")}>All</Chip>
-          <Chip active={filter === "replenish"} onClick={() => setFilter("replenish")}>Replenishment</Chip>
-          <Chip active={filter === "count"} onClick={() => setFilter("count")}>Counts</Chip>
-          <Chip active={filter === "supervisor"} onClick={() => setFilter("supervisor")}>Needs a supervisor</Chip>
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip active={filter === "all"} onClick={() => setFilter("all")} count={all.length}>All</Chip>
+          <Chip active={filter === "replenish"} onClick={() => setFilter("replenish")} count={all.filter((t) => t.type === "replenish").length}>Replenishment</Chip>
+          <Chip active={filter === "count"} onClick={() => setFilter("count")} count={counts.length}>Counts</Chip>
+          <Chip active={filter === "supervisor"} onClick={() => setFilter("supervisor")} count={all.filter((t) => t.status === "needs_supervisor" || t.needs_supervisor).length}>Needs a supervisor</Chip>
         </div>
 
         {tasks.error && <Notice tone="gold">{tasks.error}</Notice>}

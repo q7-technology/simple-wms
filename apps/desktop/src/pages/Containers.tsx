@@ -7,7 +7,7 @@ import { fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill,
-  SearchInput, Section, StatTile, Table, Toggle, type Column,
+  LocCode, SearchInput, Section, StatTile, Table, Toggle, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -252,7 +252,7 @@ export function Containers() {
     { key: "container", header: "Container", width: "180px", render: (c) => <b className="mono">{c.container_id}</b> },
     { key: "type", header: "Type", width: "90px", render: (c) => TYPE_LABEL[c.type] ?? c.type },
     { key: "sscc", header: "SSCC", width: "180px", render: (c) => c.sscc ? <span className="mono">{c.sscc}</span> : <Muted>none</Muted> },
-    { key: "location", header: "Location", width: "130px", render: (c) => c.location ?? <Muted>—</Muted> },
+    { key: "location", header: "Location", width: "130px", render: (c) => c.location ? <LocCode>{c.location}</LocCode> : <Muted>—</Muted> },
     { key: "parent", header: "Inside", width: "140px", render: (c) => c.parent ?? <Muted>—</Muted> },
     {
       key: "children", header: "Holding", width: "120px",
@@ -282,7 +282,7 @@ export function Containers() {
 
         <div className="flex gap-3 items-center flex-wrap">
           <SearchInput
-            className="w-[300px]"
+            className="flex-[1_1_240px] max-w-[320px]"
             placeholder="Find a container or SSCC"
             aria-label="Find a container or SSCC"
             value={search}
@@ -299,7 +299,7 @@ export function Containers() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile label="Pallets" value={counts.pallet} hint="in this warehouse" />
           <StatTile label="Cartons" value={counts.carton} hint="loose and nested" />
           <StatTile label="Totes" value={counts.tote} hint="picking and transfer" />
@@ -521,7 +521,7 @@ export function Containers() {
                 {act.fieldErrors.reason && <span className="text-xs leading-4 text-gold">{act.fieldErrors.reason}</span>}
               </div>
               <Muted className="text-xs leading-4">Everything on it moves too, nested cartons included.</Muted>
-              <div className="flex gap-2 [&>*]:grow">
+              <div className="flex flex-wrap gap-2 [&>*]:grow">
                 <Button small type="button" onClick={() => setForm("none")}>Cancel</Button>
                 <Button small type="submit" variant="primary" disabled={act.busy || !toLocation.trim()}>
                   {act.busy ? "Moving…" : "Move"}
@@ -542,7 +542,7 @@ export function Containers() {
                   autoFocus
                 />
               </Field>
-              <div className="flex gap-2 [&>*]:grow">
+              <div className="flex flex-wrap gap-2 [&>*]:grow">
                 <Button small type="button" onClick={() => setForm("none")}>Cancel</Button>
                 <Button small type="submit" variant="primary" disabled={act.busy || !parentCode.trim()}>
                   {act.busy ? "Saving…" : "Put on"}
@@ -559,7 +559,7 @@ export function Containers() {
               <Field label="Printer">
                 <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
               </Field>
-              <div className="flex gap-2 [&>*]:grow">
+              <div className="flex flex-wrap gap-2 [&>*]:grow">
                 <Button small type="button" onClick={() => setPrintWhere("none")}>Cancel</Button>
                 <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
                   {printBusy ? "Printing…" : "Print"}

@@ -9,9 +9,9 @@ import { useSession } from "../auth/Session";
 import { fmtQty } from "../lib/format";
 import type { QueueItem } from "../lib/queue";
 import { useScanWedge } from "../lib/useScanWedge";
-import { BigLocation, Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError,
   firstName, needsSupervisor, siteOf, useScanStep, type Expecting,
 } from "./task-shared";
 
@@ -94,9 +94,9 @@ function OrderList() {
         {error && <Notice tone="gold">{error}</Notice>}
         <div className="flex flex-col gap-2">
           {orders.map((o) => (
-            <Link key={o.wms_id} to={`/production/${o.external_ref}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+            <Link key={o.wms_id} to={`/production/${o.external_ref}`} className={LIST_ROW}>
               <span className="flex flex-col gap-0.5 min-w-0">
-                <span className="font-semibold truncate">{o.external_ref} · {o.output.sku}</span>
+                <span className="font-extrabold truncate">{o.external_ref} · {o.output.sku}</span>
                 <span className="text-xs leading-4 text-muted truncate">{fmtQty(o.output.qty_received)} of {fmtQty(o.output.qty, o.output.uom)} made</span>
               </span>
               <Pill tone={o.status === "in_production" ? "info" : "muted"}>{o.status === "in_production" ? "In production" : "Issuing"}</Pill>
@@ -192,6 +192,7 @@ function ReceiptForOrder({ orderRef }: { orderRef: string }) {
         return;
       }
       setNeedBadge(null);
+      ding(`Pallet put away · ${fmtQty(qty, order.output.uom)} ${order.output.sku}`);
       const reply = (item.reply ?? null) as ReceiptReply | null;
       if (reply && reply.received_total !== undefined) {
         setResult(reply);
@@ -255,14 +256,14 @@ function ReceiptForOrder({ orderRef }: { orderRef: string }) {
             />
             <QtyStepper label="Quantity on this pallet" value={qty} onChange={setQty} decimals={allowsDecimals(uom)} />
             <BigLocation
-              eyebrow="Put it at" code={shelf} tone={hint?.gold ? "gold" : undefined}
+              eyebrow="Put it at" code={shelf} tone={hint?.gold ? "gold" : "go"}
               hint={dest ? (suggestion && dest === suggestion.location ? `Scanned · ${hint?.text ?? "suggested shelf"}` : "Scanned · your choice, the ledger records it") : hint?.text ?? "Waiting for a suggestion · or scan any shelf"}
               hint2="Or scan another shelf that allows this product"
             />
             {!needBadge && <ScanHint>{dest ? "Scan another shelf to change it" : "Scan the shelf to confirm"}</ScanHint>}
             {damaged && !needBadge && (
-              <Card className="border-gold-line">
-                <span className="text-sm font-medium text-gold">Damaged on the pallet</span>
+              <Card className="border-2 border-gold-line">
+                <span className="text-sm font-extrabold text-bad-ink">Damaged on the pallet</span>
                 <Field label="What happened (optional)">
                   <Input value={damageNote} onChange={(e) => setDamageNote(e.target.value)} placeholder="Crushed carton, wet, …" />
                 </Field>
@@ -277,7 +278,7 @@ function ReceiptForOrder({ orderRef }: { orderRef: string }) {
       </Main>
       {!done && !wrong && (
         <Footer>
-          <Button variant="gold" disabled={busy} onClick={() => setDamaged((d) => !d)}>Damaged</Button>
+          <Button variant="danger" aria-pressed={damaged} disabled={busy} onClick={() => setDamaged((d) => !d)}>Damaged</Button>
           <Button variant="primary" disabled={!dest || busy || batchMissing || !qty || Boolean(needBadge)} onClick={() => void confirm()}>Confirm pallet</Button>
         </Footer>
       )}

@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
-  Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill, Section,
+  Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill, Progress, Section,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -104,8 +104,17 @@ function linePill(l: TaskLine) {
 
 /* --- board ---------------------------------------------------------------- */
 
+/** Which part of the map a task belongs to, from its type. Unknown types get
+ * the plain blue. */
+const TYPE_ZONE: Record<string, "arriving" | "stored" | "leaving"> = {
+  receive: "arriving", putaway: "arriving", transfer_in: "arriving", production_receipt: "arriving",
+  move: "stored", count: "stored", replenish: "stored",
+  pick: "leaving", pack: "leaving", ship: "leaving", transfer_out: "leaving", production_issue: "leaving",
+};
+
 function TaskCard({ task, column, selected, onClick }: { task: Task; column: ColumnKey; selected: boolean; onClick: () => void }) {
   const gold = column === "needs_supervisor";
+  const showProgress = column === "in_progress" && task.progress.total > 0;
   return (
     <div
       role="button"
@@ -113,17 +122,26 @@ function TaskCard({ task, column, selected, onClick }: { task: Task; column: Col
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}
       className={cx(
-        "card p-4 flex flex-col gap-1 cursor-pointer hover:bg-brand-tint",
+        "card px-3.5 py-3 flex flex-col gap-1.5 cursor-pointer hover:border-brand",
         gold && "border-gold-line",
-        column === "in_progress" && "border-line-strong",
-        selected && "bg-brand-tint",
+        selected && "border-brand ring-2 ring-brand/30",
       )}
     >
-      <span className={cx("text-sm leading-5 font-semibold truncate", gold ? "text-gold" : "text-ink")}>{task.title}</span>
+      <span className="flex flex-wrap gap-1">
+        <Pill tone={TYPE_ZONE[task.type] ?? "info"}>{typeLabel(task.type)}</Pill>
+        {column === "done" && <Pill tone="ok">Done</Pill>}
+        {task.priority === "high" && column !== "done" && <Pill tone="problem">High priority</Pill>}
+      </span>
+      <span className={cx("text-sm leading-5 font-extrabold truncate", gold ? "text-gold" : "text-ink")}>{task.title}</span>
       <span className="text-xs leading-4 text-muted">{secondLine(task, column)}</span>
+      {showProgress && <Progress done={task.progress.done} total={task.progress.total} label={`${task.title} progress`} />}
     </div>
   );
 }
+
+const LANE_DOT: Record<ColumnKey, string> = {
+  waiting: "bg-brand", in_progress: "bg-[#E07A1F]", needs_supervisor: "bg-[#D2392F]", done: "bg-ok-fill",
+};
 
 function BoardColumn({ column, tasks, selectedId, onSelect, loading }: {
   column: typeof COLUMNS[number]; tasks: Task[]; selectedId: string | null; onSelect: (id: string) => void; loading: boolean;
@@ -131,15 +149,19 @@ function BoardColumn({ column, tasks, selectedId, onSelect, loading }: {
   const shown = tasks.slice(0, SHOWN_PER_COLUMN);
   const more = tasks.length - shown.length;
   return (
-    <div className="flex flex-col gap-2 min-w-0">
-      <span className="eyebrow text-muted">{column.label} · {tasks.length}</span>
-      {loading && tasks.length === 0 && <Muted className="text-sm">Loading…</Muted>}
-      {!loading && tasks.length === 0 && <Muted className="text-sm">{column.empty}</Muted>}
+    <section aria-label={`${column.label} · ${tasks.length}`} className="flex flex-col gap-2 min-w-0 rounded-2xl border border-line-soft bg-ground p-2.5">
+      <span className="flex items-center gap-2 px-1 py-1">
+        <span aria-hidden="true" className={cx("w-2.5 h-2.5 shrink-0 rounded-full", LANE_DOT[column.key])} />
+        <span className="eyebrow text-ink">{column.label}</span>
+        <span aria-hidden="true" className="ml-auto rounded-full bg-card px-2 py-0.5 text-[11px] leading-4 font-extrabold text-brand-dark">{tasks.length}</span>
+      </span>
+      {loading && tasks.length === 0 && <Muted className="text-sm px-1">Loading…</Muted>}
+      {!loading && tasks.length === 0 && <Muted className="text-sm px-1 pb-1">{column.empty}</Muted>}
       {shown.map((t) => (
         <TaskCard key={t.wms_id} task={t} column={column.key} selected={t.wms_id === selectedId} onClick={() => onSelect(t.wms_id)} />
       ))}
-      {more > 0 && <span className="text-xs leading-4 text-muted">+{more} more</span>}
-    </div>
+      {more > 0 && <span className="text-xs leading-4 font-bold text-muted px-1">+{more} more</span>}
+    </section>
   );
 }
 
@@ -169,7 +191,7 @@ function ApproveForm({ taskId, line, reload }: { taskId: string; line: TaskLine;
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" aria-label="Note" />
       {action.error && <Notice tone="gold">{action.error}</Notice>}
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button small variant="primary" onClick={() => void approve()} disabled={action.busy}>Approve adjustment</Button>
         <Button small onClick={() => void recount()} disabled={action.busy}>Ask for recount</Button>
       </div>
@@ -227,7 +249,7 @@ function TaskDetail({ task, write, approve, reload }: { task: Task; write: boole
       {write && open && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button variant="gold" onClick={() => void cancel()} disabled={action.busy}>Cancel task</Button>
             {task.type === "receive" && <Button onClick={() => void closeShort()} disabled={action.busy}>Close short</Button>}
           </div>
@@ -252,7 +274,7 @@ function AssignForm({ task, onDone, onCancel }: { task: Task; onDone: () => Prom
       </Field>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Back</Button>
         <Button variant="primary" onClick={() => void submit()} disabled={action.busy || !code.trim()}>Assign</Button>
       </div>
@@ -293,7 +315,7 @@ function CountForm({ warehouse, onDone, onCancel }: { warehouse: string; onDone:
       <Muted className="text-xs leading-4">Picks, receipts and replenishments are raised by their documents. A count is the one task you start from here.</Muted>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Create count</Button>
       </div>
@@ -349,7 +371,7 @@ export function TaskBoard() {
           </>}
         />
         {tasks.error && <Notice tone="gold">{tasks.error}</Notice>}
-        <div className="grid grid-cols-4 gap-4 items-start">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3 items-start">
           {COLUMNS.map((c) => (
             <BoardColumn
               key={c.key}

@@ -50,3 +50,10 @@ export function initials(name: string): string {
 export function plural(n: number, one: string, many = one + "s"): string {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** A clock time as people say it in Australia: "5:00 pm". */
+export function fmtClock(t: Date): string {
+  const h = t.getHours();
+  const m = String(t.getMinutes()).padStart(2, "0");
+  return `${h % 12 || 12}:${m} ${h < 12 ? "am" : "pm"}`;
+}

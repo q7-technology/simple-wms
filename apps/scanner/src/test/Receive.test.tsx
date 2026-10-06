@@ -124,7 +124,8 @@ describe("Receive", () => {
     await user.type(screen.getByLabelText("Scan"), "LOC-PF-01-03-B{Enter}");
     expect(await screen.findByText("That is a location")).toBeInTheDocument();
     expect(screen.getByText("You scanned PF-01-03-B. This step wants the product barcode for ABC123.")).toBeInTheDocument();
-    expect(screen.getByText("format: plain · type: location")).toBeInTheDocument();
+    expect(screen.getByText("Format: plain")).toBeInTheDocument();
+    expect(screen.getByText("Type: location")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Scan again" }));
     expect(await screen.findByText("Scan the product")).toBeInTheDocument();
   });

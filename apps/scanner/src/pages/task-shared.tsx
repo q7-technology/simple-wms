@@ -9,7 +9,7 @@ import { useSession } from "../auth/Session";
 import { fmtWhen, plural } from "../lib/format";
 import type { QueueItem } from "../lib/queue";
 import { useScanWedge } from "../lib/useScanWedge";
-import { Button, Card, Input, Notice, ScanHint, SupervisorPanel } from "../ui";
+import { AlertIcon, Button, CheckIcon, Input, Pill, ScanHint, SupervisorPanel, WifiOffIcon } from "../ui";
 
 /* --- small helpers ------------------------------------------------------- */
 
@@ -172,21 +172,24 @@ export function WrongScan({ read, expected, title, onAgain }: { read: WrongRead;
   const heading = title ?? (read.type === "unknown" ? "That code is unknown" : `That is a ${typeName}`);
   return (
     <>
-      <Card className="border-gold-line gap-2.5">
-        <div className="flex items-center gap-3">
-          <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f7941d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
-          <span className="text-xl leading-7 font-bold text-gold">{heading}</span>
+      <section role="alert" className="p-4 rounded-[18px] bg-bad-tint text-bad-ink flex flex-col gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <AlertIcon size={28} />
+          <span className="text-[22px] leading-7 font-extrabold">{heading}</span>
         </div>
-        <span className="text-sm leading-5">You scanned {read.code ?? read.raw}. This step wants the {expected}.</span>
-        <div className="flex flex-col gap-1 p-3 rounded-lg border border-line">
-          <span className="text-xs leading-4 text-muted">What the scanner read</span>
-          <span className="mono text-sm leading-5 break-all">{read.raw}</span>
-          <span className="text-xs leading-4 text-muted">format: {read.format} · type: {typeName}</span>
+        <span className="text-[15px] leading-[22px] font-semibold text-ink">You scanned {read.code ?? read.raw}. This step wants the {expected}.</span>
+        <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-xl bg-card text-ink">
+          <span className="text-xs leading-4 font-bold text-faint">What the scanner read</span>
+          <span className="mono text-base leading-6 font-bold break-all">{read.raw}</span>
+          <div className="flex gap-1.5 flex-wrap">
+            <Pill tone="info">Format: {read.format}</Pill>
+            <Pill tone="info">Type: {typeName}</Pill>
+          </div>
         </div>
-      </Card>
+      </section>
       <ScanHint sub="GS1, QR or the plain SKU all work here">Scan the {expected} to continue</ScanHint>
-      <span className="text-xs leading-4 text-muted">Unknown codes are kept with their raw text so a new pattern can be added on the desktop.</span>
-      <Button variant="quiet" onClick={onAgain}>Scan again</Button>
+      <span className="text-xs leading-4 text-faint">Unknown codes are kept with their raw text so a new pattern can be added on the desktop.</span>
+      <Button variant="primary" className="shrink-0" onClick={onAgain}>Scan again</Button>
     </>
   );
 }
@@ -200,38 +203,36 @@ export function OfflineBanner() {
   if (online && queued === 0) return null;
   const recent = queue.all().slice(0, 3);
   return (
-    <div className="flex flex-col gap-2">
-      <Notice tone="gold">
-        <div className="flex items-center gap-3">
-          <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-gold shrink-0" />
-          <div className="flex flex-col gap-0.5 grow min-w-0">
-            <span className="font-medium">{online ? `Back online · sending ${queued} queued` : "Wi-Fi dropped · working from memory"}</span>
-            <span className="text-xs leading-4 text-muted">{plural(queued, "confirmation")} queued · will send when back</span>
-          </div>
+    <div className="flex flex-col gap-2.5 shrink-0">
+      <div role="status" className="flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-warn-tint text-warn-ink">
+        <WifiOffIcon />
+        <div className="flex flex-col grow min-w-0">
+          <span className="text-[15px] leading-5 font-extrabold">{online ? `Back online · sending ${queued} queued` : "Wi-Fi dropped · working from memory"}</span>
+          <span className="text-xs leading-4 font-semibold">{plural(queued, "confirmation")} queued · will send when back</span>
         </div>
-      </Notice>
+      </div>
       {recent.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="eyebrow text-muted">Queued to send</span>
-          <div className="flex flex-col rounded-lg border border-line">
+          <div className="flex flex-col rounded-2xl bg-card border border-line overflow-hidden">
             {recent.map((item) => (
-              <div key={item.id} className="flex justify-between items-center gap-3 px-3 py-2.5 text-sm leading-5 border-b border-line-soft last:border-b-0">
+              <div key={item.id} className="flex justify-between items-center gap-3 px-3.5 py-2.5 text-sm leading-5 font-bold border-b border-line last:border-b-0">
                 <span className="truncate">{item.label}</span>
-                <span className={item.status === "sent" ? "text-muted shrink-0" : "text-gold shrink-0"}>{item.status} {fmtWhen(item.created_at)}</span>
+                <Pill tone={item.status === "sent" ? "ok" : item.status === "failed" ? "bad" : "warn"}>{item.status} {fmtWhen(item.created_at)}</Pill>
               </div>
             ))}
           </div>
         </div>
       )}
       {queued > 0 && <Button variant="quiet" onClick={() => void queue.drain()}>Retry now</Button>}
-      <span className="text-xs leading-4 text-muted">You can finish this task. Starting a new one needs the connection back, because stock numbers may have changed.</span>
+      <span className="text-xs leading-4 text-faint">You can finish this task. Starting a new one needs the connection back, because stock numbers may have changed.</span>
     </div>
   );
 }
 
 /* --- SupervisorCapture ----------------------------------------------------------- */
 
-/** The dashed gold panel plus a badge field. The field is marked
+/** The supervisor's badge box plus a badge field. The field is marked
  * data-scan="badge" so the page's wedge listener leaves it alone and the
  * badge only ever lands here. */
 export function SupervisorCapture({ onBadge, sub, children }: { onBadge: (badge: string) => void; sub?: ReactNode; children?: ReactNode }) {
@@ -244,7 +245,7 @@ export function SupervisorCapture({ onBadge, sub, children }: { onBadge: (badge:
     onBadge(value);
   };
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 shrink-0">
       <SupervisorPanel sub={sub}>{children}</SupervisorPanel>
       <Input data-scan="badge" aria-label="Supervisor badge" placeholder="Supervisor badge" autoComplete="off" autoFocus className="mono" onKeyDown={onKey} />
     </div>
@@ -255,9 +256,15 @@ export function SupervisorCapture({ onBadge, sub, children }: { onBadge: (badge:
 
 export function DoneCard({ title, children }: { title: ReactNode; children?: ReactNode }) {
   return (
-    <Card strong>
-      <span className="text-xl leading-7 font-bold">{title}</span>
+    <section className="card p-4 flex flex-col gap-2.5 shrink-0">
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="w-11 h-11 shrink-0 rounded-full bg-ok-tint text-ok grid place-items-center"><CheckIcon size={24} /></span>
+        <span className="text-xl leading-7 font-extrabold">{title}</span>
+      </div>
       {children}
-    </Card>
+    </section>
   );
 }
+
+/** A row on a task-choosing list: what it is, a line under it, a status pill. */
+export const LIST_ROW = "min-h-14 px-4 py-3 rounded-2xl bg-card border border-line shadow-soft flex items-center justify-between gap-3 no-underline text-ink active:bg-brand-tint shrink-0";

@@ -5,8 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { fmtQty, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
-  Button, Chip, DetailHeader, DetailPanel, Field, Input, Muted, Notice, PageHeader, SearchInput,
-  Section, SegmentedChoice, Select, Table, Toggle, type Column,
+  Button, Chip, DetailHeader, DetailPanel, Field, Input, LocCode, Muted, Pill, Notice, PageHeader, SearchInput,
+  Section, SegmentedChoice, Select, Table, Toggle, zoneLook, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -193,8 +193,19 @@ export function Locations() {
   }
 
   const columns: Column<Location>[] = [
-    { key: "code", header: "Location", width: "150px", render: (l) => <b>{l.code}</b> },
-    { key: "zone", header: "Zone", width: "110px", render: (l) => l.zone },
+    { key: "code", header: "Location", width: "150px", render: (l) => <LocCode>{l.code}</LocCode> },
+    {
+      key: "zone", header: "Zone", width: "110px",
+      render: (l) => {
+        const look = zoneLook(zoneByCode.get(l.zone)?.kind);
+        return look ? (
+          <span className="flex flex-col items-start gap-0.5">
+            <Pill tone={look.tone}>{look.word}</Pill>
+            <span className="text-[11px] leading-4 text-muted">{l.zone}</span>
+          </span>
+        ) : l.zone;
+      },
+    },
     { key: "type", header: "Type", width: "110px", render: (l) => TYPE_LABEL[l.type] ?? l.type },
     { key: "seq", header: "Pick seq", width: "80px", render: (l) => l.pick_sequence ? l.pick_sequence : <Muted>—</Muted> },
     { key: "access", header: "Allows", width: "90px", render: (l) => ACCESS_LABEL[l.access] ?? l.access },
@@ -236,7 +247,7 @@ export function Locations() {
 
         <div className="flex gap-3 items-center flex-wrap">
           <SearchInput
-            className="w-[300px]"
+            className="flex-[1_1_240px] max-w-[320px]"
             placeholder="Find a location"
             aria-label="Find a location"
             value={search}
@@ -344,7 +355,7 @@ export function Locations() {
                 <Field label="Printer">
                   <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
                 </Field>
-                <div className="flex gap-2 [&>*]:grow">
+                <div className="flex flex-wrap gap-2 [&>*]:grow">
                   <Button small type="button" onClick={() => setPrintOne(false)}>Cancel</Button>
                   <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
                     {printBusy ? "Printing…" : "Print"}
@@ -371,14 +382,14 @@ export function Locations() {
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               <Field label="Type" error={save.fieldErrors.type}>
                 <Select value={draft.type} onChange={(e) => patch({ type: e.target.value as LocType })} disabled={!writable}>
                   {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                 </Select>
               </Field>
               <Field label="Access" error={save.fieldErrors.access}>
-                <div className="h-10 flex items-center">
+                <div className="flex items-center">
                   <SegmentedChoice<Access>
                     value={draft.access}
                     options={(["ground", "step", "forklift"] as Access[]).map((a) => ({ value: a, label: ACCESS_LABEL[a] }))}

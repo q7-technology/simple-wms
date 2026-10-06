@@ -33,10 +33,12 @@ design/            the designs, exported from the Claude Design file
   flows/           overview + 6 swimlane process flows
   deck/            the 23-slide build brief (sources)
   canvas/          original artboard sources
+  game-mode/       the Game Mode design the apps now follow: gallery, screens, sources
 site/              the landing page (static, no build step)
 api/               FastAPI app, migrations, worker, tests (see api/README.md)
-apps/desktop/      React desktop app (see apps/desktop/README.md)
-apps/scanner/      React scanner PWA (see apps/scanner/README.md)
+apps/desktop/      React desktop app, Game Mode (see apps/desktop/README.md)
+apps/scanner/      React scanner PWA, Game Mode (see apps/scanner/README.md)
+archive/           the first desktop and scanner apps, kept for reference
 deploy/            Caddyfile
 docker-compose.yml api, worker, db, caddy
 ```

@@ -71,7 +71,7 @@ function headerRow(): HTMLElement {
 
 /** The row of stat tiles built from the report's totals. */
 function tileRow(): HTMLElement {
-  const el = document.querySelector("div.grid.grid-cols-4");
+  const el = document.querySelector('[role="group"][aria-label="Totals"]');
   if (!el) throw new Error("no totals yet");
   return el as HTMLElement;
 }

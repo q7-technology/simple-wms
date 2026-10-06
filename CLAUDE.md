@@ -44,16 +44,20 @@ design/screens/      static HTML of each screen: build to these
 design/flows/        swimlane flow diagrams
 design/deck/         build-brief slides (reference only)
 design/canvas/       Design-file sources (do not edit; regenerated from the canvas)
+design/game-mode/    the Game Mode design the apps follow: index.html, screens/, canvas/
 site/                landing page (static)
 api/                 FastAPI app, Alembic migrations, worker, pytest
 apps/desktop/        React desktop app (Vite), Vitest
 apps/scanner/        React scanner PWA (Vite, service worker), Vitest
+archive/             the first desktop and scanner apps (reference only, not built)
 deploy/Caddyfile     reverse proxy and static serving
 docker-compose.yml   api, worker, db, caddy
 ```
 
-When building a screen, open its file in `design/screens/` and match layout,
-copy and states. `docs/screens.md` says which build step each belongs to.
+When building a screen, open its file in `design/game-mode/screens/` and
+match layout, copy and states. `design/screens/` is the first version's
+look, kept for reference with the apps in `archive/`. `docs/screens.md`
+says which build step each belongs to.
 Do not edit anything under `design/` or `site/` unless asked.
 
 ## Conventions
@@ -73,8 +77,20 @@ Do not edit anything under `design/` or `site/` unless asked.
   short body about the change. Nothing else.
 
 ## Design
-The screens and process flows are exported under `design/` from the Claude
-Design file "Simple WMS UI" (35 screens, 7 flow diagrams) and summarised in
-`docs/screens.md` and `docs/flows.md`. Colours and type follow the Q7 Technology design system:
-ground `#0d1117`, text `#ccd6f6`, secondary `#8892b0`, brand blue `#29abe2`,
-gold `#f7941d` for warnings and secondary actions, borders blue at 20 % alpha.
+The apps follow the Game Mode design in `design/game-mode/` (37 screens:
+gallery in `index.html`, static screens in `screens/`, sources in `canvas/`).
+The desktop is a map of a pretend warehouse with three zones (Arriving,
+Stored, Leaving); every other screen opens as a drawer over the map. The
+scanner does the same jobs with big buttons and a "Ding!" when a step is done.
+Game touches (sounds, day and night, moving trucks and forklifts, the daily
+goal) are per-viewer preferences kept in the browser, never in the API.
+
+Look: page `#F3F6FD`, cards white, ink `#18233D`, secondary `#4A5672`,
+primary blue `#2F6FE4`, warnings `#A8560F` on white, Manrope (self-hosted).
+Zone colours: Arriving `#D8E5FF`/`#1F4FB0`, Stored `#D3EFE8`/`#0F5F59`,
+Leaving `#FDE6D2`/`#8E4A0E`. The token names in each app's `src/index.css`
+are unchanged from the first version, so `text-gold` still means "warning".
+
+The first version (dark Q7 look, 35 screens, 7 flow diagrams) is in
+`design/screens/`, `design/flows/` and `docs/screens.md`, with its apps in
+`archive/`. The process flows in `docs/flows.md` still apply to both.

@@ -7,7 +7,7 @@ import { fmtDate, fmtQty, fmtWhen, plural } from "../lib/format";
 import { useAction, useApi } from "../lib/useApi";
 import {
   Button, Chip, DetailHeader, DetailPanel, Field, Input, KeyValue, Muted, Notice, PageHeader, Pill, Section,
-  StatTile, Table, type Column,
+  Progress, StatTile, Table, type Column,
 } from "../ui";
 import { Main } from "../ui/Shell";
 
@@ -57,9 +57,9 @@ function sharedUom(lines: { uom: string }[]): string | undefined {
 function statusPill(r: Receipt, today: string) {
   if (r.status === "expected" && isLate(r, today)) return <Pill tone="warn">Late</Pill>;
   switch (r.status) {
-    case "expected": return <Pill tone="info">Expected</Pill>;
-    case "arrived": return <Pill tone="info">Arrived</Pill>;
-    case "receiving": return <Pill tone="info">Receiving</Pill>;
+    case "expected": return <Pill tone="arriving">Expected</Pill>;
+    case "arrived": return <Pill tone="arriving">Arrived</Pill>;
+    case "receiving": return <Pill tone="arriving">Receiving</Pill>;
     case "complete": return <Pill tone="ok">Complete</Pill>;
     case "closed_short": return <Pill tone="warn">Closed short</Pill>;
     default: return <Pill tone="muted">Cancelled</Pill>;
@@ -219,7 +219,7 @@ function ReceiptDetail({ receipt, write, tolerance, reload }: {
             <Input value={printer} onChange={(e) => setPrinter(e.target.value)} placeholder="Office" autoFocus />
           </Field>
           <Muted className="text-xs leading-4">{plural(shelves.length, "shelf", "shelves")} · one label each</Muted>
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             <Button small type="button" onClick={() => setPrintOpen(false)}>Cancel</Button>
             <Button small type="submit" variant="primary" disabled={printBusy || !printer.trim()}>
               {printBusy ? "Printing…" : "Print"}
@@ -228,7 +228,7 @@ function ReceiptDetail({ receipt, write, tolerance, reload }: {
         </form>
       )}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         {canPrint && (
           <Button
             onClick={() => { setPrintOpen((v) => !v); setPrinted(null); }}
@@ -318,7 +318,7 @@ function NewReceiptForm({ warehouse, onCancel, onCreated }: {
       </Section>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button variant="primary" onClick={() => void create()} disabled={action.busy || !ready}>Create receipt</Button>
       </div>
@@ -357,29 +357,40 @@ export function Receiving() {
   const putAwayUom = sharedUom(putAway.flatMap((r) => r.lines)) ?? "EA";
   const late = items.filter((r) => isLate(r, today));
 
-  const rows = items.filter((r) => {
-    switch (filter) {
+  const inFilter = (r: Receipt, f: Filter) => {
+    switch (f) {
       case "all": return true;
       case "late": return isLate(r, today);
       case "complete": return r.status === "complete" || r.status === "closed_short";
-      default: return r.status === filter;
+      default: return r.status === f;
     }
-  });
+  };
+  const rows = items.filter((r) => inFilter(r, filter));
 
   const qtyWithUom = (qty: string, lines: ReceiptLine[]) => fmtQty(qty, sharedUom(lines));
 
   const columns: Column<Receipt>[] = [
-    { key: "ref", header: "Receipt", width: "130px", render: (r) => <b>{r.external_ref}</b> },
-    { key: "supplier", header: "Supplier", render: (r) => r.supplier ?? <Muted>—</Muted> },
-    { key: "lines", header: "Lines", width: "70px", render: (r) => String(r.lines.length) },
-    { key: "expected", header: "Expected", width: "110px", render: (r) => qtyWithUom(r.expected_total, r.lines) },
+    { key: "ref", header: "Receipt", width: "110px", render: (r) => <b className="text-brand-dark">{r.external_ref}</b> },
+    { key: "supplier", header: "Supplier", width: "minmax(140px, 1fr)", render: (r) => r.supplier ?? <Muted>—</Muted> },
+    { key: "lines", header: "Lines", width: "56px", render: (r) => String(r.lines.length) },
+    { key: "expected", header: "Expected", width: "90px", render: (r) => qtyWithUom(r.expected_total, r.lines) },
     {
-      key: "received", header: "Received", width: "110px",
-      render: (r) => Number(r.received_total) > 0 ? qtyWithUom(r.received_total, r.lines) : <Muted>—</Muted>,
+      key: "received", header: "Received", width: "120px",
+      render: (r) => (
+        <span className="flex flex-col gap-1 pr-4">
+          {Number(r.received_total) > 0 ? <span>{qtyWithUom(r.received_total, r.lines)}</span> : <Muted>—</Muted>}
+          <Progress
+            done={Number(r.received_total)}
+            total={Number(r.expected_total)}
+            tone={r.status === "complete" ? "ok" : r.status === "closed_short" ? "gold" : "brand"}
+            label={`${r.external_ref} received`}
+          />
+        </span>
+      ),
     },
-    { key: "due", header: "Due", width: "100px", render: (r) => dateOf(r.expected_at) === today ? "Today" : fmtDate(r.expected_at) },
+    { key: "due", header: "Due", width: "80px", render: (r) => dateOf(r.expected_at) === today ? "Today" : fmtDate(r.expected_at) },
     { key: "status", header: "Status", width: "120px", render: (r) => statusPill(r, today) },
-    { key: "next", header: "Next", width: "200px", render: (r) => <Muted>{nextStep(r, today)}</Muted> },
+    { key: "next", header: "Next", width: "minmax(140px, 1fr)", render: (r) => <Muted>{nextStep(r, today)}</Muted> },
   ];
 
   const reloadAll = async () => { await list.reload(); await detail.reload(); };
@@ -398,7 +409,7 @@ export function Receiving() {
           </>}
         />
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <StatTile label="Expected today" value={String(expectedToday.length)} hint={`from ${plural(suppliers, "supplier")}`} />
           <StatTile label="Arrived, not put away" value={String(arrived.length)} hint="on the receiving dock" />
           <StatTile label="Put away today" value={fmtQty(putAwayQty)} hint={putAwayUom} />
@@ -410,8 +421,12 @@ export function Receiving() {
           />
         </div>
 
-        <div className="flex items-center gap-1">
-          {FILTERS.map((f) => <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</Chip>)}
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map((f) => (
+            <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)} count={items.filter((r) => inFilter(r, f.value)).length}>
+              {f.label}
+            </Chip>
+          ))}
         </div>
 
         {list.error && <Notice tone="gold">{list.error}</Notice>}

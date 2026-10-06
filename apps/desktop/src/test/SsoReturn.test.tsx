@@ -14,7 +14,7 @@ function renderReturn(search: string) {
       <AuthProvider>
         <Routes>
           <Route path="/sso" element={<SsoReturn />} />
-          <Route path="/stock" element={<div>Stock page</div>} />
+          <Route path="/" element={<div>Map home</div>} />
           <Route path="/sign-in" element={<div>Sign in page</div>} />
         </Routes>
       </AuthProvider>
@@ -31,7 +31,7 @@ describe("SsoReturn", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("swaps the code for a session and lands on stock", async () => {
+  it("swaps the code for a session and lands on the map", async () => {
     fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
       if (url === "/v1/auth/sso/callback") {
         expect(JSON.parse(init.body as string)).toEqual({ code: "c-1", state: "st-1" });
@@ -46,7 +46,7 @@ describe("SsoReturn", () => {
       return jsonResponse(404, {});
     });
     renderReturn("?code=c-1&state=st-1");
-    expect(await screen.findByText("Stock page")).toBeInTheDocument();
+    expect(await screen.findByText("Map home")).toBeInTheDocument();
   });
 
   it("says plainly when the WMS has no account for them", async () => {

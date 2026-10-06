@@ -8,9 +8,9 @@ import type { Page, PickBatch, ScanResult, ShortReason } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty, plural } from "../lib/format";
 import { useScanWedge } from "../lib/useScanWedge";
-import { BigLocation, Button, Card, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, CheckIcon, Footer, Header, Main, Notice, Pill, ProductCard, ProgressRow, ScanHint, Screen, StepButton, cx, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError,
   firstName, needsSupervisor, sameCode, siteOf, useScanStep, type Expecting,
 } from "./task-shared";
 
@@ -71,9 +71,9 @@ function BatchList() {
         {error && <Notice tone="gold">{error}</Notice>}
         <div className="flex flex-col gap-2">
           {batches.map((b) => (
-            <Link key={b.wms_id} to={`/sort/${b.external_ref}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+            <Link key={b.wms_id} to={`/sort/${b.external_ref}`} className={LIST_ROW}>
               <span className="flex flex-col gap-0.5 min-w-0">
-                <span className="font-semibold truncate">{b.external_ref} · {plural(b.orders, "order")} · {plural(b.stops.length, "stop")}</span>
+                <span className="font-extrabold truncate">{b.external_ref} · {plural(b.orders, "order")} · {plural(b.stops.length, "stop")}</span>
                 {b.note && <span className="text-xs leading-4 text-muted truncate">{b.note}</span>}
               </span>
               <Pill tone={b.status === "picking" ? "info" : "muted"}>{b.status === "picking" ? "Picking" : "New"}</Pill>
@@ -182,6 +182,7 @@ function BatchStop({ batchRef }: { batchRef: string }) {
         if (needsSupervisor(item)) { setShorting(true); setBadge(null); }
         return;
       }
+      ding(`Stop ${doneStops + 1} sorted · ${fmtQty(sorted, stop.uom)} ${stop.sku}`);
       if (item.status === "sent") await reload();
       else setBatch((b) => (b ? { ...b, done_stops: b.done_stops + 1, stops: b.stops.slice(1) } : b));
     } finally {
@@ -231,7 +232,7 @@ function BatchStop({ batchRef }: { batchRef: string }) {
         {stop && !wrong && !shorting && (
           <>
             <BigLocation
-              eyebrow="Go to" code={stop.location}
+              eyebrow="Go to" code={stop.location} tone="go"
               hint={`${stop.zone} · walk order`}
               hint2={shelf ? "Scanned · take the stock from this shelf" : "Scan the shelf label when you get there"}
             />
@@ -258,26 +259,18 @@ function BatchStop({ batchRef }: { batchRef: string }) {
                     const value = qtys[p.tote] ?? p.qty;
                     const here = i === cursor;
                     return (
-                      <div key={p.tote} className={`card p-3 flex items-center justify-between gap-3 ${here ? "border-brand bg-brand-tint" : ""}`}>
+                      <div key={p.tote} className={cx("card p-3 flex items-center justify-between gap-3 shrink-0", here && "border-2 border-brand bg-brand-tint")}>
                         <button
                           type="button" aria-label={`Put this one in tote ${p.tote}`} onClick={() => setCursor(i)}
                           className="flex flex-col gap-0.5 min-w-0 bg-transparent border-0 p-0 text-left text-ink cursor-pointer"
                         >
-                          <span className="text-xl leading-7 font-bold">Tote {p.tote}</span>
+                          <span className="text-xl leading-7 font-extrabold">Tote {p.tote}{here && <span className="sr-only"> · next</span>}</span>
                           <span className="mono text-xs leading-4 text-muted truncate">{p.delivery}</span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button" aria-label={`Less in tote ${p.tote}`}
-                            onClick={() => setQtys((q) => ({ ...q, [p.tote]: bump(q[p.tote] ?? p.qty, -1, decimals) }))}
-                            className="w-14 h-14 rounded-md bg-transparent border border-line-strong text-ink text-2xl cursor-pointer"
-                          >−</button>
-                          <span aria-label={`Tote ${p.tote} quantity`} className="w-10 text-center text-2xl leading-8 font-bold">{fmtQty(value)}</span>
-                          <button
-                            type="button" aria-label={`More in tote ${p.tote}`}
-                            onClick={() => setQtys((q) => ({ ...q, [p.tote]: bump(q[p.tote] ?? p.qty, 1, decimals) }))}
-                            className="w-14 h-14 rounded-md bg-transparent border border-line-strong text-ink text-2xl cursor-pointer"
-                          >+</button>
+                          <StepButton dir="less" label={`Less in tote ${p.tote}`} onClick={() => setQtys((q) => ({ ...q, [p.tote]: bump(q[p.tote] ?? p.qty, -1, decimals) }))} />
+                          <span aria-label={`Tote ${p.tote} quantity`} className="w-10 text-center text-2xl leading-8 font-extrabold">{fmtQty(value)}</span>
+                          <StepButton dir="more" label={`More in tote ${p.tote}`} onClick={() => setQtys((q) => ({ ...q, [p.tote]: bump(q[p.tote] ?? p.qty, 1, decimals) }))} />
                         </div>
                       </div>
                     );
@@ -293,7 +286,7 @@ function BatchStop({ batchRef }: { batchRef: string }) {
         {stop && !wrong && shorting && (
           <>
             <Card strong>
-              <span className="text-xl leading-7 font-bold">Sorted {fmtQty(sorted)} of {fmtQty(stop.qty)}</span>
+              <span className="text-xl leading-7 font-extrabold">Sorted {fmtQty(sorted)} of {fmtQty(stop.qty)}</span>
               <span className="text-sm leading-5 text-muted">{fmtQty(missing, stop.uom)} missing from {stop.location}</span>
             </Card>
             <div className="flex flex-col gap-2">
@@ -301,11 +294,11 @@ function BatchStop({ batchRef }: { batchRef: string }) {
               {REASONS.map((r) => (
                 <Button
                   key={r.reason} variant={reason === r.reason ? "gold" : "quiet"}
-                  className={reason === r.reason ? "text-left bg-gold-tint" : "text-left"}
+                  className="text-left flex items-center justify-between gap-3"
                   aria-pressed={reason === r.reason}
                   onClick={() => { setReason(r.reason); setError(null); }}
                 >
-                  {r.label}
+                  {r.label}{reason === r.reason && <CheckIcon size={20} />}
                 </Button>
               ))}
             </div>

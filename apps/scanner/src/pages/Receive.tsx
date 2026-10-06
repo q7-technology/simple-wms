@@ -4,9 +4,9 @@ import { api } from "../api/client";
 import type { Page, ScanResult, Task } from "../api/types";
 import { useSession } from "../auth/Session";
 import { fmtQty } from "../lib/format";
-import { BigLocation, Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen } from "../ui";
+import { BigLocation, Button, Card, Field, Footer, Header, Input, Main, Notice, Pill, ProductCard, ProgressRow, QtyStepper, ScanHint, Screen, ding } from "../ui";
 import {
-  DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
+  LIST_ROW, DoneCard, OfflineBanner, ScanInput, SupervisorCapture, WrongScan, allowsDecimals, describeError, firstName,
   needsSupervisor, patchLine, siteOf, useScanStep, useTask, type Expecting,
 } from "./task-shared";
 
@@ -66,9 +66,9 @@ function ReceiveList() {
             {error && <Notice tone="gold">{error}</Notice>}
             <div className="flex flex-col gap-2">
               {tasks.map((t) => (
-                <Link key={t.wms_id} to={`/receive/${t.wms_id}`} className="card p-4 flex items-center justify-between gap-3 no-underline text-ink min-h-14 active:bg-brand-tint">
+                <Link key={t.wms_id} to={`/receive/${t.wms_id}`} className={LIST_ROW}>
                   <span className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold truncate">Receive {t.source_ref ?? t.title}{t.note ? ` · ${t.note}` : ""}</span>
+                    <span className="font-extrabold truncate">Receive {t.source_ref ?? t.title}{t.note ? ` · ${t.note}` : ""}</span>
                     <span className="text-xs leading-4 text-muted">{t.progress.done} of {t.progress.total} lines</span>
                   </span>
                   <Pill tone={t.status === "in_progress" ? "info" : "muted"}>{t.status === "in_progress" ? "In progress" : "Waiting"}</Pill>
@@ -189,6 +189,7 @@ function ReceiveTask({ taskId }: { taskId: string }) {
       }
       setNeedBadge(null);
       applyItem(item, (t) => patchLine(t, line.line_no, { actual_qty: qty, status: "done", to_location: dest, reason: reason ?? null, batch: batch || line.batch }));
+      ding(`Received ${fmtQty(qty, line.uom)} ${line.sku}`);
     } finally {
       setBusy(false);
     }
@@ -250,14 +251,14 @@ function ReceiveTask({ taskId }: { taskId: string }) {
                 )}
                 <QtyStepper label="Quantity received" value={qty} onChange={setQty} decimals={allowsDecimals(line.uom)} />
                 <BigLocation
-                  eyebrow="Put it at" code={shelf} tone={hint?.gold ? "gold" : undefined}
+                  eyebrow="Put it at" code={shelf} tone={hint?.gold ? "gold" : "go"}
                   hint={dest ? (suggestion && dest === suggestion.location ? `Scanned · ${hint?.text ?? "suggested shelf"}` : "Scanned · your choice, the ledger records it") : hint?.text ?? "Waiting for a suggestion · or scan any shelf"}
                   hint2="Or scan another shelf that allows this product"
                 />
                 {!needBadge && <ScanHint>{dest ? "Scan another shelf to change it" : "Scan the shelf to confirm"}</ScanHint>}
                 {damaged && !needBadge && (
-                  <Card className="border-gold-line">
-                    <span className="text-sm font-medium text-gold">Damaged on arrival</span>
+                  <Card className="border-2 border-gold-line">
+                    <span className="text-sm font-extrabold text-bad-ink">Damaged on arrival</span>
                     <Field label="What happened (optional)">
                       <Input value={damageNote} onChange={(e) => setDamageNote(e.target.value)} placeholder="Crushed carton, wet, …" />
                     </Field>
@@ -275,11 +276,11 @@ function ReceiveTask({ taskId }: { taskId: string }) {
       {line && !wrong && (
         <>
           <Footer>
-            <Button variant="gold" disabled={!scanned || busy} onClick={() => setDamaged((d) => !d)}>Damaged</Button>
+            <Button variant="danger" aria-pressed={damaged} disabled={!scanned || busy} onClick={() => setDamaged((d) => !d)}>Damaged</Button>
             <Button variant="primary" disabled={!dest || busy || batchMissing || !qty || Boolean(needBadge)} onClick={() => void confirm()}>Confirm receipt</Button>
           </Footer>
-          <div className="px-4 pb-3 text-center">
-            <button type="button" onClick={() => void closeShort()} className="bg-transparent border-0 text-xs text-muted underline cursor-pointer h-11 px-3">Close short</button>
+          <div className="px-4 pb-2 -mt-2 text-center shrink-0">
+            <button type="button" onClick={() => void closeShort()} className="bg-transparent border-0 text-sm font-bold text-muted underline cursor-pointer h-14 px-4">Close short</button>
           </div>
         </>
       )}

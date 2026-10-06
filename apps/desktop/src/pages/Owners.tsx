@@ -111,7 +111,7 @@ export function Owners() {
     { key: "code", header: "Owner", width: "140px", render: (o) => <b>{o.code}</b> },
     { key: "name", header: "Name", render: (o) => o.name },
     { key: "contact", header: "Contact", width: "170px", render: (o) => o.contact ?? <Muted>—</Muted> },
-    { key: "email", header: "Email", width: "220px", render: (o) => o.email ?? <Muted>—</Muted> },
+    { key: "email", header: "Email", width: "minmax(180px, 1fr)", render: (o) => o.email ?? <Muted>—</Muted> },
     {
       key: "status", header: "Status", width: "120px",
       render: (o) => o.active ? <Pill tone="info">Active</Pill> : <Pill tone="muted">Deactivated</Pill>,

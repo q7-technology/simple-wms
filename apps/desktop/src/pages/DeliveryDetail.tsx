@@ -69,10 +69,10 @@ function firstError(errors: Record<string, string>, ...keys: string[]): string |
 function statusPill(status: DeliveryStatus) {
   switch (status) {
     case "allocated": return <Pill tone="info">Waiting</Pill>;
-    case "picking": return <Pill tone="info">Picking</Pill>;
-    case "picked": return <Pill tone="info">Picked</Pill>;
-    case "packing": return <Pill tone="info">Packing</Pill>;
-    case "packed": return <Pill tone="info">Packed</Pill>;
+    case "picking": return <Pill tone="leaving">Picking</Pill>;
+    case "picked": return <Pill tone="leaving">Picked</Pill>;
+    case "packing": return <Pill tone="leaving">Packing</Pill>;
+    case "packed": return <Pill tone="leaving">Packed</Pill>;
     case "shipped": return <Pill tone="ok">Shipped</Pill>;
     case "cancelled": return <Pill tone="muted">Cancelled</Pill>;
     default: return <Pill tone="info">New</Pill>;
@@ -102,6 +102,44 @@ function eventPill(status: string) {
   if (status === "delivered") return <Pill tone="ok">Delivered</Pill>;
   if (status === "failed") return <Pill tone="warn">Failed</Pill>;
   return <Pill tone="info">{status === "pending" ? "Queued" : status}</Pill>;
+}
+
+/** Allocated, picking, packed, shipped: how far along the delivery is, read
+ * straight from its timestamps and picked quantities. */
+function JourneyStrip({ delivery: d }: { delivery: Delivery }) {
+  const ordered = addQty(d.lines.map((l) => l.qty_ordered));
+  const picked = addQty(d.lines.map((l) => l.qty_picked));
+  const uoms = new Set(d.lines.map((l) => l.uom));
+  const uom = uoms.size === 1 ? [...uoms][0] : undefined;
+  const pickedShare = Number(ordered) > 0 ? Math.min(1, Number(picked) / Number(ordered)) : 0;
+  const after = (...s: DeliveryStatus[]) => s.includes(d.status);
+  const stages: { label: string; share: number }[] = [
+    { label: d.allocated_at ? `Allocated ${fmtWhen(d.allocated_at)}` : "Allocated", share: d.allocated_at || d.status !== "new" ? 1 : 0 },
+    {
+      label: d.task?.assigned_to && d.status === "picking" ? `Picking · ${d.task.assigned_to}` : "Picking",
+      share: d.picked_at || after("picked", "packing", "packed", "shipped") ? 1 : d.status === "picking" ? pickedShare : 0,
+    },
+    { label: d.packed_at ? `Packed ${fmtWhen(d.packed_at)}` : "Packed", share: d.packed_at || after("packed", "shipped") ? 1 : d.status === "packing" ? 0.5 : 0 },
+    { label: d.shipped_at ? `Shipped ${fmtWhen(d.shipped_at)}` : "Shipped", share: d.shipped_at || d.status === "shipped" ? 1 : 0 },
+  ];
+  return (
+    <div className="rounded-2xl border border-line bg-field px-5 py-4 flex flex-col gap-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-extrabold text-ink">Progress</span>
+        <span className="text-[13px] font-extrabold text-brand-dark">{fmtQty(picked)} of {fmtQty(ordered, uom)} picked</span>
+      </div>
+      <ol className="m-0 p-0 list-none grid grid-cols-4 gap-2">
+        {stages.map((st) => (
+          <li key={st.label} className="flex flex-col gap-1.5 min-w-0">
+            <span aria-hidden="true" className="block h-2 rounded-full bg-brand-tint overflow-hidden">
+              <span className="block h-full rounded-full bg-brand" style={{ width: `${Math.round(st.share * 100)}%` }} />
+            </span>
+            <span className={`text-xs leading-4 truncate ${st.share > 0 ? "font-extrabold text-ink" : "text-muted"}`}>{st.label}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 function dims(p: DeliveryPackage): string {
@@ -414,7 +452,7 @@ export function DeliveryDetail() {
           aria-label="Back to deliveries"
           className="w-10 h-10 shrink-0 flex items-center justify-center rounded-md border border-line no-underline"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccd6f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m12 19-7-7 7-7" /><path d="M19 12H5" />
           </svg>
         </Link>
@@ -426,15 +464,17 @@ export function DeliveryDetail() {
         </div>
         <div className="grow" />
         {d && statusPill(d.status)}
-        {d?.short && d.status !== "cancelled" && <Pill tone="warn">Short</Pill>}
+        {d?.short && d.status !== "cancelled" && <Pill tone="warning">Short</Pill>}
       </div>
 
       {detail.loading && !d && <Muted className="text-sm">Loading…</Muted>}
       {detail.error && <Notice tone="gold">{detail.error}</Notice>}
 
+      {d && d.status !== "cancelled" && <JourneyStrip delivery={d} />}
+
       {d && (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
             <Card className="p-5 flex flex-col gap-1">
               <Eyebrow tone="muted">Ship to</Eyebrow>
               <span className="text-sm leading-5">{d.ship_to.name}</span>

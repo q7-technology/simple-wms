@@ -1,7 +1,7 @@
 /* Service worker: caches the app shell so the scanner opens through a Wi-Fi
  * drop. API calls always go to the network; the app keeps its own retry
  * queue for confirmations. A new build takes over on the next launch. */
-const VERSION = "wms-scanner-v1";
+const VERSION = "wms-scanner-v2-game-mode";
 const SHELL = ["/scan/", "/scan/index.html", "/scan/manifest.webmanifest", "/scan/favicon.svg"];
 
 self.addEventListener("install", (event) => {

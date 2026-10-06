@@ -1,41 +1,76 @@
 @import "tailwindcss";
 
-/* Q7 Technology design system, scanner scale: 56 px touch targets. */
+/* Game Mode, scanner scale: light, Manrope, 56 px touch targets.
+ * Token names are the ones the pages already use; only the values moved. */
 @theme {
-  --color-ground: #0d1117;
-  --color-ink: #ccd6f6;
-  --color-muted: #8892b0;
-  --color-brand: #29abe2;
-  --color-gold: #f7941d;
-  --color-ok: #4ade80;
-  --color-line: rgba(41, 171, 226, 0.2);
-  --color-line-soft: rgba(41, 171, 226, 0.1);
-  --color-line-strong: rgba(41, 171, 226, 0.3);
-  --color-brand-tint: rgba(41, 171, 226, 0.1);
-  --color-card: rgba(13, 17, 23, 0.6);
-  --color-gold-line: rgba(247, 148, 29, 0.3);
-  --color-gold-tint: rgba(247, 148, 29, 0.1);
-  --color-ok-line: rgba(74, 222, 128, 0.3);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --color-ground: #f3f6fd;
+  --color-ink: #18233d;
+  --color-muted: #4a5672;
+  --color-faint: #5a6785;
+  --color-brand: #2f6fe4;
+  --color-brand-dark: #2148a8;
+  --color-brand-tint: #eef3ff;
+  --color-gold: #a8560f;
+  --color-gold-line: rgba(184, 95, 18, 0.35);
+  --color-gold-tint: #fff1e3;
+  --color-ok: #145a31;
+  --color-ok-line: rgba(34, 163, 90, 0.35);
+  --color-ok-fill: #22a35a;
+  --color-ok-strong: #17803f;
+  --color-ok-tint: #e3f5ea;
+  --color-line: #dde5f5;
+  --color-line-soft: #e6edfb;
+  --color-line-strong: #cfdaf2;
+  --color-card: #ffffff;
+  --color-warn-tint: #fff0c2;
+  --color-warn-ink: #7a5c00;
+  --color-bad-tint: #fde2e0;
+  --color-bad-ink: #a3221a;
+  --color-arriving: #d8e5ff;
+  --color-arriving-ink: #1f4fb0;
+  --color-stored: #d3efe8;
+  --color-stored-ink: #0f5f59;
+  --color-leaving: #fde6d2;
+  --color-leaving-ink: #8e4a0e;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shadow-soft: 0 6px 20px rgba(24, 35, 61, 0.08);
+  --shadow-float: 0 10px 40px rgba(24, 35, 61, 0.25);
 }
 
 html, body, #root { min-height: 100%; height: 100%; }
 body {
-  margin: 0; background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans);
+  margin: 0; box-sizing: border-box; background: var(--color-ground); color: var(--color-ink); font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
-input, select, textarea, button { font: inherit; }
-input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+/* In the base layer so Tailwind utilities (font size, weight) still win. */
+@layer base {
+  input, select, textarea, button { font: inherit; }
+  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  :focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+}
 
 @layer components {
 .input {
-  height: 56px; box-sizing: border-box; padding: 0 16px; border-radius: 6px; width: 100%;
-  background: var(--color-ground); border: 1px solid var(--color-line); color: var(--color-ink); font-size: 18px;
+  height: 56px; box-sizing: border-box; padding: 0 16px; border-radius: 14px; width: 100%;
+  background: var(--color-card); border: 2px solid var(--color-line-strong); color: var(--color-ink);
+  font-size: 17px; font-weight: 600;
 }
+.input::placeholder { color: var(--color-faint); font-weight: 500; font-family: var(--font-sans); }
 .input:focus { outline: none; border-color: var(--color-brand); }
-.eyebrow { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-.card { border-radius: 12px; border: 1px solid var(--color-line); background: var(--color-card); }
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.card { border-radius: 18px; border: 1px solid var(--color-line); background: var(--color-card); box-shadow: var(--shadow-soft); }
 .mono { font-family: var(--font-mono); }
+}
+
+/* The green "Ding!" toast drops in from the top. */
+@keyframes ding-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.ding { animation: ding-in 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .ding { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

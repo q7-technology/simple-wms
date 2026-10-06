@@ -174,7 +174,7 @@ function PointDetail({ point, templates, jobs, admin, reload }: {
       {admin && (
         <>
           <div className="grow" />
-          <div className="flex gap-2 [&>*]:grow">
+          <div className="flex flex-wrap gap-2 [&>*]:grow">
             {off
               ? <Button variant="gold" onClick={() => void turnOn()} disabled={action.busy}>Turn on</Button>
               : <Button variant="gold" onClick={() => void turnOff()} disabled={action.busy}>Turn off</Button>}
@@ -257,7 +257,7 @@ function NewPointForm({ templates, warehouses, current, onCancel, onCreated }: {
       </div>
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button
           variant="primary"
@@ -360,7 +360,7 @@ function PrintNowForm({ warehouse, onCancel, onSent }: {
       {action.error && <Notice tone="gold">{action.error}</Notice>}
       {sentTo && !action.error && <Notice tone="ok">Sent to {sentTo}</Notice>}
       <div className="grow" />
-      <div className="flex gap-2 [&>*]:grow">
+      <div className="flex flex-wrap gap-2 [&>*]:grow">
         <Button onClick={onCancel} disabled={action.busy}>Cancel</Button>
         <Button
           variant="primary"

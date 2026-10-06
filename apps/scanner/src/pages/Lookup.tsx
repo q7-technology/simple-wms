@@ -53,9 +53,9 @@ function orderShelves(rows: StockAtLocation[], wh: string): StockAtLocation[] {
 
 function Stat({ label, value, brand }: { label: string; value: string; brand?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs leading-4 text-muted">{label}</span>
-      <span className={cx("text-2xl leading-none font-semibold", brand && "text-brand")}>{value}</span>
+    <div className={cx("flex flex-col gap-1 px-2.5 py-2 rounded-xl", brand ? "bg-ok-tint text-ok" : "bg-ground")}>
+      <span className={cx("text-xs leading-4 font-bold", brand ? "text-ok" : "text-muted")}>{label}</span>
+      <span className="text-2xl leading-none font-extrabold">{value}</span>
     </div>
   );
 }
@@ -217,7 +217,7 @@ export function Lookup() {
                 {(["here", "all"] as const).map((s) => (
                   <button
                     key={s} type="button" aria-pressed={scope === s} onClick={() => setScope(s)}
-                    className={cx("h-14 px-2 rounded-md border text-xs leading-4 font-medium cursor-pointer", scope === s ? "border-brand bg-brand-tint text-ink" : "border-line bg-transparent text-muted")}
+                    className={cx("min-h-14 px-2 rounded-2xl border-2 text-xs leading-4 font-extrabold cursor-pointer", scope === s ? "border-brand bg-brand-tint text-brand-dark" : "border-line-strong bg-card text-muted")}
                   >
                     {s === "here" ? `This warehouse · ${wh}` : "All warehouses"}
                   </button>
@@ -226,7 +226,7 @@ export function Lookup() {
             </Card>
             <div className="flex flex-col gap-2">
               <span className="eyebrow text-muted">Shelves, oldest first</span>
-              <div className="rounded-lg border border-line flex flex-col divide-y divide-line">
+              <div className="rounded-2xl bg-card border border-line overflow-hidden flex flex-col divide-y divide-line shrink-0">
                 {shelves.length === 0 && <span className="px-4 py-3 text-sm leading-5 text-muted">Not on any shelf.</span>}
                 {shelves.map((r, i) => {
                   const other = r.warehouse !== wh;
@@ -238,7 +238,7 @@ export function Lookup() {
                     >
                       <span className="mono truncate">{other ? `${r.warehouse} · ${r.location}` : r.location}{r.batch ? ` · ${r.batch}` : ""}</span>
                       <span className="text-muted whitespace-nowrap">
-                        <span className="text-ink font-semibold">{fmtQty(r.on_hand)}</span>
+                        <span className="text-ink font-extrabold">{fmtQty(r.on_hand)}</span>
                         {other ? " · other site" : held ? ` · ${fmtQty(r.reserved)} held` : ""}
                       </span>
                     </button>
@@ -254,17 +254,17 @@ export function Lookup() {
             <BigLocation eyebrow="Shelf" code={<span className="mono">{shelf.location}</span>} hint={`${shelf.zone} · ${shelf.warehouse}`} />
             <div className="flex flex-col gap-2">
               <span className="eyebrow text-muted">On this shelf</span>
-              <div className="rounded-lg border border-line flex flex-col divide-y divide-line">
+              <div className="rounded-2xl bg-card border border-line overflow-hidden flex flex-col divide-y divide-line shrink-0">
                 {shelf.stock.length === 0 && <span className="px-4 py-3 text-sm leading-5 text-muted">Nothing on this shelf.</span>}
                 {shelf.stock.map((l, i) => (
                   <button key={`${l.sku}/${l.batch ?? ""}/${i}`} type="button" data-testid="stock-row" className={ROW} onClick={() => setParams({ sku: l.sku })}>
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="mono font-semibold truncate">{l.sku}</span>
+                      <span className="mono font-extrabold truncate">{l.sku}</span>
                       <span className="text-xs leading-4 text-muted truncate">
                         {l.name}{l.batch ? ` · ${l.batch}` : ""}{l.received_at ? ` · received ${fmtDate(l.received_at)}` : ""}
                       </span>
                     </div>
-                    <span className="whitespace-nowrap"><span className="font-semibold">{fmtQty(l.on_hand)}</span> <span className="text-muted">{l.uom}</span></span>
+                    <span className="whitespace-nowrap"><span className="font-extrabold">{fmtQty(l.on_hand)}</span> <span className="text-muted">{l.uom}</span></span>
                   </button>
                 ))}
               </div>

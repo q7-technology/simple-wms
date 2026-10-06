@@ -129,7 +129,7 @@ describe("Deliveries", () => {
 
     expect(screen.getByText("0080012345")).toBeInTheDocument();
     expect(screen.getByText("Acme Auto Parts")).toBeInTheDocument();
-    expect(screen.getByText("· Geelong")).toBeInTheDocument();
+    expect(screen.getByText("Geelong")).toBeInTheDocument();
     expect(screen.getByText("14 EA")).toBeInTheDocument();
 
     const pill = { selector: "span.rounded-full" };
