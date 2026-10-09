@@ -46,6 +46,20 @@ def cmd_rebuild_balances(args) -> int:
     return 0
 
 
+def cmd_seed_demo(args) -> int:
+    from wms.demo import PASSWORD, PIN, SeedError, seed_demo
+
+    try:
+        seed_demo()
+    except SeedError as e:
+        print(f"seed-demo: {e}", file=sys.stderr)
+        return 1
+    print("demo data loaded: BAL-WH01 Ballarat and MEL-WH01 Melbourne")
+    print(f"desktop: sign in as admin, kim or priya.n with password {PASSWORD}")
+    print(f"scanner: op-017, op-019, op-021, op-022, op-031 or sup-004 with PIN {PIN}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="wms")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -69,6 +83,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("rebuild-balances", help="recompute stock_balance from the ledger")
     p.set_defaults(func=cmd_rebuild_balances)
+
+    p = sub.add_parser("seed-demo", help="fill an empty database with a demo day, through the API")
+    p.set_defaults(func=cmd_seed_demo)
 
     args = parser.parse_args(argv)
     return args.func(args)

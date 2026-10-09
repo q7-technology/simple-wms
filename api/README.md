@@ -12,7 +12,8 @@ wms/models/          SQLAlchemy 2 models, one module per area
 wms/services/        ledger (the only writer of stock_ledger), access, events
 wms/api/             FastAPI app, auth, envelope handling, routes
 wms/worker.py        drains outbound_event with backoff
-wms/cli.py           create-api-client, create-user, rebuild-balances
+wms/cli.py           create-api-client, create-user, rebuild-balances, seed-demo
+wms/demo.py          the demo day seed-demo loads
 alembic/             migrations
 tests/               pytest, runs against a real Postgres
 ```
@@ -31,6 +32,22 @@ export WMS_DATABASE_URL=postgresql+psycopg://wms:wms-dev@127.0.0.1:5433/wms
 
 Then `curl -H "Authorization: Bearer <key>" localhost:8000/v1/products`.
 Interactive docs at `/docs`.
+
+## Demo data
+
+`wms seed-demo` fills an empty database with a working day: Ballarat and
+Melbourne warehouses, the Game Mode product range, people and scanners,
+receipts in every state, orders from allocated to shipped, transfers, a
+top-up and a count waiting on a supervisor. It goes through the API with a
+key made for the run and revoked after, so every movement is in the ledger.
+It refuses a database that already has those warehouses.
+
+```
+.venv/bin/wms seed-demo
+```
+
+Desktop sign in: `admin`, `kim` or `priya.n`, password `demo-password-1`.
+Scanner: `op-017`, `op-019`, `op-021`, `op-022`, `op-031` or `sup-004`, PIN `1234`.
 
 ## Tests
 
