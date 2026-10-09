@@ -15,7 +15,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from sqlalchemy import delete, select
+from sqlalchemy import case, delete, select, update
 from sqlalchemy.orm import Session
 
 from wms.config import get_settings
@@ -147,6 +147,8 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
         }, separators=(",", ":")).encode()
         headers = {"Content-Type": "application/json", "X-WMS-Job-Id": str(job.job_id),
                    "X-WMS-Template": f"{job.template}/{job.version}", "User-Agent": "simple-wms/0.1"}
+        if key := get_settings().platen_key:
+            headers["Authorization"] = f"Bearer {key}"
         error = None
         try:
             resp = http.post(url, content=body, headers=headers,
@@ -156,14 +158,19 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
         except httpx.HTTPError as exc:
             error = f"{type(exc).__name__}: {exc}"[:500]
 
-        job.attempts += 1
         sent += 1
         if error is None:
-            job.status = "accepted"
-            job.sent_at = now
-            job.last_error = None
+            # Platen may have printed it and said so before its answer to the
+            # POST got back here; only a job still pending becomes accepted
+            pending = PrintJob.status == "pending"
+            session.execute(
+                update(PrintJob).where(PrintJob.id == job.id)
+                .values(status=case((pending, "accepted"), else_=PrintJob.status),
+                        last_error=case((pending, None), else_=PrintJob.last_error),
+                        sent_at=now, attempts=PrintJob.attempts + 1))
             log.info("print job %s (%s) accepted by %s", job.job_id, job.template, url)
         else:
+            job.attempts += 1
             job.last_error = error
             if job.attempts >= len(BACKOFF):
                 job.status = "failed"

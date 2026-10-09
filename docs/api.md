@@ -1147,6 +1147,12 @@ warehouse's `platen_url` setting; a job for a warehouse without one waits in
 the queue until it is set. A refusal is retried on the same backoff as
 events (1 min, 5, 30, 2 h), then marked `failed` for a reprint.
 
+With `WMS_PLATEN_KEY` set in the host's `.env`, the worker also sends
+`Authorization: Bearer <key>`. Against Platen the URL is
+`https://<platen>/intake/wms` and the key is an operator key from Platen's
+Keys screen. Platen reports back on `POST /v1/print-jobs/{job_id}/status`
+with a WMS API key that has the `printing:write` scope.
+
 ### Print points — event → template → printer
 ```json
 { "warehouse": "BAL-WH01", "event_type": "delivery.packed",

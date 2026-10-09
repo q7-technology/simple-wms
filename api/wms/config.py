@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     message_ttl_hours: int = 24
     worker_poll_seconds: float = 5.0
     worker_http_timeout_seconds: float = 10.0
+    # Platen's operator key, sent as a bearer token with every print job.
+    # Here and not in warehouse settings, which anyone who may read settings sees.
+    platen_key: str = ""
 
     # Single sign-on. Leave the issuer empty and the sign-in screen offers
     # only a password, which is what a small install wants.

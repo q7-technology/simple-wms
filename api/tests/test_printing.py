@@ -241,10 +241,15 @@ def queue_one(client, db, structure, headers):
     return jobs(db)[0]
 
 
-def test_worker_sends_a_job_to_platen_and_records_accepted(client, db, structure, headers, listener):
+def test_worker_sends_a_job_to_platen_and_records_accepted(client, db, structure, headers, listener,
+                                                           monkeypatch):
+    from wms.config import get_settings
+    from wms.worker import send_print_jobs
+
+    monkeypatch.delenv("WMS_PLATEN_KEY", raising=False)     # a developer's shell may have one
+    get_settings.cache_clear()
     set_platen(client, headers, listener)
     job = queue_one(client, db, structure, headers)
-    from wms.worker import send_print_jobs
 
     now = job.next_attempt_at
     with httpx.Client() as http:
@@ -264,6 +269,58 @@ def test_worker_sends_a_job_to_platen_and_records_accepted(client, db, structure
         "data": job.data,
     }
     assert sent["headers"]["X-WMS-Job-Id"] == str(job.job_id)
+    assert "Authorization" not in sent["headers"]
+
+
+def test_the_platen_key_rides_along_when_there_is_one(client, db, structure, headers, listener,
+                                                     monkeypatch):
+    from wms.config import get_settings
+    from wms.worker import send_print_jobs
+
+    set_platen(client, headers, listener)
+    job = queue_one(client, db, structure, headers)
+    monkeypatch.setenv("WMS_PLATEN_KEY", "platen_live_key")
+    get_settings.cache_clear()
+    try:
+        with httpx.Client() as http:
+            send_print_jobs(db, http, now=job.next_attempt_at)
+    finally:
+        get_settings.cache_clear()
+    assert listener.received[0]["headers"]["Authorization"] == "Bearer platen_live_key"
+
+
+def test_platen_answering_while_the_job_is_sent_is_not_overwritten(client, db, structure, headers,
+                                                                  listener):
+    """The worker's select locks the batch until its first commit, so the race
+    is on the second job: Platen prints it and says so before the POST returns."""
+    from wms.worker import send_print_jobs
+
+    set_platen(client, headers, listener)
+    queue_one(client, db, structure, headers)
+    queue_one(client, db, structure, headers)
+    first, second = jobs(db)
+    now = max(first.next_attempt_at, second.next_attempt_at)
+
+    class PlatenIsQuick:
+        def __init__(self, http):
+            self.http = http
+
+        def post(self, url, **kw):
+            resp = self.http.post(url, **kw)
+            if kw["headers"]["X-WMS-Job-Id"] == str(second.job_id):
+                r = client.post(f"/v1/print-jobs/{second.job_id}/status", headers=headers,
+                                json={"status": "printed"})
+                assert r.status_code == 200, r.text
+            return resp
+
+    with httpx.Client() as http:
+        assert send_print_jobs(db, PlatenIsQuick(http), now=now) == 2
+    db.commit()
+    db.refresh(first)
+    db.refresh(second)
+    assert first.status == "accepted"
+    assert second.status == "printed" and second.printed_at is not None
+    assert second.attempts == 1 and second.sent_at == now
 
 
 def test_platen_says_printed_or_failed_afterwards(client, db, structure, headers, listener):

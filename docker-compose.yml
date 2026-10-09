@@ -55,6 +55,7 @@ services:
       WMS_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-wms}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wms}
       WMS_SECRET_KEY: ${WMS_SECRET_KEY}
       WMS_MESSAGE_TTL_HOURS: ${WMS_MESSAGE_TTL_HOURS:-24}
+      WMS_PLATEN_KEY: ${WMS_PLATEN_KEY:-}
     depends_on:
       db:
         condition: service_healthy
