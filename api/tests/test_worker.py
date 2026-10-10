@@ -69,22 +69,27 @@ def test_failures_back_off_then_give_up(db, listener):
     emit(db, "stock.moved", warehouse="BAL-WH01", owner="DEFAULT", external_ref=None,
          data={}, occurred_at=T0)
     db.commit()
-    listener.responses.extend([500, 500, 500, 500])
+    listener.responses.extend([500] * (len(BACKOFF) + 1))
 
     now = T0
     with httpx.Client() as http:
+        # every delay in the schedule is waited out, two hours included
         for attempt, delay in enumerate(BACKOFF, start=1):
             assert run_once(db, http, now=now) == 1
             db.commit()
             (row,) = pending(db)
             assert row.attempts == attempt
-            if attempt < len(BACKOFF):
-                assert row.status == "pending"
-                assert row.next_attempt_at == now + timedelta(seconds=delay)
-                assert row.last_error.startswith("HTTP 500")
-                # not due yet: nothing happens
-                assert run_once(db, http, now=now + timedelta(seconds=delay - 1)) == 0
-                now = now + timedelta(seconds=delay)
+            assert row.status == "pending"
+            assert row.next_attempt_at == now + timedelta(seconds=delay)
+            assert row.last_error.startswith("HTTP 500")
+            # not due yet: nothing happens
+            assert run_once(db, http, now=now + timedelta(seconds=delay - 1)) == 0
+            now = now + timedelta(seconds=delay)
+        # the try after the last delay is the last one
+        assert run_once(db, http, now=now) == 1
+        db.commit()
+        (row,) = pending(db)
+        assert row.attempts == len(BACKOFF) + 1
         assert row.status == "failed"
 
         # "retry now" from the Integrations page

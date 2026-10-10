@@ -90,7 +90,7 @@ def _deliver_to_sap(row: OutboundEvent, now: datetime,
 
 def _retry_later(row: OutboundEvent, now: datetime, error: str) -> None:
     row.last_error = error
-    if row.attempts >= len(BACKOFF):
+    if row.attempts > len(BACKOFF):
         row.status = "failed"
         log.warning("event %s to %s failed for good: %s", row.event_id, row.subscriber.name, error)
     else:
@@ -172,7 +172,7 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
         else:
             job.attempts += 1
             job.last_error = error
-            if job.attempts >= len(BACKOFF):
+            if job.attempts > len(BACKOFF):
                 job.status = "failed"
                 log.warning("print job %s failed for good: %s", job.job_id, error)
             else:

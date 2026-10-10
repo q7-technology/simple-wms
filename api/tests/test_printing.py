@@ -355,7 +355,7 @@ def test_a_refused_job_backs_off_like_an_event(client, db, structure, headers, l
 
     set_platen(client, headers, listener)
     job = queue_one(client, db, structure, headers)
-    listener.responses.extend([503, 503, 503, 503])
+    listener.responses.extend([503] * (len(BACKOFF) + 1))
 
     now = job.next_attempt_at
     with httpx.Client() as http:
@@ -364,10 +364,13 @@ def test_a_refused_job_backs_off_like_an_event(client, db, structure, headers, l
             db.commit()
             db.refresh(job)
             assert job.attempts == attempt
-            if attempt < len(BACKOFF):
-                assert job.status == "pending"
-                assert job.next_attempt_at == now + timedelta(seconds=delay)
-                now = now + timedelta(seconds=delay)
+            assert job.status == "pending"
+            assert job.next_attempt_at == now + timedelta(seconds=delay)
+            now = now + timedelta(seconds=delay)
+        assert send_print_jobs(db, http, now=now) == 1
+        db.commit()
+        db.refresh(job)
+        assert job.attempts == len(BACKOFF) + 1
         assert job.status == "failed"
         assert job.last_error.startswith("HTTP 503")
 
