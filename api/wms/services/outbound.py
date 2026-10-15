@@ -1,4 +1,5 @@
-"""Deliveries: allocate, pick, pack, ship. The document follows its tasks."""
+"""Deliveries: allocate, pick, pack, ship, and come back. The document
+follows its tasks."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -28,6 +29,17 @@ def staging_location(db: Session, warehouse: Warehouse) -> Location | None:
         if found is not None:
             return found
     return None
+
+
+def returns_location(db: Session, warehouse: Warehouse) -> Location | None:
+    """Where a delivery that came back waits to go out again: the first
+    location in a returns zone."""
+    return db.execute(
+        select(Location).join(Zone, Zone.id == Location.zone_id)
+        .where(Location.warehouse_id == warehouse.id, Location.active.is_(True),
+               Zone.kind == "returns", Zone.active.is_(True))
+        .order_by(Location.pick_sequence, Location.code)
+    ).scalars().first()
 
 
 def delivery_for_task(db: Session, task: Task) -> Delivery | None:
@@ -246,6 +258,67 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
              "delivery_ref": delivery.external_ref, "carrier": delivery.carrier,
              "tracking_no": delivery.tracking_no, "short": delivery.short,
              "lines": line_summary(db, delivery, "qty_shipped"),
+             "packages": package_summary(delivery)})
+
+
+def came_back(db: Session, delivery: Delivery, wh: Warehouse, *, reason: str, note: str | None,
+              tracking_no: str | None, actor: tasks.Actor) -> Task:
+    """It left and came back undelivered. A return task, a line per carton
+    line, is raised and done at once: each line puts what left in that carton
+    back on the ledger at the returns dock. The hook below then marks the
+    delivery returned and tells the subscribers."""
+    if delivery.status == "returned":
+        raise tasks.TaskError("already_returned",
+                              f"{delivery.external_ref} has already come back; ship it again or cancel it")
+    if delivery.status != "shipped":
+        raise tasks.TaskError("not_shipped",
+                              f"{delivery.external_ref} is {delivery.status}; only a shipped delivery can come back")
+    if tracking_no is not None and tracking_no != delivery.tracking_no:
+        raise tasks.TaskError("not_that_shipment",
+                              f"{delivery.external_ref} last left as {delivery.tracking_no or 'no tracking number'}, "
+                              f"not {tracking_no}")
+    dock = returns_location(db, wh)
+    if dock is None:
+        raise RuleError("warehouse", f"{wh.code} has no returns zone for deliveries that come back; "
+                                     "add one on the Locations screen")
+    task = tasks.create(
+        db, type="return", warehouse=wh, owner=delivery.owner, source_type="delivery",
+        source_ref=delivery.external_ref, priority=delivery.priority, created_by=actor.name, note=note,
+        lines=[tasks.LineSpec(product=db.get(Product, pl.product_id), expected_qty=pl.qty, uom=pl.uom,
+                              batch=pl.batch, to_location=dock, source_line=pl.delivery_line,
+                              container_id=package.container_id)
+               for package in delivery.packages for pl in package.lines])
+    delivery.return_location_id = dock.id
+    for line in task.lines:
+        tasks.confirm(db, task, line, qty=line.expected_qty, uom=line.uom, actor=actor,
+                      reason=reason, note=note)
+    return task
+
+
+@tasks.on_complete("return")
+def _returned(db: Session, task: Task, reason: str | None) -> None:
+    delivery = db.execute(select(Delivery).where(
+        Delivery.owner == task.owner, Delivery.external_ref == task.source_ref)).scalar_one_or_none()
+    if delivery is None or task.status != "done":
+        return
+    back: dict[int, Decimal] = {}
+    for l in task.lines:
+        back[l.source_line] = back.get(l.source_line, Decimal(0)) + (l.actual_qty or Decimal(0))
+    delivery.status = "returned"
+    delivery.returned_at = datetime.now(UTC)
+    db.flush()
+    wh = db.get(Warehouse, task.warehouse_id)
+    emit(db, "delivery.returned", warehouse=wh.code, owner=delivery.owner,
+         external_ref=delivery.external_ref, data={
+             "delivery_ref": delivery.external_ref, "carrier": delivery.carrier,
+             "tracking_no": delivery.tracking_no,
+             "reason": next((l.reason for l in task.lines if l.reason), None), "note": task.note,
+             "location": db.get(Location, delivery.return_location_id).code,
+             "returned_by": task.assigned_to,
+             "lines": [{"delivery_line": l.line_no, "sku": db.get(Product, l.product_id).sku,
+                        "batch": l.batch, "qty_ordered": qstr(l.qty_ordered),
+                        "qty_returned": qstr(back.get(l.line_no, Decimal(0))), "uom": l.uom}
+                       for l in delivery.lines],
              "packages": package_summary(delivery)})
 
 

@@ -137,6 +137,8 @@ class DeliveryOut(BaseModel):
     picked_at: datetime | None
     packed_at: datetime | None
     shipped_at: datetime | None
+    returned_at: datetime | None
+    return_location: str | None
     cancelled_at: datetime | None
     lines: list[DeliveryLineOut]
     packages: list[PackageOut]
@@ -165,6 +167,7 @@ def delivery_out(db, d: Delivery, wh: Warehouse, full: bool = True) -> DeliveryO
         events = [EventSummary(event_type=e.event_type, subscriber=e.subscriber.name, status=e.status,
                                at=e.delivered_at or e.occurred_at) for e in rows]
     staging = db.get(Location, d.staging_location_id) if d.staging_location_id else None
+    dock = db.get(Location, d.return_location_id) if d.return_location_id else None
     return DeliveryOut(
         wms_id=str(d.id), external_ref=d.external_ref, owner=d.owner, warehouse=wh.code,
         pick_mode=d.pick_mode, priority=d.priority, required_by=d.required_by, ship_to=d.ship_to or {},
@@ -172,7 +175,8 @@ def delivery_out(db, d: Delivery, wh: Warehouse, full: bool = True) -> DeliveryO
         allow_short=d.allow_short, status=d.status, short=d.short,
         staging_location=staging.code if staging else None, note=d.note, created_at=d.created_at,
         allocated_at=d.allocated_at, picked_at=d.picked_at, packed_at=d.packed_at,
-        shipped_at=d.shipped_at, cancelled_at=d.cancelled_at,
+        shipped_at=d.shipped_at, returned_at=d.returned_at,
+        return_location=dock.code if dock else None, cancelled_at=d.cancelled_at,
         lines=[DeliveryLineOut(
             delivery_line=l.line_no, sku=db.get(Product, l.product_id).sku,
             name=db.get(Product, l.product_id).name, batch=l.batch, qty_ordered=l.qty_ordered,
@@ -311,7 +315,7 @@ def pack_delivery(ref: str, body: PackIn, request: Request, db: DB, who: Princip
     d, wh = get_delivery(db, ref, body.owner, who)
 
     def work():
-        if d.status in ("shipped", "cancelled"):
+        if d.status in ("shipped", "returned", "cancelled"):
             raise Conflict("not_open", f"{ref} is {d.status}")
         if d.status not in ("picked", "packing"):
             raise Conflict("not_picked", f"{ref} is {d.status}; pick it before packing")
@@ -374,6 +378,31 @@ def ship_delivery(ref: str, body: ShipIn, request: Request, db: DB, who: Princip
         actor = engine.Actor(name=body.shipped_by or body.operator or who.name, device=body.device,
                              api_client_id=who.api_client_id)
         _rules(lambda: outbound.ship(db, d, wh, carrier=body.carrier, tracking_no=body.tracking_no, actor=actor))
+        return envelope.Accepted(message_id=body.message_id, wms_id=str(d.id), status="accepted")
+
+    return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)
+
+
+class ReturnIn(ActorFields):
+    warehouse: str | None = Field(default=None, max_length=32)
+    reason: str = Field(min_length=1, max_length=64)
+    note: str | None = Field(default=None, max_length=500)
+    # the shipment that came back, as it was shipped; refused if it has gone again since
+    tracking_no: str | None = Field(default=None, max_length=64)
+    returned_by: str | None = Field(default=None, max_length=64)
+
+
+@router.post("/deliveries/{ref}/return", status_code=202, response_model=envelope.Accepted)
+def return_delivery(ref: str, body: ReturnIn, request: Request, db: DB, who: Principal = require("tasks:write")):
+    """It came back undelivered: on the ledger again at the returns dock,
+    waiting to ship again."""
+    d, wh = get_delivery(db, ref, body.owner, who)
+
+    def work():
+        actor = engine.Actor(name=body.returned_by or body.operator or who.name, device=body.device,
+                             api_client_id=who.api_client_id)
+        _rules(lambda: outbound.came_back(db, d, wh, reason=body.reason, note=body.note,
+                                          tracking_no=body.tracking_no, actor=actor))
         return envelope.Accepted(message_id=body.message_id, wms_id=str(d.id), status="accepted")
 
     return envelope.handle(db, who, body.message_id, request.url.path, work, owner=body.owner)

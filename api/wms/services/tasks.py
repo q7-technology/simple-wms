@@ -1,5 +1,5 @@
-"""The one task engine. Receive, put away, pick, pack, ship, move, count,
-replenish, transfer, production issue and receipt all go through here.
+"""The one task engine. Receive, put away, pick, pack, ship, return, move,
+count, replenish, transfer, production issue and receipt all go through here.
 Confirming a line performs its movement and writes the ledger."""
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ TITLES = {
     "receive": "Receive", "putaway": "Put away", "pick": "Pick", "pack": "Pack", "ship": "Ship",
     "move": "Move", "count": "Count", "replenish": "Replenish", "transfer_pick": "Transfer pick",
     "transfer_receive": "Receive transfer", "production_issue": "Issue", "production_receipt": "Production receipt",
+    "return": "Came back",
 }
 
 
@@ -223,6 +224,8 @@ def confirm(db: Session, task: Task, line: TaskLine, *, qty: Decimal, uom: str |
         _confirm_pick(db, task, line, product, qty, batch, from_location, to_location, container_id, actor, reason, note)
     elif task.type == "count":
         _confirm_count(db, task, line, product, qty, actor, reason, note)
+    elif task.type == "return":
+        _confirm_return(db, task, line, product, qty, actor, reason, note)
     else:
         raise TaskError("not_supported", f"{task.type} tasks arrive with a later build step")
     _finish(db, task)
@@ -356,6 +359,44 @@ def _confirm_pick(db, task, line, product, qty, batch, from_code, to_code, conta
         line.completed_at = datetime.now(UTC)
     for fn in COMPLETION_HOOKS.get("pick.confirmed", []):
         fn(db, task, None)
+
+
+def _left_the_shelf_on(db: Session, task: Task, product: Product, batch: str | None) -> date:
+    """The received date the stock had on the shelf it was picked from, so
+    FIFO is not reset by a trip on a truck. Today if the pick can't be found."""
+    from sqlalchemy import func, select
+
+    from wms.models import StockLedger
+
+    found = db.execute(select(func.min(StockLedger.received_at)).where(
+        StockLedger.warehouse_id == task.warehouse_id, StockLedger.owner == task.owner,
+        StockLedger.external_ref == task.source_ref, StockLedger.movement_type == "pick",
+        StockLedger.qty_change > 0, StockLedger.product_id == product.id,
+        StockLedger.batch.is_not_distinct_from(batch))).scalar_one()
+    return found or date.today()
+
+
+def _confirm_return(db, task, line, product, qty, actor, reason, note):
+    """A carton line back from the road: on the ledger again at the returns
+    dock, as the batch and in the carton it left in."""
+    dst = line.to_location
+    if dst is None:
+        raise stock.RuleError("location", "this line has no returns dock to come back to")
+    outstanding = line.expected_qty - (line.actual_qty or Decimal(0))
+    if qty <= 0 or qty > outstanding:
+        raise stock.RuleError("qty", f"this line brings back {qstr(outstanding)} {line.uom}, not {qstr(qty)}")
+    post(db, [LedgerLine(
+        product_id=product.id, location_id=dst.id, qty_change=qty, uom=line.uom, batch=line.batch,
+        owner=task.owner, container_id=line.container_id, movement_type="return", reason=reason,
+        task_id=task.id, task_line_id=line.id,
+        received_at=_left_the_shelf_on(db, task, product, line.batch), actor=actor.name,
+        device=actor.device, api_client_id=actor.api_client_id, external_ref=task.source_ref, note=note,
+    )])
+    line.actual_qty = (line.actual_qty or Decimal(0)) + qty
+    line.reason = reason
+    if line.actual_qty >= line.expected_qty:
+        line.status = "done"
+        line.completed_at = datetime.now(UTC)
 
 
 # Short-pick reasons that mean the shelf quantity is wrong, so it gets counted.
