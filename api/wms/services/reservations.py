@@ -16,8 +16,9 @@ RESERVING_TYPES = ("pick", "transfer_pick", "production_issue")
 OPEN_STATUSES = ("open", "variance")
 
 # Stock in these zones is on hand somewhere real, but it is not free to
-# promise: it is on a bench, at the line, or on its way to another warehouse.
-HELD_ZONE_KINDS = ("packing", "staging", "in_transit", "line_side")
+# promise: it is on a bench, at the line, on its way to another warehouse, or
+# back from the road and waiting to go out again on its own delivery.
+HELD_ZONE_KINDS = ("packing", "staging", "in_transit", "line_side", "returns")
 
 
 def promisable(zone_kind: str) -> bool:
