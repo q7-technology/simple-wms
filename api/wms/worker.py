@@ -68,6 +68,15 @@ def deliver(http: httpx.Client, row: OutboundEvent, now: datetime,
 def _deliver_to_sap(row: OutboundEvent, now: datetime,
                     connect: Callable[[Subscriber], object]) -> None:
     row.attempts += 1
+    skipped = sap.NOT_POSTED.get(row.event_type)
+    if skipped:
+        # taken and left out on purpose: done, not failed, and SAP isn't dialled
+        row.status = "delivered"
+        row.delivered_at = now
+        row.last_error = f"not posted to SAP: {skipped}"[:500]
+        log.info("event %s (%s) not posted to SAP by %s: %s",
+                 row.event_id, row.event_type, row.subscriber.name, skipped)
+        return
     try:
         document = sap.deliver(row, connect(row.subscriber))
     except sap.Unmapped as exc:

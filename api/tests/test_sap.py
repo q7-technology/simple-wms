@@ -116,6 +116,24 @@ def test_a_shipment_becomes_a_goods_issue_with_a_line_each(db):
     assert [i["ENTRY_QNT"] for i in items] == ["6", "2"]
 
 
+def test_a_delivery_that_came_back_is_not_posted_to_sap_yet(db):
+    """Returns aren't posted to SAP yet (a choice, for now): the event is
+    taken, nothing is posted and SAP isn't even dialled, and it is marked
+    delivered with the reason, not failed, because nothing went wrong."""
+    sub = subscriber(db)
+    row = event(db, sub, "delivery.returned",
+                {"delivery_ref": "0080012345", "reason": "closed",
+                 "lines": [{"sku": "ABC123", "batch": None, "qty_returned": "6", "uom": "EA"}]},
+                ref="0080012345")
+    dialled = []
+    run_once(db, http=None, connect=lambda s: dialled.append(s) or FakeSap())
+    db.refresh(row)
+    assert (row.status, row.attempts) == ("delivered", 1)
+    assert row.delivered_at is not None
+    assert row.last_error.startswith("not posted to SAP:")
+    assert dialled == []
+
+
 def test_an_adjustment_up_and_down_use_the_two_difference_movements(db):
     sub = subscriber(db)
     up = event(db, sub, "stock.adjusted",

@@ -52,6 +52,16 @@ MOVEMENT_TYPES = {
 }
 
 
+# Events an SAP subscriber may hear that are deliberately not posted yet. Not
+# Unmapped, which fails at once for a subscription that is a mistake: these are
+# expected, and leaving them out is a choice. A delivery that comes back and
+# ships again therefore reaches SAP as a second 601 with nothing between.
+NOT_POSTED = {
+    "delivery.returned": "returns aren't posted to SAP yet; map one before relying on SAP's stock "
+                         "for deliveries that come back",
+}
+
+
 class SapError(RuntimeError):
     """SAP refused, or could not be reached, or was not configured properly."""
 
