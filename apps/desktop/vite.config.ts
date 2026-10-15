@@ -3,6 +3,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+// Read by Node when Vite loads this file; declared here rather than pulling in @types/node.
+declare const process: { env: Record<string, string | undefined> };
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
