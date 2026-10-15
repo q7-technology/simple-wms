@@ -74,11 +74,14 @@ class Delivery(Base):
     carrier: Mapped[str | None] = mapped_column(String(64))
     tracking_no: Mapped[str | None] = mapped_column(String(64))
     allow_short: Mapped[bool] = mapped_column(Boolean, default=True)
-    # new, allocated, picking, picked, packing, packed, shipped, cancelled
+    # new, allocated, picking, picked, packing, packed, shipped,
+    # returned (came back undelivered: at the returns dock, to ship again), cancelled
     status: Mapped[str] = mapped_column(String(16), default="new", index=True)
     short: Mapped[bool] = mapped_column(Boolean, default=False)
     # where picked stock waits until it is shipped
     staging_location_id: Mapped[int | None] = mapped_column(ForeignKey("location.id"))
+    # where it waits after it last came back, and ships again from
+    return_location_id: Mapped[int | None] = mapped_column(ForeignKey("location.id"))
     pick_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
     pack_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"))
     note: Mapped[str | None] = mapped_column(String(500))
@@ -87,6 +90,7 @@ class Delivery(Base):
     picked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     packed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     shipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     lines: Mapped[list[DeliveryLine]] = relationship(

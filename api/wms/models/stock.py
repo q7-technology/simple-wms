@@ -30,7 +30,7 @@ class StockLedger(Base):
     # signed: positive into this location, negative out of it
     qty_change: Mapped[Qty]
     uom: Mapped[str] = mapped_column(String(16))
-    # receipt, putaway, move, pick, ship, adjustment, count, replenish,
+    # receipt, putaway, move, pick, ship, return, adjustment, count, replenish,
     # transfer_out, transfer_in, production_issue, production_receipt
     movement_type: Mapped[str] = mapped_column(String(32))
     reason: Mapped[str | None] = mapped_column(String(64))

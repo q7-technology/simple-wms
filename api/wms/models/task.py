@@ -15,7 +15,7 @@ class Task(Base):
     __tablename__ = "task"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # receive, putaway, pick, pack, ship, move, count, replenish,
+    # receive, putaway, pick, pack, ship, return, move, count, replenish,
     # transfer_pick, transfer_receive, production_issue, production_receipt
     type: Mapped[str] = mapped_column(String(32), index=True)
     # waiting, in_progress, needs_supervisor, done, cancelled
