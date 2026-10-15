@@ -297,3 +297,37 @@ def test_a_delivery_that_came_back_is_not_packed_again(client, db, structure, he
         packages=[{"package_no": 3, "lines": [{"delivery_line": 10, "sku": "ABC123", "qty": 1, "uom": "EA"}]}]))
     assert r.status_code == 409
     assert r.json()["code"] == "not_open"
+
+
+# --- or not at all --------------------------------------------------------------------
+
+def test_cancelling_one_that_came_back_puts_it_back_on_a_shelf(client, db, structure, headers, listener):
+    """The customer doesn't want it after all. Nothing is left on the dock: a
+    put-away task takes it home, like stock left on the bench by a cancel."""
+    subscribe(db, listener, "delivery.cancelled")
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    came_back(client, headers)
+
+    r = client.post("/v1/deliveries/0080012345/cancel", headers=headers, json=msg(reason="customer refused it"))
+    assert r.status_code == 202, r.text
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "cancelled"
+    assert events(db, "delivery.cancelled") == [{"delivery_ref": "0080012345", "reason": "customer refused it"}]
+
+    putaways = client.get("/v1/tasks", headers=headers, params={"warehouse": "BAL-WH01", "type": "putaway"}).json()
+    assert putaways["total"] == 1
+    task = putaways["items"][0]
+    assert task["priority"] == "high"
+    assert "0080012345 was cancelled after it came back" in task["note"]
+    assert [(l["sku"], l["expected_qty"], l["from_location"]) for l in task["lines"]] == [
+        ("ABC123", "10", "RETURNS-01")]
+
+    r = client.post(f"/v1/tasks/{task['wms_id']}/lines/1/confirm", headers=headers, json=msg(
+        qty=10, uom="EA", location="BK-04-01-C", operator="op-017"))
+    assert r.status_code == 202, r.text
+    assert on_hand(db, dock) == Decimal("0")
+    assert client.get("/v1/stock", headers=headers, params={"sku": "ABC123"}).json()["total_available"] == "10"
+    # back on the shelf it keeps the date it was first received
+    shelf = db.execute(select(StockBalance).where(StockBalance.location_id == s.bk1.id)).scalar_one()
+    assert shelf.received_at == date(2026, 8, 1)

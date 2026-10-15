@@ -357,11 +357,32 @@ def putaway_stranded_stock(db: Session, delivery: Delivery, wh: Warehouse, reaso
     return task
 
 
+def putaway_returned_stock(db: Session, delivery: Delivery, wh: Warehouse, reason: str) -> Task:
+    """It came back and now won't go again: what is on the returns dock for it
+    goes back on a shelf, by a put-away task, as the batch it came back as."""
+    back: dict[tuple[int, str | None], tuple[Decimal, str]] = {}
+    for package in delivery.packages:
+        for pl in package.lines:
+            qty, uom = back.get((pl.product_id, pl.batch), (Decimal(0), pl.uom))
+            back[(pl.product_id, pl.batch)] = (qty + pl.qty, uom)
+    dock = db.get(Location, delivery.return_location_id)
+    why = f" ({reason})" if reason else ""
+    task = tasks.create(
+        db, type="putaway", warehouse=wh, owner=delivery.owner, source_type="delivery",
+        source_ref=delivery.external_ref, priority="high", created_by="wms",
+        note=f"Back on a shelf: {delivery.external_ref} was cancelled after it came back{why}",
+        lines=[tasks.LineSpec(product=db.get(Product, product_id), expected_qty=qty, uom=uom, batch=batch,
+                              from_location=dock) for (product_id, batch), (qty, uom) in back.items()])
+    db.flush()
+    return task
+
+
 def cancel(db: Session, delivery: Delivery, wh: Warehouse, reason: str | None, actor: tasks.Actor) -> None:
     if delivery.status == "shipped":
         raise tasks.TaskError("already_shipped", f"{delivery.external_ref} has already shipped; it cannot be cancelled")
     if delivery.status == "cancelled":
         raise tasks.TaskError("already_cancelled", f"{delivery.external_ref} is already cancelled")
+    came_back = delivery.status == "returned"
     # mark it first so the pick task's completion hook does not announce it twice
     delivery.status = "cancelled"
     delivery.cancelled_at = datetime.now(UTC)
@@ -370,7 +391,10 @@ def cancel(db: Session, delivery: Delivery, wh: Warehouse, reason: str | None, a
         task = db.get(Task, task_id) if task_id else None
         if task and task.status not in ("done", "cancelled"):
             tasks.cancel(db, task, reason, actor)
-    putaway_stranded_stock(db, delivery, wh, reason or "")
+    if came_back:
+        putaway_returned_stock(db, delivery, wh, reason or "")
+    else:
+        putaway_stranded_stock(db, delivery, wh, reason or "")
     db.flush()
     emit(db, "delivery.cancelled", warehouse=wh.code, owner=delivery.owner,
          external_ref=delivery.external_ref,
