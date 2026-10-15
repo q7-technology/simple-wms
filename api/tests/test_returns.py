@@ -422,3 +422,27 @@ def test_shipping_again_and_cancelling_at_once_do_one_or_the_other(client, db, e
         assert (status, ship.json()["code"]) == ("cancelled", "cancelled")
         assert on_hand(db, dock) == Decimal("10") and len(putaways) == 1
 
+
+# --- shipping again: what it needs -------------------------------------------------
+
+def test_shipping_again_short_at_the_dock_says_what_is_missing(client, db, structure, headers):
+    """Someone counted some of it off the dock: a 409 naming what is not
+    there, not a 500, and nothing leaves."""
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    assert came_back(client, headers).status_code == 202
+    post(db, [LedgerLine(product_id=s.abc.id, location_id=dock.id, qty_change=Decimal("-3"), uom="EA",
+                         movement_type="adjustment", actor="jo", received_at=s.received)])
+    db.commit()
+
+    r = client.post("/v1/deliveries/0080012345/ship", headers=headers, json=msg(
+        carrier="Ridgeline Express", tracking_no="RX-1", shipped_by="dee"))
+    assert r.status_code == 409, r.text
+    assert r.json()["code"] == "not_enough_stock"
+    detail = r.json()["detail"]
+    assert "RETURNS-01" in detail and "ABC123" in detail and "7" in detail and "10" in detail
+    db.expire_all()
+    assert on_hand(db, dock) == Decimal("7")
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "returned"
+

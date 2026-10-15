@@ -556,3 +556,22 @@ def test_reservations_rebuild_from_open_pick_tasks(client, db, structure, header
     rebuild_reservations(db)
     db.commit()
     assert reserved_at(db, s.bk1.id, s.abc.id) == Decimal("20")
+
+
+def test_ship_short_on_the_bench_says_what_is_missing(client, db, structure, headers):
+    """Stock moved off the bench after packing is a 409 naming it, not a 500."""
+    s = structure
+    picked_delivery(client, db, s, headers)
+    r = client.post("/v1/deliveries/0080012345/pack", headers=headers, json=msg(
+        complete=True, packages=[{"package_no": 1, "lines": [
+            {"delivery_line": 10, "sku": "ABC123", "qty": 10, "uom": "EA"}]}]))
+    assert r.status_code == 202, r.text
+    post(db, [LedgerLine(product_id=s.abc.id, location_id=s.staging.id, qty_change=Decimal("-4"), uom="EA",
+                         movement_type="adjustment", actor="jo", received_at=s.received)])
+    db.commit()
+
+    r = client.post("/v1/deliveries/0080012345/ship", headers=headers, json=msg(carrier="Toll"))
+    assert r.status_code == 409, r.text
+    assert r.json()["code"] == "not_enough_stock"
+    assert "PACK-01" in r.json()["detail"] and "ABC123" in r.json()["detail"]
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "packed"

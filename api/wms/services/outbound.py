@@ -8,7 +8,8 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from wms.models import Delivery, DeliveryLine, Location, Package, Product, Task, Warehouse, Zone
+from wms.models import (Delivery, DeliveryLine, Location, Package, Product, StockBalance, Task, Warehouse,
+                        Zone)
 from wms.services import reservations, tasks
 from wms.services.events import emit
 from wms.services.qty import qstr
@@ -249,6 +250,7 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
 
     from_id = (delivery.return_location_id if delivery.status == "returned"
                else delivery.staging_location_id)
+    check_on_hand(db, delivery, from_id)
     lines = []
     for package in delivery.packages:
         for pl in package.lines:
@@ -275,6 +277,36 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
              "tracking_no": delivery.tracking_no, "short": delivery.short,
              "lines": line_summary(db, delivery, "qty_shipped"),
              "packages": package_summary(delivery)})
+
+
+def check_on_hand(db: Session, delivery: Delivery, location_id: int) -> None:
+    """Everything in the cartons has to be where it leaves from. Someone may
+    have moved or counted some of it away since it was packed or came back:
+    say what is missing rather than fail half way. The balances stay locked
+    until the ship is done, so nothing moves in between."""
+    need: dict[tuple[int, str | None], tuple[Decimal, str]] = {}
+    for package in delivery.packages:
+        for pl in package.lines:
+            qty, uom = need.get((pl.product_id, pl.batch), (Decimal(0), pl.uom))
+            need[(pl.product_id, pl.batch)] = (qty + pl.qty, uom)
+    missing = []
+    for (product_id, batch), (qty, uom) in need.items():
+        have = db.execute(
+            select(StockBalance.on_hand).where(
+                StockBalance.location_id == location_id, StockBalance.product_id == product_id,
+                StockBalance.batch.is_not_distinct_from(batch), StockBalance.owner == delivery.owner)
+            .with_for_update()
+        ).scalar_one_or_none() or Decimal(0)
+        if have < qty:
+            sku = db.get(Product, product_id).sku
+            missing.append(f"{qstr(qty)} {uom} of {sku}{' batch ' + batch if batch else ''} "
+                           f"(only {qstr(have)} there)")
+    if missing:
+        where = db.get(Location, location_id).code
+        raise tasks.TaskError(
+            "not_enough_stock",
+            f"{delivery.external_ref} cannot ship: its cartons need {'; '.join(missing)} at {where}. "
+            f"Put it back at {where}, or count it, before shipping")
 
 
 def came_back(db: Session, delivery: Delivery, wh: Warehouse, *, reason: str, note: str | None,
