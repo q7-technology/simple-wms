@@ -446,3 +446,17 @@ def test_shipping_again_short_at_the_dock_says_what_is_missing(client, db, struc
     assert on_hand(db, dock) == Decimal("7")
     assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "returned"
 
+
+def test_shipping_again_needs_a_carrier(client, db, structure, headers):
+    """The old carrier brought it back; it may well not take it again, and the
+    old tracking number is no use, so the carrier has to be said."""
+    s = structure
+    returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    assert came_back(client, headers).status_code == 202
+
+    r = client.post("/v1/deliveries/0080012345/ship", headers=headers, json=msg(
+        tracking_no="RX-1", shipped_by="dee"))
+    assert r.status_code == 422, r.text
+    assert r.json()["errors"][0]["field"] == "carrier"
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "returned"

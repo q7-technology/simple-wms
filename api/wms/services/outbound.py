@@ -247,6 +247,8 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
         raise tasks.TaskError("not_packed", "nothing is packed yet")
     if delivery.short and not delivery.allow_short:
         raise tasks.TaskError("short_not_allowed", f"{delivery.external_ref} is short and does not allow a short shipment")
+    if delivery.status == "returned" and not carrier:
+        raise RuleError("carrier", f"{delivery.external_ref} came back; say which carrier takes it this time")
 
     from_id = (delivery.return_location_id if delivery.status == "returned"
                else delivery.staging_location_id)
