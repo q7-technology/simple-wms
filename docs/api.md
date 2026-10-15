@@ -75,10 +75,16 @@ decimals and always carry a unit of measure.
   of the returns dock for a delivery that came back: it goes again in the
   same cartons, with this carrier and tracking number). Refused `409
   short_not_allowed` when the order is short and `allow_short` is false,
-  and `409 already_shipped` when it has shipped and not come back.
+  `409 already_shipped` when it has shipped and not come back, and `409
+  not_enough_stock` when what the cartons hold is no longer all where it
+  leaves from (moved or counted off the bench or the dock since); the
+  message says what is missing and where, and nothing leaves. Shipping a
+  delivery that came back needs `carrier`: without one it is a `422` on
+  `carrier`, since the old carrier and tracking number belong to the
+  shipment that came back.
 - `POST /v1/deliveries/{ref}/return` — it came back undelivered:
   ```json
-  { "message_id": "uuid", "owner": "DEFAULT", "reason": "closed",
+  { "message_id": "uuid", "warehouse": "BAL-WH01", "owner": "DEFAULT", "reason": "closed",
     "note": "Shop shut, sign on the door", "tracking_no": "R-0007", "returned_by": "dee" }
   ```
   The whole delivery comes back, every carton. A `return` task is raised,
@@ -340,7 +346,9 @@ Events: `transfer.shipped`, `transfer.received`.
 ```
 Event: `delivery.packed`. Fires the `carton-label` print point (step 4).
 Call it once per bench load; `complete: true` closes the packing. A carton
-line cannot hold more than was picked for that delivery line.
+line cannot hold more than was picked for that delivery line. A delivery
+that has shipped, came back (`returned`) or was cancelled is refused `409
+not_open`: one that came back goes again in the cartons it came back in.
 
 ### GET /v1/stock?sku=ABC123&warehouse=BAL-WH01 — where is it?
 ```json
