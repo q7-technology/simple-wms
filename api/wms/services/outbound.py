@@ -218,7 +218,8 @@ def finish_packing(db: Session, delivery: Delivery, wh: Warehouse) -> None:
 
 def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None, tracking_no: str | None,
          actor: tasks.Actor) -> None:
-    """The stock leaves the building: one ledger line out of staging per package line."""
+    """The stock leaves the building: one ledger line per package line, out of
+    staging, or out of the returns dock when it came back and goes again."""
     from datetime import date
 
     from wms.services.ledger import LedgerLine, post
@@ -232,12 +233,13 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
     if delivery.short and not delivery.allow_short:
         raise tasks.TaskError("short_not_allowed", f"{delivery.external_ref} is short and does not allow a short shipment")
 
-    staging_id = delivery.staging_location_id
+    from_id = (delivery.return_location_id if delivery.status == "returned"
+               else delivery.staging_location_id)
     lines = []
     for package in delivery.packages:
         for pl in package.lines:
             lines.append(LedgerLine(
-                product_id=pl.product_id, location_id=staging_id, qty_change=-pl.qty, uom=pl.uom,
+                product_id=pl.product_id, location_id=from_id, qty_change=-pl.qty, uom=pl.uom,
                 batch=pl.batch, owner=delivery.owner, container_id=package.container_id,
                 movement_type="ship", task_id=delivery.pack_task_id, received_at=date.today(),
                 actor=actor.name, device=actor.device, api_client_id=actor.api_client_id,

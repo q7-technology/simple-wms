@@ -237,3 +237,63 @@ def test_a_reason_is_needed(client, db, structure, headers):
     r = client.post("/v1/deliveries/0080012345/return", headers=headers, json=body)
     assert r.status_code == 422
     assert r.json()["errors"][0]["field"] == "reason"
+
+
+# --- going out again --------------------------------------------------------------
+
+def test_it_ships_again_from_the_returns_dock_with_the_new_carrier(client, db, structure, headers, listener):
+    subscribe(db, listener, "delivery.shipped", "delivery.returned")
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    assert came_back(client, headers).status_code == 202
+
+    r = client.post("/v1/deliveries/0080012345/ship", headers=headers, json=msg(
+        carrier="Ridgeline Express", tracking_no="RX-77310042", shipped_by="dee"))
+    assert r.status_code == 202, r.text
+    got = client.get("/v1/deliveries/0080012345", headers=headers).json()
+    assert got["status"] == "shipped"
+    assert (got["carrier"], got["tracking_no"]) == ("Ridgeline Express", "RX-77310042")
+    assert got["lines"][0]["qty_shipped"] == "10"
+
+    # out of the dock, not off a shelf or the bench, a row per carton line again
+    out = db.execute(select(StockLedger).where(StockLedger.movement_type == "ship")
+                     .order_by(StockLedger.id)).scalars().all()
+    assert [(r.location_id, r.qty_change) for r in out[2:]] == [
+        (dock.id, Decimal("-6")), (dock.id, Decimal("-4"))]
+    assert on_hand(db, dock) == Decimal("0")
+    assert client.get("/v1/stock", headers=headers, params={"sku": "ABC123"}).json()["total_on_hand"] == "0"
+
+    # the ERP hears: shipped, came back, shipped again
+    order = [e.event_type for e in db.execute(select(OutboundEvent).order_by(OutboundEvent.id)).scalars()]
+    assert order == ["delivery.shipped", "delivery.returned", "delivery.shipped"]
+    again = events(db, "delivery.shipped")[-1]
+    assert (again["carrier"], again["tracking_no"]) == ("Ridgeline Express", "RX-77310042")
+    assert again["lines"][0]["qty_shipped"] == "10"
+
+
+def test_it_can_come_back_more_than_once(client, db, structure, headers):
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    assert came_back(client, headers).status_code == 202
+    client.post("/v1/deliveries/0080012345/ship", headers=headers, json=msg(
+        carrier="Own fleet", tracking_no="R-0009", shipped_by="dee"))
+    r = came_back(client, headers, tracking_no="R-0009", reason="wrong_address")
+    assert r.status_code == 202, r.text
+    assert on_hand(db, dock) == Decimal("10")
+    returns = db.execute(select(Task).where(Task.type == "return").order_by(Task.id)).scalars().all()
+    assert [t.status for t in returns] == ["done", "done"]
+    assert client.get("/v1/deliveries/0080012345", headers=headers).json()["status"] == "returned"
+
+
+def test_a_delivery_that_came_back_is_not_packed_again(client, db, structure, headers):
+    """It goes again in the cartons it came back in."""
+    s = structure
+    returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    came_back(client, headers)
+    r = client.post("/v1/deliveries/0080012345/pack", headers=headers, json=msg(
+        packages=[{"package_no": 3, "lines": [{"delivery_line": 10, "sku": "ABC123", "qty": 1, "uom": "EA"}]}]))
+    assert r.status_code == 409
+    assert r.json()["code"] == "not_open"
