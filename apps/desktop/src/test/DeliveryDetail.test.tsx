@@ -287,4 +287,26 @@ describe("DeliveryDetail", () => {
       warehouse: "BAL-WH01", carrier: "Ridgeline Express", tracking_no: "RX-77310042", shipped_by: "leighton",
     });
   });
+
+  it("says cancelling one that came back puts it on a shelf from the dock", async () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    renderPage("0080012350");
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Cancel delivery"));
+    expect(confirm).toHaveBeenCalledWith(
+      "Cancel 0080012350? It goes back on a shelf by a put-away task from RETURNS-01, and delivery.cancelled is sent. Nothing is deleted.",
+    );
+  });
+
+  it("keeps the reservations wording for one that hasn't shipped", async () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    renderPage("0080012338");
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("Cancel delivery"));
+    expect(confirm).toHaveBeenCalledWith(
+      "Cancel 0080012338? The reservations go back and delivery.cancelled is sent. Nothing is deleted.",
+    );
+  });
 });

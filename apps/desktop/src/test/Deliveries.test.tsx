@@ -122,6 +122,7 @@ describe("Deliveries", () => {
       if (path === "/v1/deliveries") return json(200, { items: DELIVERIES, total: DELIVERIES.length });
       if (path === "/v1/deliveries/0080012399") return json(200, NEW_DELIVERY);
       if (path === "/v1/deliveries/0080012345") return json(200, DELIVERIES[0]);
+      if (path === "/v1/deliveries/0080012350") return json(200, DELIVERIES[DELIVERIES.length - 1]);
       return json(404, { detail: "nope" });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -174,6 +175,19 @@ describe("Deliveries", () => {
     expect(screen.getByText("0080012350")).toBeInTheDocument();
     expect(screen.queryByText("0080012340")).not.toBeInTheDocument();
     expect(screen.queryByText("0080012345")).not.toBeInTheDocument();
+  });
+
+  it("says cancelling one that came back puts it on a shelf from the dock", async () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("0080012350"));
+    await user.click(await screen.findByText("Cancel delivery"));
+    expect(confirm).toHaveBeenCalledWith(
+      "Cancel 0080012350? It goes back on a shelf by a put-away task from RETURNS-01, and delivery.cancelled is sent. Nothing is deleted.",
+    );
+    expect(fetchMock.mock.calls.some((c) => (c[0] as string).endsWith("/cancel"))).toBe(false);
   });
 
   it("creates a delivery with a message_id and shows what could not be allocated", async () => {

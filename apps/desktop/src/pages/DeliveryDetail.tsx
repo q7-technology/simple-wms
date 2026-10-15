@@ -411,7 +411,10 @@ export function DeliveryDetail() {
 
   const cancel = async () => {
     if (!d) return;
-    if (!window.confirm(`Cancel ${d.external_ref}? The reservations go back and delivery.cancelled is sent. Nothing is deleted.`)) return;
+    const what = d.status === "returned"
+      ? `It goes back on a shelf by a put-away task from ${d.return_location ?? "the returns dock"}, and delivery.cancelled is sent.`
+      : "The reservations go back and delivery.cancelled is sent.";
+    if (!window.confirm(`Cancel ${d.external_ref}? ${what} Nothing is deleted.`)) return;
     const out = await action.run(() => api.message(
       `/v1/deliveries/${encodeURIComponent(d.external_ref)}/cancel`,
       { reason: "cancelled from the desktop" },
