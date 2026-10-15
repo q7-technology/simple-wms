@@ -77,6 +77,21 @@ Platen key and single sign-on, is only a fallback: an admin can set those on
 the desktop Settings screen under "Across all warehouses", and they take
 effect within seconds, no restart.
 
+## Deliveries that come back
+
+A delivery the courier couldn't deliver is returned through the API
+(`POST /v1/deliveries/{ref}/return`; Simple TMS does it when the truck is
+back): it goes on the ledger at the warehouse's returns dock, the first
+location of a zone of kind `returns` (add one on the Locations screen), and
+ships again from there. Subscribers hear `delivery.returned`, then
+`delivery.shipped` again.
+
+**Returns aren't posted to SAP yet.** The SAP adapter takes
+`delivery.returned` and posts nothing, so a delivery that comes back and
+ships again reaches SAP as a second goods issue (`601`) with nothing in
+between. Whoever looks after SAP should map returns before relying on it.
+See `docs/api.md` under SAP.
+
 ## Backups
 
 ```

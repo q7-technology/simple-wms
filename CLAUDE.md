@@ -11,9 +11,10 @@ PostgreSQL database. Other systems only ever talk to the API.
 ## Four rules that never bend
 1. **The stock ledger is append-only.** Never UPDATE or DELETE a ledger row.
    A mistake is corrected by a new row. Cancel, never delete, anywhere else too.
-2. **Everything is a task.** Receive, put away, pick, pack, ship, move, count,
-   replenish, transfer, production issue and receipt all go through the one
-   task engine (`task`, `task_line`). Do not add a special-case path.
+2. **Everything is a task.** Receive, put away, pick, pack, ship, return,
+   move, count, replenish, transfer, production issue and receipt all go
+   through the one task engine (`task`, `task_line`). Do not add a
+   special-case path.
 3. **Quantities are decimals with a unit of measure.** Never assume integers.
 4. **The API is the only door.** The desktop and the scanner are ordinary API
    clients with a session token. If the UI can do it, a partner can too. No

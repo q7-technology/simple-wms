@@ -34,6 +34,8 @@ flowchart LR
   SR -.-> C[Count task for that shelf]
   PA --> PL[Platen: carton-label]
   PA --> S[Ship · ledger: stock leaves] --> E([delivery.shipped → ERP, carrier, EDI])
+  E -. came back undelivered .-> RT[Return task · ledger: stock → returns dock] --> ER([delivery.returned → ERP])
+  RT -. ships again .-> S
 ```
 
 ## Flow 2 — Inbound receipt and putaway

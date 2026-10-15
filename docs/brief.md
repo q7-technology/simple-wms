@@ -18,8 +18,9 @@ envelope.
 
 1. **Append-only ledger.** Stock is never overwritten. Every change is a new
    line with who, where, when, batch, owner, device. Cancel instead of delete.
-2. **Everything is a task.** Receive, put away, pick, pack, move, count,
-   replenish, transfer, production issue and receipt share one task engine.
+2. **Everything is a task.** Receive, put away, pick, pack, return, move,
+   count, replenish, transfer, production issue and receipt share one task
+   engine.
 3. **Decimals and units everywhere.** Nothing assumes whole numbers. Every
    quantity carries a unit of measure.
 4. **Build for one, leave room for many.** Owner tag and container field exist
@@ -68,6 +69,13 @@ envelope.
   with a reason code.
 - Pack and ship: cartons with weight and size. Carton label via Platen. Ship
   short is allowed; the ERP hears the real shipped quantity.
+- Came back: a delivery the courier couldn't deliver is returned by the
+  API (Simple TMS says so when the truck is back). A `return` task puts it
+  on the ledger at the warehouse's returns dock, in its cartons, and it
+  ships again from there with the new run or con note. The ERP hears
+  `delivery.returned`, then `delivery.shipped` again. Returns aren't posted
+  to SAP yet: SAP sees a delivery that comes back and ships again as a
+  second goods issue with nothing in between, until returns are mapped.
 - Replenish: triggered by min/max after a pick, by the ERP, or by hand. FIFO
   source unless one is given.
 - Count and adjust: blind cycle counts. Variance needs a reason and a

@@ -64,20 +64,49 @@ decimals and always carry a unit of measure.
   zone is a `422` naming what to add.
 - Statuses: `new`, `allocated` (stock held, pick task waiting), `picking`
   (the first line is off the shelf), `picked`, `packing` (a carton is closed
-  but not the last), `packed`, `shipped`, `cancelled`.
+  but not the last), `packed`, `shipped`, `returned` (it came back
+  undelivered and waits at the returns dock to ship again), `cancelled`.
+  A delivery can go `shipped` → `returned` → `shipped` as often as it has to.
 - `GET /v1/deliveries?warehouse=&status=` lists (soonest required first, then
   priority; `status` takes several, comma separated); `GET /v1/deliveries/{ref}` returns the delivery with its lines,
   packages, both tasks and the events sent.
 - `POST /v1/deliveries/{ref}/ship` — `{ message_id, carrier, tracking_no,
-  shipped_by }`. Writes one ledger line per carton line out of staging.
-  Refused `409 short_not_allowed` when the order is short and
-  `allow_short` is false.
+  shipped_by }`. Writes one ledger line per carton line out of staging (out
+  of the returns dock for a delivery that came back: it goes again in the
+  same cartons, with this carrier and tracking number). Refused `409
+  short_not_allowed` when the order is short and `allow_short` is false,
+  and `409 already_shipped` when it has shipped and not come back.
+- `POST /v1/deliveries/{ref}/return` — it came back undelivered:
+  ```json
+  { "message_id": "uuid", "owner": "DEFAULT", "reason": "closed",
+    "note": "Shop shut, sign on the door", "tracking_no": "R-0007", "returned_by": "dee" }
+  ```
+  The whole delivery comes back, every carton. A `return` task is raised,
+  with a line per carton line to the warehouse's returns dock, and done at
+  once by this call: each line writes one `return` ledger line into the dock,
+  with the batch and carton it left in and the received date it had on the
+  shelf. The delivery is `returned` and `delivery.returned` fires. Stock at
+  the dock counts as on hand but is never promised or suggested for put-away:
+  it is that delivery's, and leaves again when it ships again.
+  `reason` (required, at most 64 characters) is the courier's word for it;
+  Simple TMS sends `closed`, `refused`, `damaged` or `wrong_address`.
+  `tracking_no`, when given, must be the shipment that came back (the
+  delivery's `tracking_no` now). Refused `409 not_shipped` (it hasn't
+  shipped), `409 already_returned` (it came back and hasn't gone again),
+  `409 not_that_shipment` (it has gone again since, under another tracking
+  number), and `422` on `warehouse` when the warehouse has no `returns` zone,
+  naming what to add.
 - `POST /v1/deliveries/{ref}/cancel` — `{ message_id, reason }`. Cancels the
   open tasks and gives every reservation back. Anything already picked to the
-  bench raises a high-priority put-away task, so no stock is stranded there.
+  bench raises a high-priority put-away task, so no stock is stranded there;
+  for a delivery that came back, the put-away task is from the returns dock.
   A shipped delivery cannot be cancelled. Cancel, never delete.
+- `GET /v1/deliveries/{ref}` also says `returned_at` (when it last came back)
+  and `return_location` (the dock it waits at, or last waited at).
 - Events: `delivery.allocated`, `delivery.picked`, `delivery.packed`,
-  `delivery.shipped`, `delivery.cancelled`.
+  `delivery.shipped`, `delivery.returned`, `delivery.cancelled`. A delivery
+  that came back and went again fires `delivery.shipped` again, with the new
+  carrier and tracking number.
 
 ### POST /v1/receipts — expected inbound receipt
 ```json
@@ -615,8 +644,8 @@ walk and which tote each order's items go in.
 
 ## Tasks
 
-Everything is a task: receive, put away, pick, pack, ship, move, count,
-replenish, transfer, production issue and receipt. Documents create tasks;
+Everything is a task: receive, put away, pick, pack, ship, return, move,
+count, replenish, transfer, production issue and receipt. Documents create tasks;
 the scanner works them; confirming a line writes the ledger. Every action
 body carries the envelope so a scanner can retry it after a Wi-Fi drop and
 get the same reply.
@@ -752,8 +781,10 @@ whenever that clock is not the reader's.
 { "message_id": "uuid", "warehouse": "BAL-WH01", "code": "PICKFACE", "name": "Pick face", "kind": "pickface" }
 ```
 `kind`: `bulk`, `pickface`, `packing`, `staging`, `in_transit`, `overflow`,
-`line_side`. Picked stock waits in a `packing` zone (a `staging` zone if
-there is none), and neither is offered for put-away or reservation.
+`line_side`, `returns`. Picked stock waits in a `packing` zone (a `staging` zone if
+there is none), and neither is offered for put-away or reservation. A
+delivery that comes back waits in the first location of a `returns` zone,
+which is not offered either.
 
 #### POST /v1/locations
 ```json
@@ -1084,6 +1115,7 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
 | `delivery.picked` | delivery_ref, complete, lines: qty_picked, short_reason | ERP |
 | `delivery.packed` | delivery_ref, packages: package_no, weight, dims, contents | Carriers, Platen |
 | `delivery.shipped` | carrier, tracking_no, short, lines: qty_ordered/qty_shipped, packages | ERP, carriers, EDI |
+| `delivery.returned` | delivery_ref, carrier, tracking_no, reason, note, location, returned_by, lines: qty_ordered/qty_returned, packages | ERP |
 | `delivery.cancelled` | delivery_ref, reason | ERP |
 | `transfer.shipped` | transfer_ref, from/to warehouse, lines qty_requested/qty_shipped, packages | ERP |
 | `transfer.received` | transfer_ref, complete, lines qty_shipped/qty_received/variance | ERP |
@@ -1104,6 +1136,28 @@ Headers: `X-WMS-Signature: sha256=<hmac of body>`, `X-WMS-Event-Id`.
     "qty_ordered": 10, "qty_shipped": 6, "uom": "EA"
   }],
   "packages": [{ "package_no": 1, "weight_kg": 8.4, "sscc": null }]
+}
+```
+
+### `delivery.returned` data
+The shipment that came back (`carrier`, `tracking_no`), why, and where it
+waits. A listener that filters by event type and has never heard of it
+ignores it; one that posts goods issues should post this back, because the
+same delivery fires `delivery.shipped` again when it goes out again.
+```json
+{
+  "delivery_ref": "0080012345",
+  "carrier": "Own fleet",
+  "tracking_no": "R-0007",
+  "reason": "closed",
+  "note": "Shop shut, sign on the door",
+  "location": "RETURNS-01",
+  "returned_by": "dee",
+  "lines": [{
+    "delivery_line": 10, "sku": "ABC123", "batch": null,
+    "qty_ordered": "10", "qty_returned": "10", "uom": "EA"
+  }],
+  "packages": [{ "package_no": 1, "weight_kg": "8.4", "sscc": null }]
 }
 ```
 
@@ -1149,10 +1203,21 @@ Each event becomes one `BAPI_GOODSMVT_CREATE`, committed with
 | `production.received` | 02 | 101 |
 | `production.components_issued` | 03 | 261 |
 | `delivery.shipped` | 03 | 601 |
+| `delivery.returned` | — | not posted yet (below) |
 | `stock.moved` | 04 | 311 |
 | `transfer.shipped` | 04 | 351 |
 | `transfer.received` | 04 | 101 |
 | `stock.adjusted` | 05 | 701 up, 702 down |
+
+**Returns aren't posted to SAP yet.** An SAP subscriber that hears
+`delivery.returned` (by name, `delivery.*` or `*`) takes it and posts
+nothing: the event is marked `delivered`, with "not posted to SAP: …" as its
+note, and SAP isn't dialled. So a delivery that comes back and ships again
+reaches SAP as a second goods issue (`601`) with nothing in between, and
+SAP's stock for it is one shipment short until someone puts it right there.
+Whoever looks after SAP should map returns before relying on SAP's stock for
+deliveries that come back. (An event type with no mapping at all still fails
+at once, below: leaving returns out is a choice, not a mistake.)
 
 Quantities cross as the decimal strings they already are. A shelf code never
 does: SAP is told a plant and a storage location, and which shelf a thing sits
