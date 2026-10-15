@@ -57,8 +57,8 @@ MOVEMENT_TYPES = {
 # expected, and leaving them out is a choice. A delivery that comes back and
 # ships again therefore reaches SAP as a second 601 with nothing between.
 NOT_POSTED = {
-    "delivery.returned": "returns aren't posted to SAP yet; map one before relying on SAP's stock "
-                         "for deliveries that come back",
+    "delivery.returned": "returns aren't posted to SAP; that needs a code change, not a setting. "
+                         "Until then SAP's stock is one shipment short for each delivery that comes back",
 }
 
 

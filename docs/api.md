@@ -1217,20 +1217,23 @@ Each event becomes one `BAPI_GOODSMVT_CREATE`, committed with
 | `transfer.received` | 04 | 101 |
 | `stock.adjusted` | 05 | 701 up, 702 down |
 
-**Returns aren't posted to SAP yet.** An SAP subscriber that hears
-`delivery.returned` (by name, `delivery.*` or `*`) takes it and posts
-nothing: the event is marked `delivered`, with "not posted to SAP: …" as its
-note, and SAP isn't dialled. So a delivery that comes back and ships again
-reaches SAP as a second goods issue (`601`) with nothing in between, and
-SAP's stock for it is one shipment short until someone puts it right there.
-Whoever looks after SAP should map returns before relying on SAP's stock for
-deliveries that come back. (An event type with no mapping at all still fails
-at once, below: leaving returns out is a choice, not a mistake.)
+**Returns aren't posted to SAP, and no setting changes that.** An SAP
+subscriber that hears `delivery.returned` (by name, `delivery.*` or `*`)
+takes it and posts nothing: the event is marked `delivered`, with "not
+posted to SAP: …" as its note, and SAP isn't dialled. The worker leaves it
+out before it looks at `movement_types` or `gm_codes`, and the adapter has
+no goods movement for a return, so putting `delivery.returned` in either
+does nothing. Posting returns to SAP needs a change to the code. Until then
+a delivery that comes back and ships again reaches SAP as a second goods
+issue (`601`) with nothing in between, and SAP's stock for it is one
+shipment short until someone puts it right there by hand. (An event type
+with no mapping at all still fails at once, below: leaving returns out is a
+choice, not a mistake.)
 
 Quantities cross as the decimal strings they already are. A shelf code never
 does: SAP is told a plant and a storage location, and which shelf a thing sits
 on stays the WMS's business. Anything in `movement_types` overrides the table
-above for a site with its own numbering.
+above for a site with its own numbering, for the events that are posted.
 
 SAP answers in a `RETURN` table rather than a status code. A row of type `E`
 or `A` is a refusal: the work is rolled back, SAP's own message is kept on the
