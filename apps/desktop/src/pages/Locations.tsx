@@ -28,7 +28,7 @@ const TYPE_LABEL: Record<LocType, string> = {
 };
 const TYPE_OPTIONS: LocType[] = ["shelf", "rack", "floor", "dock", "line_side", "in_transit"];
 const ACCESS_LABEL: Record<Access, string> = { ground: "Ground", step: "Step", forklift: "Forklift" };
-const ZONE_KINDS = ["bulk", "pickface", "staging", "in_transit", "overflow", "line_side"] as const;
+const ZONE_KINDS = ["bulk", "pickface", "staging", "in_transit", "overflow", "line_side", "returns"] as const;
 
 function mixingLabel(m: Mixing): string {
   if (m === "single_sku") return "No · one SKU";

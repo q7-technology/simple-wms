@@ -69,6 +69,14 @@ const DELIVERIES = [
     status: "cancelled", cancelled_at: now.toISOString(),
     lines: [line(10, "PQR678", "Clutch kit", "2", "0")],
   },
+  {
+    ...base, wms_id: "d6", external_ref: "0080012350", priority: "normal", required_by: TODAY,
+    ship_to: { name: "Station Deli", address: "1 Main St", suburb: "Ballan", state: "VIC", postcode: "3342", country: "AU" },
+    status: "returned", carrier: "Own fleet", tracking_no: "R-0007",
+    picked_at: now.toISOString(), packed_at: now.toISOString(), shipped_at: now.toISOString(),
+    returned_at: now.toISOString(), return_location: "RETURNS-01",
+    lines: [line(10, "STU901", "Spark plug", "8", "8")],
+  },
 ];
 
 const NEW_DELIVERY = {
@@ -155,6 +163,17 @@ describe("Deliveries", () => {
     expect(screen.getByText("0080012340")).toBeInTheDocument();
     expect(screen.queryByText("0080012345")).not.toBeInTheDocument();
     expect(screen.queryByText("0080012299")).not.toBeInTheDocument();
+  });
+
+  it("shows what came back and narrows the table to it", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    expect(await screen.findByText("Came back", { selector: "span.rounded-full" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Came back" }));
+    expect(screen.getByText("0080012350")).toBeInTheDocument();
+    expect(screen.queryByText("0080012340")).not.toBeInTheDocument();
+    expect(screen.queryByText("0080012345")).not.toBeInTheDocument();
   });
 
   it("creates a delivery with a message_id and shows what could not be allocated", async () => {

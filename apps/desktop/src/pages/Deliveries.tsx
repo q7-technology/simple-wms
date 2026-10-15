@@ -11,13 +11,14 @@ import {
 } from "../ui";
 import { Main } from "../ui/Shell";
 
-type Filter = "all" | "allocated" | "picking" | "packed" | "shipped" | "short" | "cancelled";
+type Filter = "all" | "allocated" | "picking" | "packed" | "shipped" | "returned" | "short" | "cancelled";
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "allocated", label: "Waiting to pick" },
   { value: "picking", label: "Picking" },
   { value: "packed", label: "Packed" },
   { value: "shipped", label: "Shipped" },
+  { value: "returned", label: "Came back" },
   { value: "short", label: "Short" },
   { value: "cancelled", label: "Cancelled" },
 ];
@@ -92,6 +93,7 @@ function statusPill(status: DeliveryStatus) {
     case "packing": return <Pill tone="leaving">Packing</Pill>;
     case "packed": return <Pill tone="leaving">Packed</Pill>;
     case "shipped": return <Pill tone="ok">Shipped</Pill>;
+    case "returned": return <Pill tone="warn">Came back</Pill>;
     case "cancelled": return <Pill tone="muted">Cancelled</Pill>;
     default: return <Pill tone="info">New</Pill>;
   }
@@ -152,6 +154,8 @@ function DeliveryDetailPanel({ delivery, write, reload }: {
         return <Button variant="primary" onClick={() => navigate(`${full}?action=pack`)}>Pack</Button>;
       case "packed":
         return <Button variant="primary" onClick={() => navigate(`${full}?action=ship`)}>Ship</Button>;
+      case "returned":
+        return <Button variant="primary" onClick={() => navigate(`${full}?action=ship`)}>Ship again</Button>;
       case "shipped":
         return <Button variant="primary" disabled>Shipped</Button>;
       case "cancelled":

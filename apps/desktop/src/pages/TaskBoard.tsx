@@ -12,7 +12,7 @@ import { Main } from "../ui/Shell";
 const TYPE_LABEL: Record<string, string> = {
   receive: "Receive", putaway: "Put away", pick: "Pick", pack: "Pack", ship: "Ship", move: "Move",
   count: "Count", replenish: "Replenish", transfer_out: "Transfer out", transfer_in: "Transfer in",
-  production_issue: "Issue to production", production_receipt: "Production receipt",
+  production_issue: "Issue to production", production_receipt: "Production receipt", return: "Came back",
 };
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -107,7 +107,7 @@ function linePill(l: TaskLine) {
 /** Which part of the map a task belongs to, from its type. Unknown types get
  * the plain blue. */
 const TYPE_ZONE: Record<string, "arriving" | "stored" | "leaving"> = {
-  receive: "arriving", putaway: "arriving", transfer_in: "arriving", production_receipt: "arriving",
+  receive: "arriving", putaway: "arriving", transfer_in: "arriving", production_receipt: "arriving", return: "arriving",
   move: "stored", count: "stored", replenish: "stored",
   pick: "leaving", pack: "leaving", ship: "leaving", transfer_out: "leaving", production_issue: "leaving",
 };

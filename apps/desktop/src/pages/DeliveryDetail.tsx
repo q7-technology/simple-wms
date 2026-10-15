@@ -74,6 +74,7 @@ function statusPill(status: DeliveryStatus) {
     case "packing": return <Pill tone="leaving">Packing</Pill>;
     case "packed": return <Pill tone="leaving">Packed</Pill>;
     case "shipped": return <Pill tone="ok">Shipped</Pill>;
+    case "returned": return <Pill tone="warn">Came back</Pill>;
     case "cancelled": return <Pill tone="muted">Cancelled</Pill>;
     default: return <Pill tone="info">New</Pill>;
   }
@@ -120,7 +121,9 @@ function JourneyStrip({ delivery: d }: { delivery: Delivery }) {
       share: d.picked_at || after("picked", "packing", "packed", "shipped") ? 1 : d.status === "picking" ? pickedShare : 0,
     },
     { label: d.packed_at ? `Packed ${fmtWhen(d.packed_at)}` : "Packed", share: d.packed_at || after("packed", "shipped") ? 1 : d.status === "packing" ? 0.5 : 0 },
-    { label: d.shipped_at ? `Shipped ${fmtWhen(d.shipped_at)}` : "Shipped", share: d.shipped_at || d.status === "shipped" ? 1 : 0 },
+    d.status === "returned"
+      ? { label: d.returned_at ? `Came back ${fmtWhen(d.returned_at)}` : "Came back", share: 0.5 }
+      : { label: d.shipped_at ? `Shipped ${fmtWhen(d.shipped_at)}` : "Shipped", share: d.shipped_at || d.status === "shipped" ? 1 : 0 },
   ];
   return (
     <div className="rounded-2xl border border-line bg-field px-5 py-4 flex flex-col gap-2.5">
@@ -279,8 +282,10 @@ function ShipForm({ delivery, onCancel, reload }: {
 }) {
   const { user } = useAuth();
   const action = useAction();
-  const [carrier, setCarrier] = useState(delivery.carrier ?? delivery.carrier_hint ?? "");
-  const [tracking, setTracking] = useState(delivery.tracking_no ?? "");
+  // one that came back goes out as a new shipment, not the one that came back
+  const again = delivery.status === "returned";
+  const [carrier, setCarrier] = useState(again ? "" : delivery.carrier ?? delivery.carrier_hint ?? "");
+  const [tracking, setTracking] = useState(again ? "" : delivery.tracking_no ?? "");
   const [shippedBy, setShippedBy] = useState(user?.username ?? "");
 
   const ship = async () => {
@@ -493,6 +498,7 @@ export function DeliveryDetail() {
                 { label: "Picked", value: fmtDateTime(d.picked_at) },
                 { label: "Packed", value: fmtDateTime(d.packed_at) },
                 { label: "Shipped", value: fmtDateTime(d.shipped_at) },
+                ...(d.returned_at ? [{ label: "Came back", value: fmtDateTime(d.returned_at) }] : []),
               ]} />
             </Card>
             <Card className="p-5 flex flex-col gap-1">
@@ -501,6 +507,9 @@ export function DeliveryDetail() {
               <span className="text-sm leading-5 mono">{d.tracking_no ?? "—"}</span>
               <Muted className="text-sm leading-5">{d.pick_mode} pick · {d.priority} priority</Muted>
               <Muted className="text-xs leading-4">Staging {d.staging_location ?? "—"}</Muted>
+              {d.status === "returned" && (
+                <Muted className="text-xs leading-4">{`Waiting at ${d.return_location ?? "the returns dock"}`}</Muted>
+              )}
             </Card>
           </div>
 
@@ -552,8 +561,10 @@ export function DeliveryDetail() {
               {write && (d.status === "picked" || d.status === "packing") && (
                 <Button variant="primary" onClick={() => setForm(form === "pack" ? "none" : "pack")}>Pack</Button>
               )}
-              {write && d.status === "packed" && (
-                <Button variant="primary" onClick={() => setForm(form === "ship" ? "none" : "ship")}>Ship</Button>
+              {write && (d.status === "packed" || d.status === "returned") && (
+                <Button variant="primary" onClick={() => setForm(form === "ship" ? "none" : "ship")}>
+                  {d.status === "returned" ? "Ship again" : "Ship"}
+                </Button>
               )}
               {canPrint && (
                 <>

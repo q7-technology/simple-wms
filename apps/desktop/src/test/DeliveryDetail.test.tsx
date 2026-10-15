@@ -77,6 +77,17 @@ const PACKED = {
 
 const UNPACKED = { ...PICKED, wms_id: "d3", external_ref: "0080012399", packages: [], events: [] };
 
+const RETURNED = {
+  ...PACKED, wms_id: "d4", external_ref: "0080012350", status: "returned", carrier: "Own fleet",
+  tracking_no: "R-0007", shipped_at: now.toISOString(), returned_at: now.toISOString(),
+  return_location: "RETURNS-01",
+  lines: [line(10, "JKL012", "Oil filter", "6", "6", { shipped: "6" })],
+  events: [
+    { event_type: "delivery.shipped", subscriber: "ERP", status: "delivered", at: now.toISOString() },
+    { event_type: "delivery.returned", subscriber: "ERP", status: "delivered", at: now.toISOString() },
+  ],
+};
+
 /** Every print job posted, oldest first. */
 function printJobs(mock: ReturnType<typeof vi.fn>) {
   return mock.mock.calls
@@ -115,6 +126,10 @@ describe("DeliveryDetail", () => {
         const body = JSON.parse(String(init.body));
         return json(202, { message_id: body.message_id, wms_id: "d2", status: "accepted" });
       }
+      if (path === "/v1/deliveries/0080012350/ship" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        return json(202, { message_id: body.message_id, wms_id: "d4", status: "accepted" });
+      }
       if (path === "/v1/print-jobs" && init?.method === "POST") {
         const body = JSON.parse(String(init.body));
         return json(202, { message_id: body.message_id, wms_id: "p1", job_id: "j1", status: "pending" });
@@ -122,6 +137,7 @@ describe("DeliveryDetail", () => {
       if (path === "/v1/deliveries/0080012345") return json(200, PICKED);
       if (path === "/v1/deliveries/0080012399") return json(200, UNPACKED);
       if (path === "/v1/deliveries/0080012338") return json(200, PACKED);
+      if (path === "/v1/deliveries/0080012350") return json(200, RETURNED);
       return json(404, { detail: "nope" });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -246,6 +262,29 @@ describe("DeliveryDetail", () => {
     expect(typeof body.message_id).toBe("string");
     expect(body).toMatchObject({
       warehouse: "BAL-WH01", carrier: "Toll", tracking_no: "TOLL-99123", shipped_by: "leighton",
+    });
+  });
+
+  it("says where one that came back waits, and ships it again with a new carrier", async () => {
+    renderPage("0080012350");
+    const user = userEvent.setup();
+    expect(await screen.findByText("Came back", { selector: "span.rounded-full" })).toBeInTheDocument();
+    expect(screen.getByText("Waiting at RETURNS-01")).toBeInTheDocument();
+    expect(screen.getByText("delivery.returned")).toBeInTheDocument();
+    expect(screen.queryByText("Pack")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Ship again"));
+    // the shipment that came back is not the one going out
+    expect(screen.getByLabelText("Carrier")).toHaveValue("");
+    expect(screen.getByLabelText("Tracking number")).toHaveValue("");
+    await user.type(screen.getByLabelText("Carrier"), "Ridgeline Express");
+    await user.type(screen.getByLabelText("Tracking number"), "RX-77310042");
+    await user.click(screen.getByText("Ship delivery"));
+
+    const post = fetchMock.mock.calls.find((c) => (c[0] as string) === "/v1/deliveries/0080012350/ship");
+    expect(post).toBeDefined();
+    expect(JSON.parse(String((post![1] as RequestInit).body))).toMatchObject({
+      warehouse: "BAL-WH01", carrier: "Ridgeline Express", tracking_no: "RX-77310042", shipped_by: "leighton",
     });
   });
 });

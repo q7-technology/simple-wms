@@ -202,14 +202,16 @@ export interface DeliveryPackage {
   packed_by: string | null; created_at: string; lines: PackageLine[];
 }
 export type DeliveryStatus =
-  | "new" | "allocated" | "picking" | "picked" | "packing" | "packed" | "shipped" | "cancelled";
+  | "new" | "allocated" | "picking" | "picked" | "packing" | "packed" | "shipped" | "returned"
+  | "cancelled";
 export interface Delivery {
   wms_id: string; external_ref: string; owner: string; warehouse: string; pick_mode: string;
   priority: "low" | "normal" | "high"; required_by: string | null; ship_to: ShipTo;
   carrier_hint: string | null; carrier: string | null; tracking_no: string | null;
   allow_short: boolean; status: DeliveryStatus; short: boolean; staging_location: string | null;
   note: string | null; created_at: string; allocated_at: string | null; picked_at: string | null;
-  packed_at: string | null; shipped_at: string | null; cancelled_at: string | null;
+  packed_at: string | null; shipped_at: string | null; returned_at: string | null;
+  return_location: string | null; cancelled_at: string | null;
   lines: DeliveryLine[]; packages: DeliveryPackage[]; task: Task | null; pack_task: Task | null;
   events: { event_type: string; subscriber: string; status: string; at: string }[];
 }
