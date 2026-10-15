@@ -331,3 +331,94 @@ def test_cancelling_one_that_came_back_puts_it_back_on_a_shelf(client, db, struc
     # back on the shelf it keeps the date it was first received
     shelf = db.execute(select(StockBalance).where(StockBalance.location_id == s.bk1.id)).scalar_one()
     assert shelf.received_at == date(2026, 8, 1)
+
+
+# --- two at once ------------------------------------------------------------------
+
+def held(engine, ref="0080012345"):
+    """Another transaction holding the delivery's row, as a slow request would."""
+    from sqlalchemy.orm import Session
+
+    from wms.models import Delivery
+
+    other = Session(engine)
+    other.execute(select(Delivery).where(Delivery.external_ref == ref).with_for_update())
+    return other
+
+
+def other_key(db):
+    """A second caller. Two calls on one key queue behind each other on the
+    key's last_used_at, which would hide the race; two systems would not."""
+    from wms.services.access import create_api_client
+
+    _, raw = create_api_client(db, name="tms", scopes=["*"], warehouses=["*"], owner="*")
+    db.commit()
+    return {"Authorization": f"Bearer {raw}"}
+
+
+def all_at_once(engine, calls):
+    """Start every call while the delivery is held, check each one waits for
+    it, then let go. Returns the replies in the order the calls were given."""
+    import threading
+    import time
+
+    blocker = held(engine)
+    replies: list = [None] * len(calls)
+
+    def run(i, call):
+        replies[i] = call()
+
+    threads = [threading.Thread(target=run, args=(i, c), daemon=True) for i, c in enumerate(calls)]
+    try:
+        for t in threads:
+            t.start()
+        time.sleep(0.5)
+        waiting = [t.is_alive() for t in threads]
+    finally:
+        blocker.rollback()
+        blocker.close()
+    for t in threads:
+        t.join(timeout=10)
+    assert waiting == [True] * len(calls), "each call should wait for the delivery's row"
+    return replies
+
+
+def test_two_returns_at_once_bring_it_back_once(client, db, engine, structure, headers):
+    """Different message_ids, so the envelope cannot catch it: the delivery's
+    row is locked and the second sees it has already come back."""
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+
+    tms = other_key(db)
+    replies = all_at_once(engine, [lambda: came_back(client, headers), lambda: came_back(client, tms)])
+    assert sorted(r.status_code for r in replies) == [202, 409], [r.text for r in replies]
+    assert [r.json()["code"] for r in replies if r.status_code == 409] == ["already_returned"]
+    db.expire_all()
+    assert on_hand(db, dock) == Decimal("10")
+    assert len(db.execute(select(Task).where(Task.type == "return")).scalars().all()) == 1
+
+
+def test_shipping_again_and_cancelling_at_once_do_one_or_the_other(client, db, engine, structure, headers):
+    s = structure
+    dock = returns_dock(db, s)
+    shipped_delivery(client, db, s, headers)
+    assert came_back(client, headers).status_code == 202
+    tms = other_key(db)
+
+    ship, cancel = all_at_once(engine, [
+        lambda: client.post("/v1/deliveries/0080012345/ship", headers=tms, json=msg(
+            carrier="Ridgeline Express", tracking_no="RX-1", shipped_by="dee")),
+        lambda: client.post("/v1/deliveries/0080012345/cancel", headers=headers, json=msg(reason="refused")),
+    ])
+    assert sorted([ship.status_code, cancel.status_code]) == [202, 409], (ship.text, cancel.text)
+    db.expire_all()
+    putaways = db.execute(select(Task).where(Task.type == "putaway")).scalars().all()
+    status = client.get("/v1/deliveries/0080012345", headers=headers).json()["status"]
+    if ship.status_code == 202:
+        assert (status, cancel.json()["code"]) == ("shipped", "already_shipped")
+        assert on_hand(db, dock) == Decimal("0") and putaways == []
+    else:
+        assert (status, ship.json()["code"]) == ("cancelled", "cancelled")
+        assert on_hand(db, dock) == Decimal("10") and len(putaways) == 1
+

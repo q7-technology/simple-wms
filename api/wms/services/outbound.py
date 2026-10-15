@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from wms.models import Delivery, DeliveryLine, Location, Package, Product, Task, Warehouse, Zone
 from wms.services import reservations, tasks
@@ -40,6 +40,19 @@ def returns_location(db: Session, warehouse: Warehouse) -> Location | None:
                Zone.kind == "returns", Zone.active.is_(True))
         .order_by(Location.pick_sequence, Location.code)
     ).scalars().first()
+
+
+def lock(db: Session, delivery: Delivery) -> None:
+    """Hold the delivery's row until the transaction ends, and read it again
+    under the lock. Ship, return and cancel each change its status, so a
+    second call that arrives at the same time waits here and then sees what
+    the first one did. Check the status only after this."""
+    db.execute(
+        select(Delivery).where(Delivery.id == delivery.id)
+        .options(selectinload(Delivery.lines), selectinload(Delivery.packages).selectinload(Package.lines))
+        .with_for_update(of=Delivery)
+        .execution_options(populate_existing=True)
+    ).scalar_one()
 
 
 def delivery_for_task(db: Session, task: Task) -> Delivery | None:
@@ -224,6 +237,7 @@ def ship(db: Session, delivery: Delivery, wh: Warehouse, *, carrier: str | None,
 
     from wms.services.ledger import LedgerLine, post
 
+    lock(db, delivery)
     if delivery.status == "shipped":
         raise tasks.TaskError("already_shipped", f"{delivery.external_ref} has already shipped")
     if delivery.status == "cancelled":
@@ -269,6 +283,7 @@ def came_back(db: Session, delivery: Delivery, wh: Warehouse, *, reason: str, no
     line, is raised and done at once: each line puts what left in that carton
     back on the ledger at the returns dock. The hook below then marks the
     delivery returned and tells the subscribers."""
+    lock(db, delivery)
     if delivery.status == "returned":
         raise tasks.TaskError("already_returned",
                               f"{delivery.external_ref} has already come back; ship it again or cancel it")
@@ -378,6 +393,7 @@ def putaway_returned_stock(db: Session, delivery: Delivery, wh: Warehouse, reaso
 
 
 def cancel(db: Session, delivery: Delivery, wh: Warehouse, reason: str | None, actor: tasks.Actor) -> None:
+    lock(db, delivery)
     if delivery.status == "shipped":
         raise tasks.TaskError("already_shipped", f"{delivery.external_ref} has already shipped; it cannot be cancelled")
     if delivery.status == "cancelled":
