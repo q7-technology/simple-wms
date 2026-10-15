@@ -12,7 +12,7 @@ import { Main } from "../ui/Shell";
 
 /* --- shared bits --------------------------------------------------------- */
 
-const USER_ROLES: { value: string; label: string }[] = [
+export const USER_ROLES: { value: string; label: string }[] = [
   { value: "picker", label: "Picker" },
   { value: "receiver", label: "Receiver" },
   { value: "supervisor", label: "Supervisor" },

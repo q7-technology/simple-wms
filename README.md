@@ -71,6 +71,12 @@ use it as `Authorization: Bearer <key>` against `/v1/...`. Interactive API
 docs are at `/docs`. See `api/README.md` and `apps/desktop/README.md` for
 running either outside Docker.
 
+`.env` holds the hosting values (database, secret key, domain, ports,
+backups). The rest of it, such as the duplicate window, worker timing, the
+Platen key and single sign-on, is only a fallback: an admin can set those on
+the desktop Settings screen under "Across all warehouses", and they take
+effect within seconds, no restart.
+
 ## Backups
 
 ```

@@ -20,7 +20,7 @@ export interface WarehouseSettings {
   multi_owner: boolean;
   gs1_company_prefix: string | null; sscc_extension_digit: number;
   platen_url: string | null; retry_failed_print_jobs: boolean;
-  default_copies: number; ledger_retention_years: number; duplicate_window_hours: number;
+  default_copies: number; ledger_retention_years: number;
   allow_hard_deletes: boolean;
 }
 export interface Warehouse {

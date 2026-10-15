@@ -12,8 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from wms.config import get_settings
 from wms.models import InboundMessage
+from wms.services import system
 
 
 class Envelope(BaseModel):
@@ -46,7 +46,7 @@ def check_owner(db: Session, owner: str) -> None:
 
 
 def _lookup(db: Session, message_id: uuid.UUID) -> InboundMessage | None:
-    ttl = timedelta(hours=get_settings().message_ttl_hours)
+    ttl = timedelta(hours=system.current().message_ttl_hours)
     row = db.get(InboundMessage, message_id)
     if row is None:
         return None

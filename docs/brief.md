@@ -132,7 +132,9 @@ envelope.
   shell; keyboard-wedge and camera scan input; current task in memory with a
   retry queue for Wi-Fi drops; updates on next launch.
 - **Hosting:** Ubuntu + Docker Compose: `api`, `worker`, `db`, `caddy` (TLS),
-  static builds. Secrets in `.env`. Nightly `pg_dump` plus VM backup.
+  static builds. Hosting secrets in `.env`; the Platen key and SSO client
+  secret can be set on the Settings screen (stored in the database, never
+  returned by the API). Nightly `pg_dump` plus VM backup.
 
 Nothing talks to Postgres except `api` and `worker`.
 

@@ -31,6 +31,11 @@ services:
       WMS_OIDC_NAME: ${WMS_OIDC_NAME:-}
       WMS_OIDC_CREATE_USERS: ${WMS_OIDC_CREATE_USERS:-false}
       WMS_OIDC_DEFAULT_ROLE: ${WMS_OIDC_DEFAULT_ROLE:-picker}
+      WMS_OIDC_SCOPES: ${WMS_OIDC_SCOPES:-}
+      # The Settings screen shows what is in force, so the API sees these too
+      WMS_PLATEN_KEY: ${WMS_PLATEN_KEY:-}
+      WMS_WORKER_POLL_SECONDS: ${WMS_WORKER_POLL_SECONDS:-5}
+      WMS_WORKER_HTTP_TIMEOUT_SECONDS: ${WMS_WORKER_HTTP_TIMEOUT_SECONDS:-10}
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +61,8 @@ services:
       WMS_SECRET_KEY: ${WMS_SECRET_KEY}
       WMS_MESSAGE_TTL_HOURS: ${WMS_MESSAGE_TTL_HOURS:-24}
       WMS_PLATEN_KEY: ${WMS_PLATEN_KEY:-}
+      WMS_WORKER_POLL_SECONDS: ${WMS_WORKER_POLL_SECONDS:-5}
+      WMS_WORKER_HTTP_TIMEOUT_SECONDS: ${WMS_WORKER_HTTP_TIMEOUT_SECONDS:-10}
     depends_on:
       db:
         condition: service_healthy

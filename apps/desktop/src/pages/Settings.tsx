@@ -7,6 +7,7 @@ import { useAction, useApi } from "../lib/useApi";
 import { Button, Card, Chip, Eyebrow, Field, Input, Muted, Notice, PageHeader, SegmentedChoice, Toggle } from "../ui";
 import { Main } from "../ui/Shell";
 import { useGamePrefs } from "../lib/gamePrefs";
+import { SystemSettings } from "./SystemSettings";
 
 type BoolKey = { [K in keyof WarehouseSettings]: WarehouseSettings[K] extends boolean ? K : never }[keyof WarehouseSettings];
 type NumKey = { [K in keyof WarehouseSettings]: WarehouseSettings[K] extends number ? K : never }[keyof WarehouseSettings];
@@ -200,13 +201,14 @@ export function Settings() {
             <Muted className="text-xs leading-4 pb-2"><Link to="/owners">Manage owners</Link></Muted>
             <div className="flex gap-2 pb-2">
               {num("ledger_retention_years", "Ledger retention (years)")}
-              {num("duplicate_window_hours", "Duplicate window (h)")}
             </div>
             <Toggle label="Allow hard deletes" hint="Never · cancel instead" checked={false} disabled />
             <Muted className="text-xs leading-4">This one cannot be switched on. Kept here so nobody asks.</Muted>
           </Group>
         </div>
       )}
+
+      <SystemSettings />
     </Main>
   );
 }

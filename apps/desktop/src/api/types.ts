@@ -20,7 +20,7 @@ export interface WarehouseSettings {
   multi_owner: boolean;
   gs1_company_prefix: string | null; sscc_extension_digit: number;
   platen_url: string | null; retry_failed_print_jobs: boolean;
-  default_copies: number; ledger_retention_years: number; duplicate_window_hours: number;
+  default_copies: number; ledger_retention_years: number;
   allow_hard_deletes: boolean;
 }
 export interface Warehouse {
@@ -28,6 +28,23 @@ export interface Warehouse {
   /** The site's clock. Times are shown on it, not on the reader's. */
   timezone?: string | null;
   settings: WarehouseSettings; active: boolean;
+}
+
+/** Site-wide settings saved in the WMS. Anything not saved there comes from
+ * the server's .env file, or the built-in default. */
+export interface SystemSettingValues {
+  message_ttl_hours: number; worker_poll_seconds: number; worker_http_timeout_seconds: number;
+  oidc_issuer: string; oidc_client_id: string; oidc_redirect_uri: string; oidc_scopes: string;
+  oidc_name: string; oidc_create_users: boolean; oidc_default_role: string;
+}
+/** Write-only: set with a string, clear with null, never read back. */
+export interface SystemSecrets { platen_key: boolean; oidc_client_secret: boolean }
+export type SystemSettingKey = keyof SystemSettingValues | keyof SystemSecrets;
+export type SettingSource = "settings" | "env" | "default";
+export interface SystemSettings {
+  values: SystemSettingValues;
+  secrets: SystemSecrets;
+  source: Record<SystemSettingKey, SettingSource>;
 }
 export interface Zone { wms_id: string; warehouse: string; code: string; name: string; kind: string; active: boolean }
 export interface Location {

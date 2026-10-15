@@ -16,7 +16,7 @@ export const SETTINGS = {
   idle_logout_minutes: 15, pin_lockout_tries: 5, known_devices_only: true, queue_offline_confirmations: true,
   fifo_by_received_date: true, blind_counts: true, decimals_allowed: true, multi_owner: false,
   gs1_company_prefix: null, sscc_extension_digit: 3, platen_url: null, retry_failed_print_jobs: true,
-  default_copies: 1, ledger_retention_years: 7, duplicate_window_hours: 24, allow_hard_deletes: false,
+  default_copies: 1, ledger_retention_years: 7, allow_hard_deletes: false,
 };
 
 export const WAREHOUSE = {

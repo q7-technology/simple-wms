@@ -6,7 +6,8 @@ The contract is in `../docs/api.md`.
 ## Layout
 
 ```
-wms/config.py        settings from WMS_* environment variables
+wms/config.py        settings from WMS_* environment variables (fallbacks for
+                     the system settings an admin can change on screen)
 wms/db.py            engine and session factory
 wms/models/          SQLAlchemy 2 models, one module per area
 wms/services/        ledger (the only writer of stock_ledger), access, events

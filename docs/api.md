@@ -891,8 +891,10 @@ data, stock, tasks; `receiver` and `picker` read master data and stock, work
 tasks.
 
 ### Single sign-on
-Optional, and off unless the install sets `WMS_OIDC_ISSUER`,
-`WMS_OIDC_CLIENT_ID` and `WMS_OIDC_REDIRECT_URI`.
+Optional, and off unless an issuer, client id and redirect URI are set,
+either on the Settings screen (system settings `oidc_issuer`,
+`oidc_client_id`, `oidc_redirect_uri`) or in `.env` (`WMS_OIDC_ISSUER`,
+`WMS_OIDC_CLIENT_ID`, `WMS_OIDC_REDIRECT_URI`).
 
 - `GET /v1/auth/sso` → `{ enabled, name }`. The sign-in screen offers the
   button only when this says so.
@@ -909,8 +911,8 @@ channel from the issuer itself, not through the browser.
 
 A person is matched by email, then by username. Someone the provider knows
 but the WMS does not is `403 no_account` and is named in the message, unless
-`WMS_OIDC_CREATE_USERS` is on, which makes them an account with
-`WMS_OIDC_DEFAULT_ROLE` and no password. Off by default: supervisors create
+`oidc_create_users` is on, which makes them an account with
+`oidc_default_role` and no password. Off by default: supervisors create
 accounts and IT audits them. A second factor is not asked for after single
 sign-on, because the provider has already said who they are.
 
@@ -947,8 +949,59 @@ Keys: `erp_counts_gr`, `batch_from_production_order`, `receipt_tolerance_pct`,
 `password_lockout_minutes`, `known_devices_only`,
 `queue_offline_confirmations`, `fifo_by_received_date`, `blind_counts`,
 `decimals_allowed`, `platen_url`, `retry_failed_print_jobs`, `default_copies`,
-`ledger_retention_years`, `duplicate_window_hours`, `allow_hard_deletes`
-(always false; `422` if you try).
+`ledger_retention_years`, `allow_hard_deletes` (always false; `422` if you
+try). How long a repeated `message_id` is remembered is site-wide, not per
+warehouse: `message_ttl_hours` below.
+
+### System settings
+Settings across all warehouses, on the desktop Settings screen under "Across
+all warehouses". Each one falls back to its `.env` value, then to a built-in
+default, so `.env` only matters for what the screen leaves unset. A change
+reaches the API and the worker within about 5 seconds; no restart.
+
+- `GET /v1/system/settings` — needs `system:read`.
+- `PATCH /v1/system/settings` — needs `system:write`.
+Only admins hold these today (the `admin` role has `*`).
+
+```json
+{ "values": { "message_ttl_hours": 24, "worker_poll_seconds": 5.0,
+              "worker_http_timeout_seconds": 10.0,
+              "oidc_issuer": "", "oidc_client_id": "", "oidc_redirect_uri": "",
+              "oidc_scopes": "", "oidc_name": "", "oidc_create_users": false,
+              "oidc_default_role": "picker" },
+  "secrets": { "platen_key": false, "oidc_client_secret": true },
+  "source": { "message_ttl_hours": "env", "worker_poll_seconds": "default" } }
+```
+`source` says where each value came from: `settings`, `env` or `default`.
+
+| Key | `.env` fallback | Allowed |
+|---|---|---|
+| `message_ttl_hours` | `WMS_MESSAGE_TTL_HOURS` | 1–720. Shown as "Duplicate window (h)" |
+| `worker_poll_seconds` | `WMS_WORKER_POLL_SECONDS` | 0.5–300 |
+| `worker_http_timeout_seconds` | `WMS_WORKER_HTTP_TIMEOUT_SECONDS` | 1–120 |
+| `platen_key` | `WMS_PLATEN_KEY` | secret |
+| `oidc_issuer` | `WMS_OIDC_ISSUER` | `""` or `http(s)://` |
+| `oidc_client_id` | `WMS_OIDC_CLIENT_ID` | |
+| `oidc_client_secret` | `WMS_OIDC_CLIENT_SECRET` | secret |
+| `oidc_redirect_uri` | `WMS_OIDC_REDIRECT_URI` | `""` or `http(s)://` |
+| `oidc_scopes` | `WMS_OIDC_SCOPES` | |
+| `oidc_name` | `WMS_OIDC_NAME` | |
+| `oidc_create_users` | `WMS_OIDC_CREATE_USERS` | true/false |
+| `oidc_default_role` | `WMS_OIDC_DEFAULT_ROLE` | `admin`, `supervisor`, `inventory_controller`, `receiver`, `picker` |
+
+The PATCH body is any of these keys:
+```json
+{ "message_ttl_hours": 48, "platen_key": "pk_....", "oidc_issuer": null }
+```
+`null` clears the saved value, back to `.env` or the default. `""` is a
+deliberate blank and wins over `.env`: `"oidc_issuer": ""` turns single sign-on
+off even when `.env` sets an issuer. `platen_key` and `oidc_client_secret` are
+write-only: never returned, only whether they are set, under `secrets`. An
+unknown key or a bad value is a `422` with the field it is about. Each change
+writes an audit row `system.settings_changed`, with secret values redacted.
+
+Hosting stays in `.env` only: the Postgres values, `WMS_DATABASE_URL`,
+`WMS_SECRET_KEY`, `WMS_DOMAIN`, `WMS_API_PORT`, `BACKUP_KEEP_DAYS`.
 
 ### API clients (keys)
 - `POST /v1/api-clients` — `{ name, scopes, warehouses, owner, ip_allowlist }`
@@ -995,7 +1048,8 @@ Needs `access:admin` to change, `access:read` to list.
 A key carries a list of scopes, `area:verb` or `area:*` or `*`:
 `master:read`, `master:write`, `stock:read`, `stock:write`, `tasks:read`,
 `tasks:write`, `printing:read`, `printing:write`, `integration:read`,
-`integration:admin`, `access:read`, `access:admin`. It also carries the warehouse codes it may touch (or `*`)
+`integration:admin`, `access:read`, `access:admin`, `system:read`,
+`system:write`. It also carries the warehouse codes it may touch (or `*`)
 and one owner (or `*`). A signed-in person gets scopes from their role and
 warehouses from their account. A call outside any of those is `403`.
 A missing or unknown key is `401`.
@@ -1080,7 +1134,7 @@ other end.
 ```
 
 The password is never stored. `passwd_env` names an environment variable and
-the worker reads it from the host, beside every other secret. A body that
+the worker reads it from the host's `.env`. A body that
 puts `passwd` in `connection` is refused with a `422` against
 `settings.connection.passwd_env`, and one with no plants against
 `settings.plant_by_warehouse`, so a form can put the message under the field
@@ -1147,7 +1201,8 @@ warehouse's `platen_url` setting; a job for a warehouse without one waits in
 the queue until it is set. A refusal is retried on the same backoff as
 events (1 min, 5, 30, 2 h), then marked `failed` for a reprint.
 
-With `WMS_PLATEN_KEY` set in the host's `.env`, the worker also sends
+With a Platen key set (system setting `platen_key` on the Settings screen,
+or `WMS_PLATEN_KEY` in `.env`), the worker also sends
 `Authorization: Bearer <key>`. Against Platen the URL is
 `https://<platen>/intake/wms` and the key is an operator key from Platen's
 Keys screen. Platen reports back on `POST /v1/print-jobs/{job_id}/status`

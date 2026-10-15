@@ -18,7 +18,7 @@ const SETTINGS = {
   allow_ship_short: false, supervisor_for_short_pick: true, auto_pick_mode: "auto", batch_pick_max_orders: 6,
   idle_logout_minutes: 15, pin_lockout_tries: 5, known_devices_only: true, queue_offline_confirmations: true,
   fifo_by_received_date: true, blind_counts: true, decimals_allowed: true, platen_url: "https://platen.internal/jobs",
-  retry_failed_print_jobs: true, default_copies: 1, ledger_retention_years: 7, duplicate_window_hours: 24,
+  retry_failed_print_jobs: true, default_copies: 1, ledger_retention_years: 7,
   allow_hard_deletes: false,
 };
 

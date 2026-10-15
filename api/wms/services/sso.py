@@ -7,7 +7,8 @@ us. Nothing here verifies a signature, because nothing here has to: the
 tokens arrive down an authenticated TLS channel from the issuer itself, not
 through the browser.
 
-Configured with environment variables, alongside the rest of the secrets."""
+Configured on the Settings screen, with the environment variables in `.env`
+as the fallback for anything left unset there."""
 from __future__ import annotations
 
 import base64
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from wms.config import get_settings
+from wms.services import system
 
 STATE_TTL_SECONDS = 600
 DEFAULT_SCOPES = "openid email profile"
@@ -45,12 +46,12 @@ class Identity:
 
 
 def configured() -> bool:
-    s = get_settings()
+    s = system.current()
     return bool(s.oidc_issuer and s.oidc_client_id and s.oidc_redirect_uri)
 
 
 def provider_name() -> str | None:
-    s = get_settings()
+    s = system.current()
     if not configured():
         return None
     return s.oidc_name or s.oidc_issuer.split("//")[-1].split("/")[0]
@@ -62,34 +63,34 @@ def _require_configured() -> None:
                        "single sign-on is not set up on this install")
 
 
-# Discovery, fetched once. A provider's endpoints do not move about.
-_DISCOVERY: dict | None = None
+# Discovery, fetched once per issuer. A provider's endpoints do not move
+# about, but the issuer can be changed on the Settings screen.
+_DISCOVERY: dict[str, dict] = {}
 
 
 def forget_discovery() -> None:
-    global _DISCOVERY
-    _DISCOVERY = None
+    _DISCOVERY.clear()
 
 
 def discovery(http: httpx.Client | None = None) -> dict:
-    global _DISCOVERY
-    if _DISCOVERY is not None:
-        return _DISCOVERY
-    s = get_settings()
-    url = s.oidc_issuer.rstrip("/") + "/.well-known/openid-configuration"
+    s = system.current()
+    issuer = s.oidc_issuer.rstrip("/")
+    if issuer in _DISCOVERY:
+        return _DISCOVERY[issuer]
+    url = issuer + "/.well-known/openid-configuration"
     client = http or httpx.Client(timeout=s.worker_http_timeout_seconds)
     try:
         resp = client.get(url)
         if resp.status_code != 200:
             raise SsoError(502, "sso_unreachable",
                            f"the identity provider did not answer at {url}")
-        _DISCOVERY = resp.json()
+        _DISCOVERY[issuer] = resp.json()
     except httpx.HTTPError as exc:
         raise SsoError(502, "sso_unreachable", f"could not reach {url}: {exc}") from exc
     finally:
         if http is None:
             client.close()
-    return _DISCOVERY
+    return _DISCOVERY[issuer]
 
 
 # Half-finished sign ins: the PKCE verifier, kept here and never sent to the
@@ -106,7 +107,7 @@ def _sweep(now: float) -> None:
 def start() -> dict:
     """Where to send the browser, and the state to expect back."""
     _require_configured()
-    s = get_settings()
+    s = system.current()
     endpoints = discovery()
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -130,7 +131,7 @@ def start() -> dict:
 def finish(code: str, state: str) -> Identity:
     """Swap the code for an access token, then ask who it belongs to."""
     _require_configured()
-    s = get_settings()
+    s = system.current()
     found = _PENDING.pop(state, None)
     if found is None or found[1] <= time.time():
         raise SsoError(401, "unknown_state", "that sign in has expired; start again")

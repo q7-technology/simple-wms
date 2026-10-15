@@ -18,10 +18,9 @@ import httpx
 from sqlalchemy import case, delete, select, update
 from sqlalchemy.orm import Session
 
-from wms.config import get_settings
 from wms.db import get_sessionmaker
 from wms.models import InboundMessage, OutboundEvent, Subscriber
-from wms.services import sap
+from wms.services import sap, system
 
 log = logging.getLogger("wms.worker")
 
@@ -51,7 +50,7 @@ def deliver(http: httpx.Client, row: OutboundEvent, now: datetime,
     error = None
     try:
         resp = http.post(row.subscriber.url, content=body, headers=headers,
-                         timeout=get_settings().worker_http_timeout_seconds)
+                         timeout=system.current().worker_http_timeout_seconds)
         if not 200 <= resp.status_code < 300:
             error = f"HTTP {resp.status_code}: {resp.text[:200]}"
     except httpx.HTTPError as exc:
@@ -125,6 +124,7 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
     from wms.services.settings import effective
 
     now = now or datetime.now(UTC)
+    settings = system.current()
     rows = session.execute(
         select(PrintJob)
         .where(PrintJob.status == "pending", PrintJob.next_attempt_at <= now)
@@ -147,12 +147,12 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
         }, separators=(",", ":")).encode()
         headers = {"Content-Type": "application/json", "X-WMS-Job-Id": str(job.job_id),
                    "X-WMS-Template": f"{job.template}/{job.version}", "User-Agent": "simple-wms/0.1"}
-        if key := get_settings().platen_key:
+        if key := settings.platen_key:
             headers["Authorization"] = f"Bearer {key}"
         error = None
         try:
             resp = http.post(url, content=body, headers=headers,
-                             timeout=get_settings().worker_http_timeout_seconds)
+                             timeout=settings.worker_http_timeout_seconds)
             if not 200 <= resp.status_code < 300:
                 error = f"HTTP {resp.status_code}: {resp.text[:200]}"
         except httpx.HTTPError as exc:
@@ -185,7 +185,7 @@ def send_print_jobs(session: Session, http: httpx.Client, now: datetime | None =
 
 def purge_inbound_messages(session: Session, now: datetime | None = None) -> int:
     now = now or datetime.now(UTC)
-    cutoff = now - timedelta(hours=get_settings().message_ttl_hours)
+    cutoff = now - timedelta(hours=system.current().message_ttl_hours)
     result = session.execute(delete(InboundMessage).where(InboundMessage.received_at < cutoff))
     session.commit()
     return result.rowcount
@@ -210,11 +210,11 @@ def wait_for_schema(session: Session, timeout: float = 120, poll: float = 2) -> 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    settings = get_settings()
     make_session = get_sessionmaker()
     with make_session() as session:
         wait_for_schema(session)
-    log.info("worker started, polling events and print jobs every %ss", settings.worker_poll_seconds)
+    log.info("worker started, polling events and print jobs every %ss",
+             system.current().worker_poll_seconds)
     last_purge = 0.0
     with httpx.Client() as http:
         while True:
@@ -230,7 +230,8 @@ def main() -> None:
                 log.exception("worker loop error")
                 done = 0
             if done == 0:
-                time.sleep(settings.worker_poll_seconds)
+                # read each time round: the Settings screen may have changed it
+                time.sleep(system.current().worker_poll_seconds)
 
 
 if __name__ == "__main__":

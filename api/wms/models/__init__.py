@@ -12,9 +12,10 @@ from wms.models.documents import (
     ProductionComponent, ProductionOrder, ProductionReceipt, Receipt, ReceiptLine, Transfer,
     TransferLine,
 )
+from wms.models.system import SystemSetting
 
 __all__ = [
     "Base", "Site", "Warehouse", "Zone", "Location", "Product", "ProductBarcode", "Batch",
     "StockLedger", "StockBalance", "Task", "TaskLine", "User", "Operator", "Device",
-    "ApiClient", "AuditLog", "UserSession", "Owner", "Subscriber", "OutboundEvent", "PrintJob", "PrintPoint", "ScanPattern", "InboundMessage", "Receipt", "ReceiptLine", "Delivery", "DeliveryLine", "Package", "PackageLine", "Transfer", "TransferLine", "ProductionOrder", "ProductionComponent", "ProductionReceipt", "PickBatch", "PickBatchMember", "Container",
+    "ApiClient", "AuditLog", "UserSession", "Owner", "Subscriber", "OutboundEvent", "PrintJob", "PrintPoint", "ScanPattern", "InboundMessage", "Receipt", "ReceiptLine", "Delivery", "DeliveryLine", "Package", "PackageLine", "Transfer", "TransferLine", "ProductionOrder", "ProductionComponent", "ProductionReceipt", "PickBatch", "PickBatchMember", "Container", "SystemSetting",
 ]

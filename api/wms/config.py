@@ -4,6 +4,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Read from `.env` once at start. Everything from message_ttl_hours down
+    can be overridden on the Settings screen (wms.services.system); use
+    system.current() for those. The database URL and secret key are `.env` only."""
+
     model_config = SettingsConfigDict(env_prefix="WMS_", extra="ignore")
 
     database_url: str = "postgresql+psycopg://wms:wms@127.0.0.1:5432/wms"
@@ -12,7 +16,8 @@ class Settings(BaseSettings):
     worker_poll_seconds: float = 5.0
     worker_http_timeout_seconds: float = 10.0
     # Platen's operator key, sent as a bearer token with every print job.
-    # Here and not in warehouse settings, which anyone who may read settings sees.
+    # Not in warehouse settings, which anyone who may read settings sees. An
+    # admin can set it on the Settings screen (write-only); this is the fallback.
     platen_key: str = ""
 
     # Single sign-on. Leave the issuer empty and the sign-in screen offers

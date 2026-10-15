@@ -44,7 +44,6 @@ class WarehouseSettings(BaseModel):
     default_copies: int = Field(default=1, ge=1, le=10)
     # Data
     ledger_retention_years: int = Field(default=7, ge=1, le=50)
-    duplicate_window_hours: int = Field(default=24, ge=1, le=720)
     allow_hard_deletes: bool = False
 
     @field_validator("allow_hard_deletes")

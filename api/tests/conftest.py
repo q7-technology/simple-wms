@@ -44,12 +44,18 @@ def engine():
     command.upgrade(cfg, "head")
     yield engine
     engine.dispose()
+    # the app's own pool, which system.current() reads settings through
+    from wms.db import get_engine
+    if get_engine.cache_info().currsize:
+        get_engine().dispose()
 
 
 @pytest.fixture
 def db(engine):
     from wms.models import Base
+    from wms.services import system
 
+    system.forget()     # a cached settings row must not outlive its test
     with Session(engine) as session:
         yield session
         session.rollback()
@@ -59,6 +65,7 @@ def db(engine):
         # DEFAULT is seeded by migration 0010 and everything falls back to it
         conn.execute(text("insert into owner (code, name, settings, active, created_at) "
                           "values ('DEFAULT', 'Default owner', '{}', true, now())"))
+    system.forget()
 
 
 @pytest.fixture

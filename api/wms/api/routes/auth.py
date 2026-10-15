@@ -12,8 +12,7 @@ from sqlalchemy import select
 from wms.api.deps import DB, Who, client_ip
 from wms.api.errors import Conflict, FieldError, Forbidden, Unauthorised
 from wms.models import User
-from wms.config import get_settings
-from wms.services import access, audit, sessions, sso, totp
+from wms.services import access, audit, sessions, sso, system, totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -292,7 +291,7 @@ def sso_callback(body: SsoCallbackIn, request: Request, db: DB):
     if user is None and identity.username:
         user = db.execute(select(User).where(User.username == identity.username)).scalars().first()
 
-    settings = get_settings()
+    settings = system.current()
     if user is None and settings.oidc_create_users and identity.username:
         user = User(username=identity.username, display_name=identity.display_name or identity.username,
                     email=identity.email, role=settings.oidc_default_role, warehouses=["*"],

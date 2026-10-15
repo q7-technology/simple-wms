@@ -5,7 +5,7 @@ from wms.api import errors
 from wms.api.deps import DB
 from wms.api.routes import (
     access, auth, batch_pick, batches, containers, imports, inbound, integration, outbound, owners,
-    printing, production, products, reports, scans, stock, structure, tasks, transfers,
+    printing, production, products, reports, scans, stock, structure, system, tasks, transfers,
 )
 import wms.services.inbound  # noqa: F401  registers task hooks
 import wms.services.outbound  # noqa: F401  registers task hooks
@@ -41,6 +41,7 @@ v1.include_router(scans.router)
 v1.include_router(imports.router)
 v1.include_router(integration.router)
 v1.include_router(access.router)
+v1.include_router(system.router)
 
 
 @v1.get("/health", tags=["system"])
