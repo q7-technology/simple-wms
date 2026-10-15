@@ -89,8 +89,13 @@ ships again from there. Subscribers hear `delivery.returned`, then
 **Returns aren't posted to SAP yet.** The SAP adapter takes
 `delivery.returned` and posts nothing, so a delivery that comes back and
 ships again reaches SAP as a second goods issue (`601`) with nothing in
-between. Whoever looks after SAP should map returns before relying on it.
-See `docs/api.md` under SAP.
+between, and no setting changes that: posting returns to SAP needs a code
+change. See `docs/api.md` under SAP.
+
+**Reports count it once.** The shipped report and the billing report's
+"Cartons shipped" count a delivery that came back once, on the day it last
+shipped; while it waits at the dock, or once it is cancelled, they don't
+count it at all.
 
 ## Backups
 
