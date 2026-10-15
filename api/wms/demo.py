@@ -34,10 +34,10 @@ WAREHOUSES = [
 ZONES = {
     "BAL-WH01": [("RECEIVE", "Receiving dock", "staging"), ("BULK", "Bulk", "bulk"),
                  ("PICKFACE", "Pick face", "pickface"), ("PACK", "Packing", "packing"),
-                 ("IN-TRANSIT", "In transit", "in_transit")],
+                 ("IN-TRANSIT", "In transit", "in_transit"), ("RETURNS", "Returns", "returns")],
     "MEL-WH01": [("RECEIVE", "Receiving dock", "staging"), ("BULK", "Bulk", "bulk"),
                  ("PICKFACE", "Pick face", "pickface"), ("PACK", "Packing", "packing"),
-                 ("IN-TRANSIT", "In transit", "in_transit")],
+                 ("IN-TRANSIT", "In transit", "in_transit"), ("RETURNS", "Returns", "returns")],
 }
 
 # (code, zone, type, access, pick_sequence)
@@ -59,6 +59,7 @@ LOCATIONS = {
         ("PACK-01", "PACK", "floor", "ground", 900),
         ("PACK-02", "PACK", "floor", "ground", 910),
         ("BAL-TRANSIT", "IN-TRANSIT", "in_transit", "ground", 0),
+        ("RETURNS-01", "RETURNS", "dock", "ground", 30),
     ],
     "MEL-WH01": [
         ("MEL-DOCK-01", "RECEIVE", "dock", "ground", 10),
@@ -68,6 +69,7 @@ LOCATIONS = {
         ("MB-01-02-A", "BULK", "rack", "forklift", 320),
         ("MEL-PACK-01", "PACK", "floor", "ground", 900),
         ("MEL-TRANSIT", "IN-TRANSIT", "in_transit", "ground", 0),
+        ("MEL-RETURNS-01", "RETURNS", "dock", "ground", 30),
     ],
 }
 

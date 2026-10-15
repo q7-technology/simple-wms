@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 
 from wms.demo import SeedError, seed_demo
-from wms.models import ApiClient, Receipt, StockBalance, StockLedger, Task
+from wms.models import ApiClient, Location, Receipt, StockBalance, StockLedger, Task, Warehouse, Zone
 from wms.services.ledger import rebuild_balances
 
 
@@ -31,6 +31,12 @@ def test_demo_seed_fills_a_day_and_the_ledger_rebuilds(db, client):
     assert ("count", "needs_supervisor") in kinds
     assert ("replenish", "waiting") in kinds
     assert ("transfer_receive", "done") in kinds
+
+    # each warehouse has a returns dock for deliveries that come back
+    docks = db.execute(select(Warehouse.code, Location.code).join(Zone, Zone.id == Location.zone_id)
+                       .join(Warehouse, Warehouse.id == Location.warehouse_id)
+                       .where(Zone.kind == "returns")).all()
+    assert sorted(docks) == [("BAL-WH01", "RETURNS-01"), ("MEL-WH01", "MEL-RETURNS-01")]
 
     # decimals survive the trip
     assert Decimal("250.5") in db.execute(select(StockLedger.qty_change)).scalars().all()
